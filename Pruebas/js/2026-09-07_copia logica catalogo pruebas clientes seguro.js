@@ -1,11 +1,14 @@
 ﻿// Lógica principal del catálogo público.
 
 
+
+
 // ==========================================
     // AJUSTES LOCALES Y CONFIGURACIÓN GLOBAL
     // ==========================================
     // Los valores locales funcionan como respaldo.
     // Los datos del catálogo y sus controles se leen desde un libro XLSX publicado en GitHub.
+
 
     // Fuente principal de datos comerciales y controles del catálogo de pruebas.
     // El libro conserva las hojas Productos, Configuracion y Categorias.
@@ -18,6 +21,7 @@
       refreshMs: 60000
     };
 
+
     const REMOTE_CONTROL_SOURCE = {
       enabled: true,
       controlsSheetName: GITHUB_WORKBOOK_SOURCE.controlsSheetName,
@@ -25,6 +29,8 @@
       refreshMs: GITHUB_WORKBOOK_SOURCE.refreshMs
     };
     window.REMOTE_CONTROL_SOURCE = REMOTE_CONTROL_SOURCE;
+
+
 
 
     // Las imágenes normales se relacionan por el código interno global de cuatro dígitos.
@@ -40,6 +46,10 @@
 
 
 
+
+
+
+
     // Galería visual exclusiva de "Regalos para toda ocasión".
     // La carpeta de trabajo está en Drive, pero la web solo consume su publicación en GitHub.
     // Los regalos no forman parte del inventario del archivo XLSX y sus nombres de archivo no se muestran.
@@ -47,6 +57,8 @@
       section: "Regalos para toda ocasión",
       folder: "regalos"
     };
+
+
 
 
         const INTERRUPTORES = {
@@ -59,6 +71,8 @@
           APLICAR_LIMITES_STOCK: false,
           MOSTRAR_IMAGENES_PRODUCTO: true,
           IMAGEN_SUPLENTE_PRODUCTO: "suplente.webp",
+
+
 
 
           PERMITIR_TOGGLE_PALABRAS_SUGERIDAS: true,
@@ -75,12 +89,16 @@
     window.REMOTE_CONTROL_VALUES = window.REMOTE_CONTROL_VALUES || {};
 
 
+
+
     const ALBUMES_OCULTOS_SEGUROS = [
       "Otros productos|Otros productos|Medicamentos||A la venta",
       "Otros productos|Otros productos|Electrodomésticos de segunda mano no a la venta||No a la venta"
     ];
     const ALBUMES_EXCLUIDOS_SEGUROS = ALBUMES_OCULTOS_SEGUROS.slice();
     const REMOTE_CATEGORIES_CACHE_KEY = "irenismb_remote_routes_cache";
+
+
 
 
     function readRemoteCategoryCache(){
@@ -91,6 +109,8 @@
         if(!parsed || typeof parsed !== "object") return null;
 
 
+
+
         const cleanList = value => Array.isArray(value)
           ? value
               .map(item => String(item || "").trim())
@@ -99,9 +119,13 @@
           : null;
 
 
+
+
         const hidden = cleanList(parsed.hidden);
         const excluded = cleanList(parsed.excluded);
         if(!hidden || !excluded) return null;
+
+
 
 
         return { hidden, excluded };
@@ -109,6 +133,8 @@
         return null;
       }
     }
+
+
 
 
     function saveRemoteCategoryCache(hidden, excluded){
@@ -121,7 +147,11 @@
     }
 
 
+
+
     const cachedCategoryConfig = readRemoteCategoryCache();
+
+
 
 
     const ALBUMES_OCULTOS = cachedCategoryConfig
@@ -130,10 +160,14 @@
     window.ALBUMES_OCULTOS = ALBUMES_OCULTOS;
 
 
+
+
     const ALBUMES_EXCLUIDOS_EN_BUSQUEDA = cachedCategoryConfig
       ? cachedCategoryConfig.excluded.slice()
       : ALBUMES_EXCLUIDOS_SEGUROS.slice();
     window.ALBUMES_EXCLUIDOS_EN_BUSQUEDA = ALBUMES_EXCLUIDOS_EN_BUSQUEDA;
+
+
 
 
     function shouldEnforceStockLimits(){
@@ -159,6 +193,8 @@
     }
 
 
+
+
     function shouldShowProductImageInNavigationPanels(){
       return !!(
         shouldShowProductImages() &&
@@ -173,16 +209,26 @@
     }
 
 
+
+
     const WHATSAPP_NUMBER = "573042088961";
+
+
 
 
     const LOGOS_DIR = "logos";
 
 
+
+
     const fmtCOP = new Intl.NumberFormat("es-CO", { style:"currency", currency:"COP", maximumFractionDigits:0 });
 
 
+
+
     const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/${GITHUB_CATALOG_SOURCE.catalogDir}/`;
+
+
 
 
     const COMPANY_LOGOS = [
@@ -190,6 +236,8 @@
       SITE_BASE + LOGOS_DIR + "/logo_empresa.png"
     ];
     const COMPANY_LOGO = COMPANY_LOGOS[0];
+
+
 
 
     function normalizeText(t){
@@ -200,6 +248,8 @@
         .replace(/[\u0300-\u036f]/g, "")
         .trim();
     }
+
+
 
 
     function categoryDisplayLabel(value){
@@ -229,6 +279,8 @@
     }
 
 
+
+
     function shouldApplyHiddenAlbums(){
       return !!(window.INTERRUPTORES && window.INTERRUPTORES.APLICAR_ALBUMES_OCULTOS === true);
     }
@@ -247,6 +299,8 @@
         .map(item => normalizeText(item))
         .filter(Boolean);
     }
+
+
 
 
     function toNumberDigits(s){
@@ -276,9 +330,13 @@
     }
 
 
+
+
     function buildPlaceholderCandidates(){
       const list = [];
       const picked = sanitizeLogoFilename(window.INTERRUPTORES?.IMAGEN_SUPLENTE_PRODUCTO);
+
+
 
 
       if(picked){
@@ -292,6 +350,8 @@
       }
 
 
+
+
       list.push(
         SITE_BASE + LOGOS_DIR + "/suplente.webp",
         SITE_BASE + LOGOS_DIR + "/suplente.png",
@@ -299,17 +359,27 @@
       );
 
 
+
+
       return [...new Set(list)];
     }
+
+
 
 
     let PRODUCT_PLACEHOLDERS = buildPlaceholderCandidates();
     let PRODUCT_PLACEHOLDER_IMAGE = (PRODUCT_PLACEHOLDERS[0] || COMPANY_LOGO);
 
 
+
+
     function productPlaceholderAbsoluteUrl(){
       return PRODUCT_PLACEHOLDER_IMAGE || COMPANY_LOGO;
     }
+
+
+
+
 
 
 
@@ -320,6 +390,8 @@
           PRODUCT_PLACEHOLDERS = buildPlaceholderCandidates();
 
 
+
+
           let i = 0;
           const tryNext = ()=>{
             if(i >= PRODUCT_PLACEHOLDERS.length){
@@ -327,6 +399,8 @@
               resolve();
               return;
             }
+
+
 
 
             const url = PRODUCT_PLACEHOLDERS[i++];
@@ -342,6 +416,8 @@
           };
 
 
+
+
           tryNext();
         }catch(_){
           PRODUCT_PLACEHOLDER_IMAGE = COMPANY_LOGO;
@@ -349,6 +425,10 @@
         }
       });
     }
+
+
+
+
 
 
 
@@ -827,9 +907,13 @@
       "regalos/7.webp"
 ]);
 
+
     function staticGitHubImageIndex(){
       return STATIC_GITHUB_IMAGE_PATHS.map(path => ({ path, type:"blob" }));
     }
+
+
+
 
 
 
@@ -838,16 +922,19 @@
     let githubWorkbookLoadedAt = 0;
     let xlsxLibraryPromise = null;
 
+
     function githubWorkbookUrl(){
       const path = `${GITHUB_WORKBOOK_SOURCE.folder}/${GITHUB_WORKBOOK_SOURCE.filename}`;
       return `${SITE_BASE}${encodeRepoPath(path)}`;
     }
+
 
     function ensureXlsxLibrary(){
       if(window.XLSX && typeof window.XLSX.read === "function" && window.XLSX.utils){
         return Promise.resolve(window.XLSX);
       }
       if(xlsxLibraryPromise) return xlsxLibraryPromise;
+
 
       xlsxLibraryPromise = new Promise((resolve, reject)=>{
         const script = document.createElement("script");
@@ -868,14 +955,17 @@
         document.head.appendChild(script);
       });
 
+
       return xlsxLibraryPromise;
     }
+
 
     async function loadGithubWorkbook(){
       const now = Date.now();
       if(githubWorkbookCache && (now - githubWorkbookLoadedAt) < GITHUB_WORKBOOK_CACHE_MS){
         return githubWorkbookCache;
       }
+
 
       const XLSX = await ensureXlsxLibrary();
       const controller = new AbortController();
@@ -889,6 +979,7 @@
           throw new Error(`GitHub respondió ${response.status} al consultar el archivo XLSX.`);
         }
 
+
         const buffer = await response.arrayBuffer();
         const workbook = XLSX.read(buffer, { type:"array", cellDates:false });
         githubWorkbookCache = workbook;
@@ -898,6 +989,7 @@
         window.clearTimeout(timer);
       }
     }
+
 
     function githubWorkbookSheetMatrix(workbook, sheetName){
       const sheet = workbook && workbook.Sheets ? workbook.Sheets[sheetName] : null;
@@ -910,10 +1002,12 @@
       });
     }
 
+
     function workbookCellText(value){
       if(value === undefined || value === null) return "";
       return String(value).trim();
     }
+
 
     async function loadGithubWorkbookRows(){
       const workbook = await loadGithubWorkbook();
@@ -922,6 +1016,7 @@
         const value = index => workbookCellText(c[index]);
         let code = value(0);
         if(/^\d{1,4}$/.test(code)) code = code.padStart(4, "0");
+
 
         return {
           code,
@@ -948,17 +1043,20 @@
         };
       }).filter(row => /^\d{4}$/.test(row.code) && row.name);
 
+
       if(!rows.length){
         throw new Error("El archivo XLSX de GitHub no devolvió productos válidos.");
       }
       return rows;
     }
 
+
     async function loadGithubWorkbookMatrix(sheetName){
       const workbook = await loadGithubWorkbook();
       const matrix = githubWorkbookSheetMatrix(workbook, sheetName);
       return matrix.slice(1).map(row => row.map(workbookCellText));
     }
+
 
     function parseRemoteBoolean(value){
       const normalized = normalizeText(value).replace(/\s+/g, " ");
@@ -968,6 +1066,8 @@
     }
 
 
+
+
     function applyRemoteControlRows(rows){
       let changed = false;
       for(const row of (Array.isArray(rows) ? rows : [])){
@@ -975,8 +1075,12 @@
         if(!key) continue;
 
 
+
+
         const rawState = String(row?.[1] || "").trim();
         window.REMOTE_CONTROL_VALUES[key] = rawState;
+
+
 
 
         const state = parseRemoteBoolean(rawState);
@@ -990,6 +1094,8 @@
     }
 
 
+
+
     function routeKeyFromParts(section, category, subcategory, fragranceFamily, commercialState){
       return [section, category, subcategory, fragranceFamily, commercialState]
         .map(value => normalizeText(value).replace(/\s+/g, " "))
@@ -997,11 +1103,15 @@
     }
 
 
+
+
     function applyRemoteCategoryRows(rows){
       const hidden = [];
       const excluded = [];
       const allowed = [];
       let validRows = 0;
+
+
 
 
       for(const row of (Array.isArray(rows) ? rows : [])){
@@ -1013,9 +1123,13 @@
         if(!section || !category || !commercialState) continue;
 
 
+
+
         const hiddenState = parseRemoteBoolean(row?.[5]);
         const excludedState = parseRemoteBoolean(row?.[6]);
         if(hiddenState === null && excludedState === null) continue;
+
+
 
 
         validRows++;
@@ -1026,10 +1140,14 @@
       }
 
 
+
+
       if(validRows === 0){
         console.info("La hoja Categorias no devolvió rutas válidas; se conserva la configuración anterior.");
         return false;
       }
+
+
 
 
       const uniqueHidden = [...new Set(hidden)];
@@ -1037,9 +1155,13 @@
       const uniqueAllowed = [...new Set(allowed)];
 
 
+
+
       const previousHidden = JSON.stringify(window.ALBUMES_OCULTOS || []);
       const previousExcluded = JSON.stringify(window.ALBUMES_EXCLUIDOS_EN_BUSQUEDA || []);
       const previousAllowed = JSON.stringify([...allowedProductRouteKeySet].sort());
+
+
 
 
       window.ALBUMES_OCULTOS = uniqueHidden;
@@ -1048,15 +1170,21 @@
       saveRemoteCategoryCache(uniqueHidden, uniqueExcluded);
 
 
+
+
       return previousHidden !== JSON.stringify(uniqueHidden) ||
              previousExcluded !== JSON.stringify(uniqueExcluded) ||
              previousAllowed !== JSON.stringify([...allowedProductRouteKeySet].sort());
     }
 
 
+
+
     async function refreshRemoteCatalogConfiguration(options = {}){
       const rebuild = options.rebuild !== false;
       const initial = options.initial === true;
+
+
 
 
       if(!REMOTE_CONTROL_SOURCE.enabled) return false;
@@ -1076,7 +1204,11 @@
       ]);
 
 
+
+
       let changed = false;
+
+
 
 
       if(controlsResult.status === "fulfilled"){
@@ -1086,6 +1218,8 @@
       }
 
 
+
+
       if(categoriesResult.status === "fulfilled"){
         changed = applyRemoteCategoryRows(categoriesResult.value) || changed;
       }else{
@@ -1093,10 +1227,14 @@
       }
 
 
+
+
       if(initial){
         wordSuggestionsVisible = shouldShowSuggestionsInitially();
         syncWordToggleButton();
       }
+
+
 
 
       if(changed && rebuild && allLoadedProducts.length){
@@ -1108,8 +1246,12 @@
       }
 
 
+
+
       return changed;
     }
+
+
 
 
     let remoteConfigPollingTimer = 0;
@@ -1117,6 +1259,8 @@
     window.REMOTE_CONFIG_READY = new Promise(resolve => {
       remoteConfigReadyResolver = resolve;
     });
+
+
 
 
     async function initializeRemoteCatalogConfiguration(){
@@ -1132,6 +1276,8 @@
       }
 
 
+
+
       const interval = Math.max(30000, Number(REMOTE_CONTROL_SOURCE.refreshMs) || 60000);
       if(REMOTE_CONTROL_SOURCE.enabled && !remoteConfigPollingTimer){
         remoteConfigPollingTimer = window.setInterval(()=>{
@@ -1141,6 +1287,8 @@
         }, interval);
       }
     }
+
+
 
 
     function readGitHubImageIndexCache(){
@@ -1158,6 +1306,8 @@
     }
 
 
+
+
     function saveGitHubImageIndexCache(entries){
       try{
         const paths = (Array.isArray(entries) ? entries : [])
@@ -1169,6 +1319,8 @@
         }));
       }catch(_){}
     }
+
+
 
 
     async function fetchGitHubJson(url){
@@ -1192,6 +1344,8 @@
     }
 
 
+
+
     async function refreshGitHubImageIndexCache(){
       const ref = encodeURIComponent(GITHUB_CATALOG_SOURCE.branch);
       const treeUrl = `${GITHUB_API_BASE}/git/trees/${ref}?recursive=1`;
@@ -1199,6 +1353,7 @@
       if(!treePayload || !Array.isArray(treePayload.tree) || treePayload.truncated){
         throw new Error("La API de GitHub no devolvió un árbol completo del repositorio.");
       }
+
 
       const prefix = `${GITHUB_CATALOG_SOURCE.catalogDir}/${GITHUB_CATALOG_SOURCE.productsFolder}/`;
       const entries = treePayload.tree
@@ -1214,18 +1369,22 @@
           path:String(entry.path || "").slice(prefix.length)
         }));
 
+
       if(!entries.length){
         throw new Error("La API de GitHub no encontró imágenes publicadas dentro de la carpeta productos.");
       }
+
 
       saveGitHubImageIndexCache(entries);
       return entries;
     }
 
+
     async function loadGitHubImageIndex(){
       const staticEntries = staticGitHubImageIndex();
       const cachedEntries = readGitHubImageIndexCache();
       const merged = new Map();
+
 
       for(const entry of staticEntries){
         if(entry && entry.path) merged.set(String(entry.path), entry);
@@ -1234,14 +1393,18 @@
         if(entry && entry.path) merged.set(String(entry.path), entry);
       }
 
+
       runIdle(()=>{
         refreshGitHubImageIndexCache().catch(error=>{
           console.info("No se pudo refrescar el índice de imágenes; se conserva el índice local disponible.", error);
         });
       }, 1800);
 
+
       return [...merged.values()];
     }
+
+
 
 
     function encodeRepoPath(path){
@@ -1253,10 +1416,14 @@
     }
 
 
+
+
     function publishedGitHubAssetUrl(relativePath){
       const clean = String(relativePath || "").replace(/^\/+/, "");
       return `${SITE_BASE}${encodeRepoPath(clean)}`;
     }
+
+
 
 
     function extractGlobalProductCode(filename){
@@ -1266,11 +1433,15 @@
     }
 
 
+
+
     function extensionOfFilename(filename){
       const name = String(filename || "");
       const dot = name.lastIndexOf(".");
       return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
     }
+
+
 
 
     function extractProductImageSequence(filename){
@@ -1282,6 +1453,8 @@
     }
 
 
+
+
     function choosePreferredImage(currentEntry, candidateEntry){
       if(!currentEntry) return candidateEntry;
       const ranking = { webp:1, png:2, jpg:3, jpeg:4, avif:5, gif:6 };
@@ -1291,9 +1464,13 @@
     }
 
 
+
+
     function orderProductImageEntries(entries){
       const numbered = new Map();
       const legacyByStem = new Map();
+
+
 
 
       for(const entry of (Array.isArray(entries) ? entries : [])){
@@ -1303,15 +1480,21 @@
         const sequence = extractProductImageSequence(filename);
 
 
+
+
         if(sequence !== null){
           numbered.set(sequence, choosePreferredImage(numbered.get(sequence), entry));
           continue;
         }
 
 
+
+
         const stem = path.replace(/\.[^.\/]+$/, "").toLowerCase();
         legacyByStem.set(stem, choosePreferredImage(legacyByStem.get(stem), entry));
       }
+
+
 
 
       const numberedEntries = [...numbered.entries()]
@@ -1321,8 +1504,12 @@
         .sort((a,b)=>String(a.path || "").localeCompare(String(b.path || ""), "es", { numeric:true, sensitivity:"base" }));
 
 
+
+
       return numberedEntries.length ? [...numberedEntries, ...legacyEntries] : legacyEntries;
     }
+
+
 
 
     async function loadGithubWorkbookCatalog(){
@@ -1336,6 +1523,8 @@
       }
 
 
+
+
       let imageEntries = [];
       try{
         imageEntries = await loadGitHubImageIndex();
@@ -1345,11 +1534,15 @@
       }
 
 
+
+
       const sheetCodes = new Set(
         rows.map(row => String(row && row.code || "").trim()).filter(Boolean)
       );
       const imagesByCode = new Map();
       const entries = Array.isArray(imageEntries) ? imageEntries : [];
+
+
 
 
       try{
@@ -1359,14 +1552,20 @@
           if(!relativePath || !filename) continue;
 
 
+
+
           const code = extractGlobalProductCode(filename);
           if(!code || !sheetCodes.has(code)) continue;
+
+
 
 
           const list = imagesByCode.get(code) || [];
           list.push(entry);
           imagesByCode.set(code, list);
         }
+
+
 
 
         for(const [code, entriesForCode] of imagesByCode){
@@ -1376,6 +1575,8 @@
         console.warn("No se pudo asociar el índice de imágenes a los productos. El catálogo continuará con imágenes suplentes.", error);
         imagesByCode.clear();
       }
+
+
 
 
       let giftImageUrls = [];
@@ -1398,11 +1599,15 @@
       }
 
 
+
+
       return {
         sheetEntries: rows.map(row => ({ row, imageIndex:imagesByCode })),
         giftImageUrls
       };
     }
+
+
 
 
     function parseOptionalWholeNumber(value){
@@ -1415,10 +1620,14 @@
     }
 
 
+
+
     function parseOfficialInventoryRecord(item){
       const rawName = String((item && item.name) || "").trim();
       const rawDescription = String((item && item.description) || "").trim();
       const officialRecordPattern = /^([\s\S]+?)\.\s*Precio:\s*([\d.\s]*)\s*Costo:\s*([\d.\s]*)\s*Stock:\s*([\d\s]*)\s*Referencia externa:\s*([\s\S]*)$/i;
+
+
 
 
       let match = null;
@@ -1426,6 +1635,8 @@
         match = candidate.match(officialRecordPattern);
         if(match) break;
       }
+
+
 
 
       if(!match){
@@ -1442,6 +1653,8 @@
           referenceExternal: ""
         };
       }
+
+
 
 
       const priceText = match[2].trim();
@@ -1466,6 +1679,8 @@
       }
 
 
+
+
       return {
         matched: true,
         name: match[1].trim(),
@@ -1478,10 +1693,14 @@
     }
 
 
+
+
     function makeProductFromGithubWorkbook(entry){
       const row = entry && entry.row;
       const imageIndex = entry && entry.imageIndex;
       if(!row) return null;
+
+
 
 
       const code = String(row.code || "").trim();
@@ -1496,6 +1715,8 @@
       const condition = String(row.condition || "").trim();
       const commercialState = String(row.commercialState || "A la venta").trim() || "A la venta";
       if(!/^\d{4}$/.test(code) || !name) return null;
+
+
 
 
       const indexedImages = imageIndex && imageIndex.get(code);
@@ -1514,8 +1735,12 @@
       const syntheticFilename = imageRelativePath || `${code}.webp`;
 
 
+
+
       const priceText = String(row.priceText || "").trim();
       const stockText = String(row.stockText || "").trim();
+
+
 
 
       return {
@@ -1550,6 +1775,10 @@
         searchKey: normalizeText([code, name, section, category, subcategory, fragranceFamily, fragranceType, fragranceLine, condition, row.description, row.referenceExternal].filter(Boolean).join(" "))
       };
     }
+
+
+
+
 
 
 
@@ -1597,9 +1826,13 @@
     }
 
 
+
+
     function clearLegacyProductCaches(){
       return;
     }
+
+
 
 
     function updateCatalogFooterProducts(products){
@@ -1609,10 +1842,14 @@
       const namedProducts = source.filter(product => product && String(product.name || "").trim());
 
 
+
+
       if(count){
         count.textContent = `${namedProducts.length} ${namedProducts.length === 1 ? "producto" : "productos"}`;
       }
       if(!list) return;
+
+
 
 
       const sorted = source.slice().sort((a,b)=>
@@ -1628,13 +1865,19 @@
         if(!name) continue;
 
 
+
+
         const item = document.createElement("li");
         item.dataset.productCode = String(product?.id || "").trim();
+
+
 
 
         const title = document.createElement("strong");
         title.className = "beauty-product-name";
         title.textContent = name;
+
+
 
 
         const meta = document.createElement("span");
@@ -1661,9 +1904,13 @@
         meta.textContent = metaParts.filter(Boolean).join(" · ");
 
 
+
+
         const description = document.createElement("span");
         description.className = "beauty-product-description";
         description.textContent = String(product?.description || `Producto disponible en ${product?.category || "Irenismb Stock Natura"}.`).trim();
+
+
 
 
         item.append(title, meta, description);
@@ -1671,6 +1918,8 @@
       }
       list.replaceChildren(fragment);
     }
+
+
 
 
     function isMobileDevice(){
@@ -1685,12 +1934,16 @@
     }
 
 
+
+
     /* ==========================
        WhatsApp (la compra se envía al WhatsApp de la tienda)
        ========================== */
     const LS_CLIENT_KEY = "irenismb_client";
     const LS_ADDRESS_KEY = "irenismb_address";
     const LS_SHIPPING_KEY = "irenismb_shipping_cop";
+
+
 
 
     function readJsonLS(key, fallbackObj){
@@ -1723,9 +1976,15 @@
 
 
 
+
+
+
+
     function getWhatsAppTo(){
       return WHATSAPP_NUMBER;
     }
+
+
 
 
     function waLinkTo(toDigits, text){
@@ -1741,6 +2000,8 @@
     }
 
 
+
+
     (function syncTopWhatsApp(){
       const a = document.getElementById("waTopLink");
       if (!a) return;
@@ -1749,10 +2010,14 @@
     })();
 
 
+
+
     const imgModal = document.getElementById("imgModal");
     const imgModalImg = document.getElementById("imgModalImg");
     const imgModalClose = document.getElementById("imgModalClose");
     const imgModalBackdrop = document.getElementById("imgModalBackdrop");
+
+
 
 
     let _modalLockCount = 0;
@@ -1764,6 +2029,8 @@
       _modalLockCount = Math.max(0, _modalLockCount - 1);
       if(_modalLockCount === 0) document.body.style.overflow = "";
     }
+
+
 
 
     function rememberModalTrigger(modal){
@@ -1815,6 +2082,8 @@
     }
 
 
+
+
     function openImgModal(src, alt){
       if(!imgModal || !imgModalImg || !src) return;
       if(imgModal.classList.contains("open")) return;
@@ -1839,11 +2108,15 @@
     if(imgModalBackdrop) imgModalBackdrop.addEventListener("click", closeImgModal);
 
 
+
+
     function makeImgFromFilename(filename, name, docsImageUrl=""){
       const img = document.createElement("img");
       img.alt = name ? ("Foto " + name) : "Foto del producto";
       img.loading = "lazy";
       img.decoding = "async";
+
+
 
 
       let zoomable = false;
@@ -1853,8 +2126,12 @@
       }
 
 
+
+
       const preferredUrl = String(docsImageUrl || "").trim();
       const allowReal = shouldShowProductImages() && Boolean(preferredUrl);
+
+
 
 
       if(!allowReal){
@@ -1864,6 +2141,8 @@
         zoomable = true;
         img.src = preferredUrl;
       }
+
+
 
 
       img.onerror = ()=>{
@@ -1879,6 +2158,8 @@
       };
 
 
+
+
       img.addEventListener("click", ()=>{
         if(!zoomable) return;
         const src = img.currentSrc || img.src;
@@ -1886,8 +2167,12 @@
       });
 
 
+
+
       return img;
     }
+
+
 
 
     function makeCartThumbFromFilename(filename, name, docsImageUrl=""){
@@ -1898,6 +2183,8 @@
       img.decoding = "async";
 
 
+
+
       let zoomable = false;
       function setNonZoom(){
         zoomable = false;
@@ -1905,8 +2192,12 @@
       }
 
 
+
+
       const preferredUrl = String(docsImageUrl || "").trim();
       const allowReal = shouldShowProductImages() && Boolean(preferredUrl);
+
+
 
 
       if(!allowReal){
@@ -1916,6 +2207,8 @@
         zoomable = true;
         img.src = preferredUrl;
       }
+
+
 
 
       img.onerror = ()=>{
@@ -1931,6 +2224,8 @@
       };
 
 
+
+
       img.addEventListener("click", ()=>{
         if(!zoomable) return;
         const src = img.currentSrc || img.src;
@@ -1938,13 +2233,19 @@
       });
 
 
+
+
       return img;
     }
+
+
 
 
     let allLoadedProducts = [];
     let all = [];
     let productById = new Map();
+
+
 
 
     const ROOT_ALBUM_KEY = "__root__";
@@ -1963,6 +2264,8 @@
     }
 
 
+
+
     const ROOT_ICON_IMAGES = {
       ella: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para ella perfume floral.webp"),
       el: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para el perfume azul.webp"),
@@ -1970,6 +2273,8 @@
       regalos: githubPagesAssetUrl("iconos/2026-09-06_icono categoria regalos caja lazo rosa.webp"),
       otros: githubPagesAssetUrl("iconos/2026-09-06_icono categoria otros productos hogar variedad.webp")
     };
+
+
 
 
     const NAV_AUDIENCES = [
@@ -2027,6 +2332,8 @@
     ];
 
 
+
+
     const SUBCATEGORY_ICON_IMAGES = {
       "perfumes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria perfumes fragancia floral rosa.webp"),
       "desodorantes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria desodorantes roll on vegetal.webp"),
@@ -2044,6 +2351,8 @@
       "papeleria": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria papeleria cuaderno lapiz corazon.webp"),
       "medicamentos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria medicamentos frasco capsulas medicas.webp")
     };
+
+
 
 
     const CATEGORY_VISUALS = {
@@ -2094,6 +2403,8 @@
     };
 
 
+
+
     let albums = [];
     let albumByKey = new Map();
     let selectedAudience = "";
@@ -2104,11 +2415,13 @@
     let selectedFragranceLineFilter = "";
     let selectedAlbumKey = "";
 
+
     const catalogNavigationHistory = {
       entries: [],
       index: -1,
       restoring: false
     };
+
 
     function getCatalogNavigationSnapshot(){
       return {
@@ -2123,6 +2436,7 @@
         fragranceLine:selectedFragranceLineFilter || ""
       };
     }
+
 
     function catalogNavigationSignature(snapshot){
       const s = snapshot || {};
@@ -2139,6 +2453,7 @@
       });
     }
 
+
     function notifyCatalogNavigationHistory(){
       const detail = {
         canBack:catalogNavigationHistory.index > 0,
@@ -2150,6 +2465,7 @@
       return detail;
     }
 
+
     function ensureCatalogNavigationHistory(){
       if(catalogNavigationHistory.index >= 0) return;
       catalogNavigationHistory.entries = [getCatalogNavigationSnapshot()];
@@ -2157,12 +2473,14 @@
       notifyCatalogNavigationHistory();
     }
 
+
     function syncCatalogNavigationHistoryCurrent(){
       if(catalogNavigationHistory.restoring) return;
       ensureCatalogNavigationHistory();
       catalogNavigationHistory.entries[catalogNavigationHistory.index] = getCatalogNavigationSnapshot();
       notifyCatalogNavigationHistory();
     }
+
 
     function pushCatalogNavigationHistory(){
       if(catalogNavigationHistory.restoring) return;
@@ -2179,6 +2497,7 @@
       catalogNavigationHistory.index = catalogNavigationHistory.entries.length - 1;
       notifyCatalogNavigationHistory();
     }
+
 
     function restoreCatalogNavigationSnapshot(snapshot){
       if(!snapshot) return;
@@ -2203,6 +2522,7 @@
       uxScrollToCatalogStart();
     }
 
+
     function catalogHistoryBack(){
       if(catalogNavigationHistory.index <= 0) return false;
       syncCatalogNavigationHistoryCurrent();
@@ -2211,6 +2531,7 @@
       return true;
     }
 
+
     function catalogHistoryForward(){
       if(catalogNavigationHistory.index < 0 || catalogNavigationHistory.index >= catalogNavigationHistory.entries.length - 1) return false;
       syncCatalogNavigationHistoryCurrent();
@@ -2218,6 +2539,7 @@
       restoreCatalogNavigationSnapshot(catalogNavigationHistory.entries[catalogNavigationHistory.index]);
       return true;
     }
+
 
     window.CATALOG_NAV_HISTORY = {
       back:catalogHistoryBack,
@@ -2229,15 +2551,21 @@
     let allowedProductRouteKeySet = new Set();
 
 
+
+
     function cleanNavKey(value){
       return normalizeText(value).replace(/\s+/g, " ");
     }
+
+
 
 
     function getProductRouteKey(p){
       if(!p) return "";
       return routeKeyFromParts(p.section, p.category, p.subcategory, p.fragranceFamily, p.commercialState);
     }
+
+
 
 
     function isProductRouteAuthorized(p){
@@ -2249,16 +2577,22 @@
     }
 
 
+
+
     function isProductHiddenByRoute(p){
       const key = getProductRouteKey(p);
       return Boolean(key && hiddenAlbumNameSet.has(key));
     }
 
 
+
+
     function isProductExcludedFromSearchByRoute(p){
       const key = getProductRouteKey(p);
       return Boolean(key && searchExcludedAlbumNameSet.has(key));
     }
+
+
 
 
     function mainNavigationGroupForProduct(p){
@@ -2268,9 +2602,13 @@
     }
 
 
+
+
     function productMatchesAudience(p, audienceLabel){
       return cleanNavKey(mainNavigationGroupForProduct(p)) === cleanNavKey(audienceLabel);
     }
+
+
 
 
     function navigationCategoryForProduct(p){
@@ -2279,20 +2617,25 @@
     }
 
 
+
+
     function navigationFamilyForProduct(p){
       if(!p) return "";
       return String(p.fragranceType || "").trim();
     }
+
 
     function navigationFragranceLineForProduct(p){
       if(!p) return "";
       return String(p.fragranceLine || "").trim();
     }
 
+
     function clearFragranceFilters(){
       selectedFragranceFamilyFilter = "";
       selectedFragranceLineFilter = "";
     }
+
 
     function isFragranceNavigationScope(){
       return cleanNavKey(selectedAudience) === cleanNavKey("Perfumes y fragancias") &&
@@ -2300,15 +2643,20 @@
              Boolean(selectedFamily);
     }
 
+
     function isDirectProductAudience(audienceLabel){
       const group = NAV_AUDIENCES.find(item => cleanNavKey(item.label) === cleanNavKey(audienceLabel));
       return !!(group && group.directProducts === true);
     }
 
 
+
+
     function isDirectProductSection(sectionLabel){
       return NAV_AUDIENCES.some(item => item.directProducts === true && cleanNavKey(item.section) === cleanNavKey(sectionLabel));
     }
+
+
 
 
     function collectAlbumPreview(found, p){
@@ -2319,6 +2667,8 @@
         else found.previewImages.push(previewImage);
       }
     }
+
+
 
 
     function buildRootAlbums(list){
@@ -2350,6 +2700,8 @@
       }
       return out;
     }
+
+
 
 
     function buildCategoryAlbums(list, audienceLabel){
@@ -2388,6 +2740,8 @@
           colorIndex:index % ALBUM_COLORS.length
         }));
     }
+
+
 
 
     function buildFamilyAlbums(list, audienceLabel, categoryLabel){
@@ -2431,10 +2785,14 @@
     }
 
 
+
+
     function buildAlbums(list){
       if(selectedAudience && selectedCategory) return buildFamilyAlbums(list, selectedAudience, selectedCategory);
       return selectedAudience ? buildCategoryAlbums(list, selectedAudience) : buildRootAlbums(list);
     }
+
+
 
 
     function refreshNavigationAlbums(){
@@ -2454,9 +2812,13 @@
     }
 
 
+
+
     function getProductAlbumKey(p){
       return cleanNavKey(navigationCategoryForProduct(p) || "General") || ROOT_ALBUM_KEY;
     }
+
+
 
 
     function albumLabelFromKey(key){
@@ -2467,10 +2829,14 @@
     }
 
 
+
+
     function filterVisibleProducts(list){
       const source = Array.isArray(list) ? list : [];
       return source.filter(p => isProductRouteAuthorized(p) && !isProductHiddenByRoute(p));
     }
+
+
 
 
     function filterSearchExcludedProducts(list){
@@ -2480,14 +2846,20 @@
     }
 
 
+
+
     function hasAlbumFolders(){
       return all.length > 0;
     }
 
 
+
+
     function albumModeEnabled(){
       return hasAlbumFolders();
     }
+
+
 
 
     function shouldShowAlbumGrid(){
@@ -2505,6 +2877,8 @@
     }
 
 
+
+
     function getSelectedAlbum(){
       if(selectedFamily){
         return { label:selectedFamily, navType:"family", audience:selectedAudience, category:selectedCategory };
@@ -2517,6 +2891,8 @@
       }
       return null;
     }
+
+
 
 
     function currentProductSourceList(){
@@ -2540,6 +2916,8 @@
     }
 
 
+
+
     function refreshFilterOptionsForScope(){
       if(catSel){
         catSel.value = "";
@@ -2556,6 +2934,8 @@
     }
 
 
+
+
     const cart = (() => {
       try{
         const rawCart = localStorage.getItem("cart");
@@ -2568,7 +2948,11 @@
     })();
 
 
+
+
     const cartCountEl = document.getElementById("cartCount");
+
+
 
 
     function cartItemsArray(){
@@ -2598,6 +2982,8 @@
     }
 
 
+
+
     function detectarMarcaDispositivo(modelo, ua){
       const texto = `${String(modelo || "")} ${String(ua || "")}`.toLowerCase();
       if(/iphone|ipad|ipod/.test(texto)) return "Apple";
@@ -2619,11 +3005,15 @@
     }
 
 
+
+
     async function obtenerDetalleDispositivoVisita(){
       const ua = String(navigator.userAgent || "");
       const tipo = /iPad|Tablet/i.test(ua)
         ? "Tablet"
         : (/Mobi|Android|iPhone/i.test(ua) ? "Móvil" : "Computador");
+
+
 
 
       let sistema = "";
@@ -2634,12 +3024,16 @@
       else if(/Linux/i.test(ua)) sistema = "Linux";
 
 
+
+
       let navegador = "";
       if(/Edg\//i.test(ua)) navegador = "Edge";
       else if(/Firefox\//i.test(ua)) navegador = "Firefox";
       else if(/CriOS\//i.test(ua)) navegador = "Chrome";
       else if(/Chrome\//i.test(ua)) navegador = "Chrome";
       else if(/Safari\//i.test(ua)) navegador = "Safari";
+
+
 
 
       let modelo = "";
@@ -2651,14 +3045,20 @@
       }catch(_){}
 
 
+
+
       if(!modelo && /Android/i.test(ua)){
         const match = ua.match(/Android[^;]*;\s*([^;)]+?)(?:\s+Build\/|;|\))/i);
         if(match) modelo = String(match[1] || "").trim();
       }
 
 
+
+
       if(!modelo && /iPhone/i.test(ua)) modelo = "iPhone";
       if(!modelo && /iPad/i.test(ua)) modelo = "iPad";
+
+
 
 
       modelo = modelo
@@ -2667,7 +3067,11 @@
         .trim();
 
 
+
+
       const marca = detectarMarcaDispositivo(modelo, ua);
+
+
 
 
       return {
@@ -2678,14 +3082,20 @@
     }
 
 
+
+
     function resumenOrigenVisita(){
       const limpiar = value => String(value || "").trim();
       const normalizar = value => limpiar(value).toLowerCase().replace(/[_.-]+/g, " ").replace(/\s+/g, " ");
 
 
+
+
       const nombreFuente = value => {
         const key = normalizar(value);
         if(!key) return "";
+
+
 
 
         const aliases = [
@@ -2721,19 +3131,27 @@
         ];
 
 
+
+
         for(const [pattern, label] of aliases){
           if(pattern.test(key)) return label;
         }
+
+
 
 
         return limpiar(value);
       };
 
 
+
+
       const origenUtm = (source, medium) => {
         const fuente = nombreFuente(source);
         const medio = normalizar(medium);
         if(!fuente) return "";
+
+
 
 
         const esPago = /(cpc|ppc|paid|paid social|paid_social|display|ads?|advertising)/i.test(medio);
@@ -2749,9 +3167,13 @@
         }
 
 
+
+
         if(/(organic|seo)/i.test(medio)){
           if(["Google", "Bing", "DuckDuckGo", "Yahoo"].includes(fuente)) return `${fuente} · búsqueda orgánica`;
         }
+
+
 
 
         if(/(email|mail|newsletter)/i.test(medio)) return fuente === "Correo electrónico" ? fuente : `${fuente} · correo`;
@@ -2759,8 +3181,12 @@
         if(/(referral|referido)/i.test(medio)) return `${fuente} · referido`;
 
 
+
+
         return fuente;
       };
+
+
 
 
       const origenClickId = params => {
@@ -2777,11 +3203,15 @@
       };
 
 
+
+
       const origenReferrer = ref => {
         if(!ref) return "";
         let host = "";
         try{ host = new URL(ref).hostname.toLowerCase().replace(/^www\./, ""); }catch(_){ return ""; }
         if(!host || host === window.location.hostname.toLowerCase()) return "";
+
+
 
 
         const reglas = [
@@ -2809,6 +3239,8 @@
         ];
 
 
+
+
         for(const [pattern, label] of reglas){
           if(pattern.test(host)) return label;
         }
@@ -2816,9 +3248,13 @@
       };
 
 
+
+
       try{
         const actual = new URL(window.location.href);
         const params = actual.searchParams;
+
+
 
 
         for(const key of ["origen", "fuente", "source"]){
@@ -2827,17 +3263,25 @@
         }
 
 
+
+
         const utmSource = limpiar(params.get("utm_source"));
         const utmMedium = limpiar(params.get("utm_medium"));
         if(utmSource) return origenUtm(utmSource, utmMedium);
+
+
 
 
         const porClickId = origenClickId(params);
         if(porClickId) return porClickId;
 
 
+
+
         const porReferrer = origenReferrer(limpiar(document.referrer));
         if(porReferrer) return porReferrer;
+
+
 
 
         return "Directo / no detectable";
@@ -2847,9 +3291,13 @@
     }
 
 
+
+
     const ATTRIBUTION_FIRST_KEY = "irenismb_attribution_first";
     const ATTRIBUTION_LAST_KEY = "irenismb_attribution_last";
     const ATTRIBUTION_CONVERSION_KEY = "irenismb_attribution_conversion";
+
+
 
 
     function leerAtribucionGuardada(storage, key){
@@ -2863,9 +3311,13 @@
     }
 
 
+
+
     function guardarAtribucion(storage, key, value){
       try{ storage.setItem(key, JSON.stringify(value)); }catch(_){}
     }
+
+
 
 
     function obtenerCampanaVisita(){
@@ -2884,6 +3336,8 @@
     }
 
 
+
+
     function obtenerMedioVisita(){
       try{
         const params = new URL(window.location.href).searchParams;
@@ -2892,6 +3346,8 @@
         return "";
       }
     }
+
+
 
 
     function certezaOrigenVisita(){
@@ -2908,6 +3364,8 @@
     }
 
 
+
+
     function contextoAtribucionVisita(){
       const actual = {
         origen: String(resumenOrigenVisita() || "Directo / no detectable"),
@@ -2918,6 +3376,8 @@
       };
 
 
+
+
       let primero = leerAtribucionGuardada(localStorage, ATTRIBUTION_FIRST_KEY);
       if(!primero){
         primero = actual;
@@ -2926,16 +3386,24 @@
       guardarAtribucion(localStorage, ATTRIBUTION_LAST_KEY, actual);
 
 
+
+
       const conversion = leerAtribucionGuardada(sessionStorage, ATTRIBUTION_CONVERSION_KEY) || null;
+
+
 
 
       return { actual, primero, ultimo:actual, conversion };
     }
 
 
+
+
     function registrarConversionCatalogo(tipo, detalle){
       const nombre = String(tipo || "").trim();
       if(!nombre) return;
+
+
 
 
       const prioridades = {
@@ -2948,6 +3416,8 @@
       if((prioridades[nombre] || 1) < (prioridades[String(existente?.tipo || "")] || 0)) return;
 
 
+
+
       const evento = {
         tipo: nombre,
         detalle: String(detalle || "").trim(),
@@ -2958,6 +3428,8 @@
       guardarAtribucion(sessionStorage, ATTRIBUTION_CONVERSION_KEY, evento);
 
 
+
+
       try{
         window.dispatchEvent(new CustomEvent("catalogo:conversion", { detail:evento }));
       }catch(_){}
@@ -2965,7 +3437,11 @@
     window.registrarConversionCatalogo = registrarConversionCatalogo;
 
 
+
+
     try{ contextoAtribucionVisita(); }catch(_){}
+
+
 
 
     window.obtenerContextoVisitaCatalogo = async function(){
@@ -3017,9 +3493,13 @@
     };
 
 
+
+
     function sanitizeCartWithStock(){
       const enforce = shouldEnforceStockLimits();
       let changed = false;
+
+
 
 
       for(const key of Object.keys(cart)){
@@ -3038,14 +3518,20 @@
         }
 
 
+
+
         const hasKnownStock = Number.isFinite(p.stock) && p.stock >= 0;
         const maxStock = hasKnownStock ? p.stock : null;
         const qty = Math.max(0, safeInt(it.qty, 0));
 
 
+
+
         const newQty = enforce
           ? (hasKnownStock ? Math.min(qty, maxStock) : 0)
           : qty;
+
+
 
 
         const newObj = {
@@ -3059,16 +3545,24 @@
         };
 
 
+
+
         cart[id] = newObj;
         if(id !== key) delete cart[key];
+
+
 
 
         if(newQty !== qty) changed = true;
       }
 
 
+
+
       if(changed) saveCart(); else refreshCartCount();
     }
+
+
 
 
     const shippingCopInp = document.getElementById("shippingCop");
@@ -3080,11 +3574,17 @@
       if(!shippingCopInp) return;
 
 
+
+
       const MIN_SHIPPING = 6000;
+
+
 
 
       const raw = readStringLS(LS_SHIPPING_KEY, "");
       const v = toNumberDigits(raw);
+
+
 
 
       // Si no hay valor guardado, usar 6.000 por defecto (editable).
@@ -3095,6 +3595,8 @@
       const v = toNumberDigits(shippingCopInp.value);
       writeStringLS(LS_SHIPPING_KEY, v ? String(v) : "");
     }
+
+
 
 
     const STORE_INFO = {
@@ -3109,9 +3611,13 @@
     };
 
 
+
+
     const ORDER_LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycby85yLxa9PK8-cbwTk-FVlS3zKE0HqFs3rQf6D7pZPNzylaxDGPagOhfG0rZy_A0cxP/exec";
         
     const ORDER_LOG_TIMEOUT_MS = 6500;
+
+
 
 
     function buildLineItems(){
@@ -3128,6 +3634,8 @@
     }
 
 
+
+
     function oneLineText(s){
       return String(s ?? "")
         .replace(/\r\n/g, "\n")
@@ -3137,11 +3645,15 @@
     }
 
 
+
+
     function viaTypeLabel(tipo){
       const t = String(tipo || "").trim();
       const map = { Cl:"Calle", Cra:"Carrera", Av:"Avenida", Dg:"Diagonal", Tv:"Transversal" };
       return map[t] || t;
     }
+
+
 
 
     function buildViaString(tipo, num, placa){
@@ -3153,10 +3665,14 @@
     }
 
 
+
+
     function getClientDataCurrent(){
       const nameInp = document.getElementById("clientName");
       const phoneInp = document.getElementById("clientPhone");
       const obsInp = document.getElementById("clientObs");
+
+
 
 
       const obj = readJsonLS(LS_CLIENT_KEY, {});
@@ -3165,12 +3681,18 @@
       const obs = String((obsInp && obsInp.value) ?? (obj.clientObs ?? ""));
 
 
+
+
       return { name, phone, obs };
     }
 
 
+
+
     function getAddressDataCurrent(){
       const obj = readJsonLS(LS_ADDRESS_KEY, {});
+
+
 
 
       const cityInp = document.getElementById("addrCity");
@@ -3181,6 +3703,8 @@
       const barrioInp = document.getElementById("addrBarrio");
 
 
+
+
       const city = String((cityInp && cityInp.value) ?? (obj.addrCity ?? "")).trim();
       const region = String((regionInp && regionInp.value) ?? (obj.addrRegion ?? "")).trim();
       const tipo = String((tipoInp && tipoInp.value) ?? (obj.addrViaTipo ?? "")).trim();
@@ -3189,14 +3713,20 @@
       const barrio = String((barrioInp && barrioInp.value) ?? (obj.addrBarrio ?? "")).trim();
 
 
+
+
       const via = buildViaString(tipo, num, placa);
       const addressLine = joinParts([via, city, region], ", ");
+
+
 
 
       // IMPORTANTE: barrio NO se incluye en el enlace de Google Maps
       const mapLink = addressLine
         ? ("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addressLine))
         : "";
+
+
 
 
       return { addressLine, barrio, mapLink };
@@ -3207,6 +3737,8 @@
           const addr = getAddressDataCurrent();
 
 
+
+
           const subtotal = cartTotalValue();
           const envio = getShippingCop();
           const total = subtotal + envio;
@@ -3214,7 +3746,11 @@
           const hasUnpricedItems = !showPrices || cartHasUnpricedItems();
 
 
+
+
           const lines = [];
+
+
 
 
           lines.push("*INFORMACIÓN DEL CLIENTE*");
@@ -3226,13 +3762,19 @@
           lines.push(`*Observación:* ${oneLineText(client.obs || "")}`.trimEnd());
 
 
+
+
           lines.push("");
           lines.push("*PRODUCTOS SOLICITADOS*");
+
+
 
 
           if(items.length){
                 lines.push(...buildLineItems());
           }
+
+
 
 
           lines.push("");
@@ -3244,10 +3786,14 @@
           }
 
 
+
+
           // ✅ Celular tienda sin +57 (solo para el mensaje)
           const storePhoneNo57 = String(STORE_INFO.whatsappDisplay || "")
                 .replace(/^\s*\+?\s*57\s*/i, "")
                 .trim();
+
+
 
 
           lines.push("");
@@ -3258,14 +3804,20 @@
           lines.push(`*Barrio:* ${STORE_INFO.barrio}`);
 
 
+
+
           // Orden solicitado: primero punto de referencia y luego enlaces
           lines.push(`*Puntos de referencia:* ${STORE_INFO.referencias}`);
           lines.push(`*Ubicación:* ${STORE_INFO.mapa}`);
           lines.push(`*Catálogo:* ${STORE_INFO.catalogo}`);
 
 
+
+
           return lines.join("\n");
         }
+
+
 
 
     function buildOrderPayload(){
@@ -3277,6 +3829,8 @@
       const envio = getShippingCop();
       const totalPedido = subtotal + envio;
       const direccionClienteVisible = joinParts([addr.addressLine || "", addr.barrio ? `Barrio ${addr.barrio}` : ""], ", ");
+
+
 
 
       return {
@@ -3319,6 +3873,8 @@
     }
 
 
+
+
     function fetchWithTimeout(url, options = {}, timeoutMs = 6500){
       return new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error("Tiempo de espera agotado al registrar el pedido.")), timeoutMs);
@@ -3335,12 +3891,18 @@
     }
 
 
+
+
     async function registerOrderInSheet(){
       const payload = buildOrderPayload();
       if(!Array.isArray(payload.items) || !payload.items.length) return { ok:false, skipped:true };
 
 
+
+
       const body = JSON.stringify(payload);
+
+
 
 
       await fetchWithTimeout(ORDER_LOG_ENDPOINT, {
@@ -3355,11 +3917,17 @@
       }, ORDER_LOG_TIMEOUT_MS);
 
 
+
+
       return { ok:true, skipped:false };
     }
 
 
+
+
     let orderSending = false;
+
+
 
 
     const cartModal = document.getElementById("cartModal");
@@ -3371,6 +3939,8 @@
     const cartClearBtn = document.getElementById("cartClearBtn");
     const cartAddressBtn = document.getElementById("cartAddressBtn");
     const cartClientBtn = document.getElementById("cartClientBtn");
+
+
 
 
     function openCartModal(){
@@ -3391,6 +3961,8 @@
     }
 
 
+
+
     function renderCartModal(){
       const enforce = shouldEnforceStockLimits();
       const items = cartItemsArray();
@@ -3402,10 +3974,14 @@
         : ("Total: " + fmtCOP.format(total));
 
 
+
+
       if(!items.length){
         cartItemsEl.innerHTML = `<div class="cart-empty">Carrito vacío.</div>`;
         return;
       }
+
+
 
 
       const frag = document.createDocumentFragment();
@@ -3415,15 +3991,23 @@
         row.setAttribute("data-id", it.id);
 
 
+
+
         const left = document.createElement("div");
         left.className = "cart-item-left";
+
+
 
 
         const p = productById.get(String(it.id));
         const imgFilename = (p && p.imgFilename) ? p.imgFilename : it.imgFilename;
 
 
+
+
         left.appendChild(makeCartThumbFromFilename(imgFilename, it.name, p && p.docsImageUrl));
+
+
 
 
         const main = document.createElement("div");
@@ -3444,6 +4028,8 @@
         left.appendChild(main);
 
 
+
+
         const controls = document.createElement("div");
         controls.className = "cart-controls";
         controls.innerHTML = `
@@ -3453,9 +4039,13 @@
         `;
 
 
+
+
         const incBtn = controls.querySelector('button[data-act="inc"]');
         const hasKnownStock = Number.isFinite(it.stock) && it.stock >= 0;
         const maxStock = hasKnownStock ? it.stock : null;
+
+
 
 
         if(incBtn){
@@ -3465,6 +4055,8 @@
         }
 
 
+
+
         const subtotal = document.createElement("div");
         subtotal.className = "cart-subtotal";
         subtotal.textContent = (!shouldShowProductPrices() || it.hasPrice === false)
@@ -3472,11 +4064,15 @@
           : fmtCOP.format((Number(it.price)||0) * (Number(it.qty)||0));
 
 
+
+
         const remove = document.createElement("button");
         remove.className = "cart-remove";
         remove.type = "button";
         remove.textContent = "Eliminar";
         remove.setAttribute("data-act", "remove");
+
+
 
 
         row.appendChild(left);
@@ -3487,9 +4083,13 @@
       });
 
 
+
+
       cartItemsEl.innerHTML = "";
       cartItemsEl.appendChild(frag);
     }
+
+
 
 
     cartItemsEl.addEventListener("click", (e)=>{
@@ -3501,14 +4101,20 @@
       if(!id || !cart[id]) return;
 
 
+
+
       const enforce = shouldEnforceStockLimits();
       const act = btn.getAttribute("data-act");
       const current = cart[id];
 
 
+
+
       const hasKnownStock = Number.isFinite(current.stock) && current.stock >= 0;
       const maxStock = hasKnownStock ? current.stock : null;
       let newQty = safeInt(current.qty, 0);
+
+
 
 
       if(act === "inc"){
@@ -3526,8 +4132,12 @@
       }
 
 
+
+
       if(!newQty) delete cart[id];
       else cart[id].qty = newQty;
+
+
 
 
       if(act === "inc" && newQty > safeInt(current.qty, 0)){
@@ -3538,10 +4148,14 @@
     });
 
 
+
+
     function openWhatsAppTo(toDigits, text){
       const msg = String(text || "").trim() || "Hola, quiero información del catálogo.";
       window.open(waLinkTo(toDigits, msg), "_blank", "noopener");
     }
+
+
 
 
     const waTopTrackingLink = document.getElementById("waTopLink");
@@ -3552,10 +4166,14 @@
     }
 
 
+
+
     // ÚNICO BOTÓN: Registrar pedido y luego abrir WhatsApp (se envía al número de la tienda)
     if(cartBuyBtn){
       cartBuyBtn.addEventListener("click", async ()=>{
         if(orderSending) return;
+
+
 
 
         orderSending = true;
@@ -3564,10 +4182,14 @@
         cartBuyBtn.textContent = "Registrando pedido...";
 
 
+
+
         try{
           saveClientToLS();
           saveAddressToLS();
           saveShippingToLS();
+
+
 
 
           registrarConversionCatalogo("Inició pedido por WhatsApp", String(cartTotalQty()));
@@ -3577,6 +4199,8 @@
           }catch(err){
             console.error("No se pudo registrar el pedido en Google Sheets:", err);
           }
+
+
 
 
           // El mensaje SIEMPRE se envía al número de la tienda
@@ -3601,8 +4225,12 @@
     }
 
 
+
+
     if(cartModalClose) cartModalClose.addEventListener("click", closeCartModal);
     if(cartModalBackdrop) cartModalBackdrop.addEventListener("click", closeCartModal);
+
+
 
 
     if(shippingCopInp){
@@ -3611,6 +4239,8 @@
         if(cartModal.classList.contains("open")) renderCartModal();
       });
     }
+
+
 
 
     /* ==========================
@@ -3624,6 +4254,8 @@
     const addrMapsLink = document.getElementById("addrMapsLink");
 
 
+
+
     const addrCity = document.getElementById("addrCity");
     const addrRegion = document.getElementById("addrRegion");
     const addrViaTipo = document.getElementById("addrViaTipo");
@@ -3633,8 +4265,12 @@
     const addrFinal = document.getElementById("addrFinal");
 
 
+
+
     const DEFAULT_CITY = "Santa Marta";
     const DEFAULT_REGION = "Magdalena";
+
+
 
 
     function openAddressModal(){
@@ -3655,9 +4291,13 @@
     }
 
 
+
+
     function joinParts(parts, sep=" "){
       return parts.filter(Boolean).join(sep).replace(/\s+/g," ").trim();
     }
+
+
 
 
     function refreshAddressModalPreview(){
@@ -3668,12 +4308,18 @@
       const placa = String(addrPlaca?.value || "").trim();
 
 
+
+
       // Dirección final SOLO con vía + ciudad + departamento (sin barrio)
       const via = buildViaString(tipo, num, placa);
       const final = joinParts([via || "", city || "", region || ""], ", ");
 
 
+
+
       if(addrFinal) addrFinal.value = final;
+
+
 
 
       // El barrio NO se usa para el enlace de Google Maps
@@ -3692,16 +4338,24 @@
     }
 
 
+
+
     function loadAddressFromLS(){
       const obj = readJsonLS(LS_ADDRESS_KEY, {});
+
+
 
 
       const hasCity = Object.prototype.hasOwnProperty.call(obj, "addrCity");
       const hasRegion = Object.prototype.hasOwnProperty.call(obj, "addrRegion");
 
 
+
+
       const cityVal = hasCity ? String(obj.addrCity ?? "") : DEFAULT_CITY;
       const regionVal = hasRegion ? String(obj.addrRegion ?? "") : DEFAULT_REGION;
+
+
 
 
       if(addrCity) addrCity.value = cityVal;
@@ -3712,6 +4366,8 @@
       if(addrBarrio) addrBarrio.value = String(obj.addrBarrio ?? "");
       refreshAddressModalPreview();
     }
+
+
 
 
     function saveAddressToLS(){
@@ -3727,11 +4383,15 @@
     }
 
 
+
+
     [addrCity, addrRegion, addrViaTipo, addrViaNum, addrPlaca, addrBarrio].forEach(el=>{
       if(!el) return;
       el.addEventListener("input", refreshAddressModalPreview);
       el.addEventListener("change", refreshAddressModalPreview);
     });
+
+
 
 
     if(addressModalClose) addressModalClose.addEventListener("click", closeAddressModal);
@@ -3744,6 +4404,8 @@
     });
 
 
+
+
     const clientModal = document.getElementById("clientModal");
     const clientModalClose = document.getElementById("clientModalClose");
     const clientModalBackdrop = document.getElementById("clientModalBackdrop");
@@ -3751,9 +4413,13 @@
     const clientSaveBtn = document.getElementById("clientSaveBtn");
 
 
+
+
     const clientName = document.getElementById("clientName");
     const clientPhone = document.getElementById("clientPhone");
     const clientObs = document.getElementById("clientObs");
+
+
 
 
     function openClientModal(){
@@ -3774,12 +4440,16 @@
     }
 
 
+
+
     function loadClientFromLS(){
       const obj = readJsonLS(LS_CLIENT_KEY, {});
       if(clientName) clientName.value = String(obj.clientName ?? "");
       if(clientPhone) clientPhone.value = String(obj.clientPhone ?? "");
       if(clientObs) clientObs.value = String(obj.clientObs ?? "");
     }
+
+
 
 
     function saveClientToLS(){
@@ -3791,6 +4461,8 @@
     }
 
 
+
+
     if(clientModalClose) clientModalClose.addEventListener("click", closeClientModal);
     if(clientModalBackdrop) clientModalBackdrop.addEventListener("click", closeClientModal);
     if(clientCancelBtn) clientCancelBtn.addEventListener("click", closeClientModal);
@@ -3800,8 +4472,12 @@
     });
 
 
+
+
     if(cartAddressBtn) cartAddressBtn.addEventListener("click", openAddressModal);
     if(cartClientBtn) cartClientBtn.addEventListener("click", openClientModal);
+
+
 
 
     document.addEventListener("keydown", (e)=>{
@@ -3817,6 +4493,8 @@
         if(cartModal && cartModal.classList.contains("open")){ closeCartModal(); return; }
       }
     });
+
+
 
 
     // El JSON-LD se sincroniza con los productos visibles del inventario oficial.
@@ -3862,6 +4540,8 @@
     }
 
 
+
+
     const cardTemplate = document.createElement("template");
     cardTemplate.innerHTML = `
       <article class="card">
@@ -3883,6 +4563,8 @@
     `;
 
 
+
+
     const albumTemplate = document.createElement("template");
     albumTemplate.innerHTML = `
       <article class="album-card">
@@ -3901,6 +4583,8 @@
         </button>
       </article>
     `;
+
+
 
 
     function stockMetaText(p){
@@ -3925,10 +4609,14 @@
     }
 
 
+
+
     function refreshCardUI(card, p){
       const row = card.querySelector(".row");
       const actions = card.querySelector(".actions");
       const meta = card.querySelector(".meta");
+
+
 
 
       if(meta) meta.hidden = false;
@@ -3936,9 +4624,13 @@
       if(actions) actions.hidden = false;
 
 
+
+
       const enforce = shouldEnforceStockLimits();
       const id = String(p.id);
       const q = (cart[id]?.qty || 0);
+
+
 
 
       const qtyPill = card.querySelector('[data-role="qty"]');
@@ -3946,13 +4638,19 @@
       const incBtn = card.querySelector('button[data-act="inc"]');
 
 
+
+
       if(qtyPill) qtyPill.textContent = `En carrito: ${q}`;
       if(decBtn) decBtn.disabled = q <= 0;
+
+
 
 
       const hasKnownStock = Number.isFinite(p.stock) && p.stock >= 0;
       const maxStock = hasKnownStock ? p.stock : null;
       const canAdd = !enforce || (hasKnownStock && maxStock > 0 && q < maxStock);
+
+
 
 
       if(incBtn){
@@ -3969,20 +4667,28 @@
     }
 
 
+
+
     function makeCard(p){
       const card = cardTemplate.content.firstElementChild.cloneNode(true);
       card.id = "p-" + encodeURIComponent(String(p.id));
       card.dataset.id = String(p.id);
 
 
+
+
       const imgBox = card.querySelector(".img");
       imgBox.appendChild(makeImgFromFilename(p.imgFilename, p.name, p.docsImageUrl));
+
+
 
 
       const nameEl = card.querySelector(".name");
       const metaEl = card.querySelector(".meta");
       const descriptionEl = card.querySelector(".description");
       const priceEl = card.querySelector(".price");
+
+
 
 
       const visibleName = String(p.name || "");
@@ -3997,6 +4703,8 @@
         : "";
 
 
+
+
       if(p && p.isGiftGalleryImage){
         card.classList.add("gift-gallery-card");
         const pad = card.querySelector(".pad");
@@ -4005,9 +4713,15 @@
       }
 
 
+
+
       refreshCardUI(card, p);
       return card;
     }
+
+
+
+
 
 
 
@@ -4019,6 +4733,8 @@
       img.decoding = "async";
 
 
+
+
       const sourceList = (Array.isArray(sources) ? sources : [sources])
         .map(source => String(source || "").trim())
         .filter(source => /^https:\/\//i.test(source));
@@ -4027,6 +4743,8 @@
         productPlaceholderAbsoluteUrl(),
         COMPANY_LOGO
       ].filter(Boolean))];
+
+
 
 
       let index = 0;
@@ -4041,8 +4759,12 @@
       };
 
 
+
+
       return img;
     }
+
+
 
 
     function makeAlbumCard(album){
@@ -4062,6 +4784,8 @@
         : [];
 
 
+
+
       card.classList.toggle("album-root-card", isAudience);
       card.classList.toggle("album-category-card", !isAudience);
       card.classList.toggle("search-reactive", searchActive);
@@ -4073,8 +4797,12 @@
       if(isAudience && album.theme) card.dataset.navTheme = album.theme;
 
 
+
+
       btn.dataset.albumOpen = album.key;
       btn.dataset.navType = album.navType || "category";
+
+
 
 
       if(searchActive){
@@ -4086,6 +4814,8 @@
         const extraMatches = Math.max(0, matchCount - sampleNames.length);
         const sampleText = sampleNames.join(" · ");
         const moreText = extraMatches > 0 ? `${sampleText ? " · " : ""}+${extraMatches} más` : "";
+
+
 
 
         btn.setAttribute(
@@ -4117,6 +4847,8 @@
       }
 
 
+
+
       if(preview) preview.hidden = true;
       if(icon){
         const matchingPreviewSources = searchActive
@@ -4133,6 +4865,8 @@
         const useProductPreview =
           shouldShowProductImageInNavigationPanels() &&
           productPreviewSources.length > 0;
+
+
 
 
         if(useProductPreview){
@@ -4161,8 +4895,12 @@
       label.textContent = album.label;
 
 
+
+
       return card;
     }
+
+
 
 
     function makeEmptyState(message){
@@ -4171,6 +4909,8 @@
       div.textContent = message;
       return div;
     }
+
+
 
 
     const catSel = document.getElementById("cat");
@@ -4190,14 +4930,19 @@
     const fragranceFamilyFilters = document.getElementById("fragranceFamilyFilters");
     const fragranceLineFilters = document.getElementById("fragranceLineFilters");
 
+
     const searchWrap = document.getElementById("searchWrap");
     const searchTicker = document.getElementById("searchTicker");
     const tickerInner = document.getElementById("tickerInner");
 
 
+
+
     const countSlot = document.getElementById("countSlot");
     const topline = document.getElementById("topline");
     const mqCountMobile = window.matchMedia("(max-width:760px)");
+
+
 
 
     const wordPanel = document.getElementById("wordPanel");
@@ -4208,15 +4953,23 @@
     const toggleWordPanelBtn = document.getElementById("toggleWordPanelBtn");
 
 
+
+
     let wordSuggestionsVisible = shouldShowSuggestionsInitially();
+
+
 
 
     function syncWordToggleButton(){
       if(!toggleWordPanelBtn) return;
 
 
+
+
       const canToggle = shouldAllowSuggestionToggle();
       const isVisible = wordSuggestionsVisible;
+
+
 
 
       toggleWordPanelBtn.hidden = !canToggle;
@@ -4227,8 +4980,12 @@
     }
 
 
+
+
     function setWordSuggestionsVisible(nextValue){
       wordSuggestionsVisible = !!nextValue;
+
+
 
 
       if(!wordSuggestionsVisible){
@@ -4236,8 +4993,12 @@
       }
 
 
+
+
       syncWordToggleButton();
     }
+
+
 
 
     function toggleWordSuggestionsVisible(){
@@ -4247,8 +5008,12 @@
     }
 
 
+
+
     function placeResponsiveHeaderMeta(){
       if(!countEl || !countSlot || !topline || !albumNav || !albumNavHost) return;
+
+
 
 
       if(mqCountMobile.matches){
@@ -4272,8 +5037,12 @@
       }
 
 
+
+
       countSlot.classList.toggle("has-album-nav", !albumNav.hidden);
     }
+
+
 
 
     if(typeof mqCountMobile.addEventListener === "function"){
@@ -4284,6 +5053,8 @@
     placeResponsiveHeaderMeta();
 
 
+
+
     function updateTickerVisibility(){
       if(!searchWrap || !qInp) return;
       const empty = !String(qInp.value || "").trim();
@@ -4292,11 +5063,15 @@
     }
 
 
+
+
     function updateCountAttention(){
       if(!countEl || !qInp) return;
       const hasQuery = getCombinedWordTerms().length > 0;
       countEl.classList.toggle("search-active", hasQuery);
     }
+
+
 
 
     const SUGGESTION_STOPWORDS = new Set([
@@ -4313,12 +5088,16 @@
     let selectedSuggestionTerms = [];
 
 
+
+
     function parseSearchTerms(text){
       return normalizeText(text)
         .split(/\s+/)
         .map(t => t.trim())
         .filter(Boolean);
     }
+
+
 
 
     function parseSuggestionTokens(text){
@@ -4335,6 +5114,8 @@
     }
 
 
+
+
     function uniqueTerms(list){
       const out = [];
       const seen = new Set();
@@ -4348,16 +5129,22 @@
     }
 
 
+
+
     function getCombinedWordTerms(){
       const typed = parseSearchTerms(qInp ? qInp.value : "");
       return uniqueTerms([...(selectedSuggestionTerms || []), ...typed]);
     }
 
 
+
+
     function getSuggestionScopeProducts(){
       const source = currentProductSourceList();
       const cat = catSel ? catSel.value : "";
       const br = brandSel ? brandSel.value : "";
+
+
 
 
       return source.filter(p => {
@@ -4368,8 +5155,12 @@
     }
 
 
+
+
     function getSuggestionBlockedTerms(list){
       const blocked = new Set();
+
+
 
 
       for(const p of (Array.isArray(list) ? list : [])){
@@ -4378,8 +5169,12 @@
       }
 
 
+
+
       return blocked;
     }
+
+
 
 
     function addSuggestionCountsFromText(counts, text, blockedTerms){
@@ -4391,10 +5186,14 @@
     }
 
 
+
+
     function getSuggestionMatchedProducts(){
       const scopeProducts = getSuggestionScopeProducts();
       const activeTerms = getCombinedWordTerms();
       if(!activeTerms.length) return scopeProducts;
+
+
 
 
       const eligibleProducts = filterSearchExcludedProducts(scopeProducts);
@@ -4402,10 +5201,14 @@
     }
 
 
+
+
     function buildSuggestionEntries(){
       if(shouldShowAlbumGrid()){
         return [];
       }
+
+
 
 
       const scopeProducts = getSuggestionScopeProducts();
@@ -4418,6 +5221,8 @@
       const totalVisibleProducts = sourceProducts.length;
 
 
+
+
       for(const term of typedTerms){
         blockedTerms.add(term);
       }
@@ -4426,9 +5231,13 @@
       }
 
 
+
+
       selectedSuggestionTerms = uniqueTerms((selectedSuggestionTerms || []).filter(term => {
         return !getSuggestionBlockedTerms(sourceProducts).has(term);
       }));
+
+
 
 
       const counts = new Map();
@@ -4436,6 +5245,8 @@
         const rawText = `${p.name || ""}`;
         addSuggestionCountsFromText(counts, rawText, blockedTerms);
       }
+
+
 
 
         return Array.from(counts.entries())
@@ -4450,11 +5261,17 @@
                 const bSelected = selectedSet.has(b.term) ? 1 : 0;
 
 
+
+
                 if(aSelected !== bSelected) return bSelected - aSelected;
+
+
 
 
                 // Primero las de más coincidencias
                 if(b.count !== a.count) return b.count - a.count;
+
+
 
 
                 return a.term.localeCompare(b.term, "es", { sensitivity:"base" });
@@ -4462,9 +5279,13 @@
     }
 
 
+
+
     function toggleSuggestionTerm(term){
       const clean = normalizeText(term);
       if(!clean) return;
+
+
 
 
       if(selectedSuggestionTerms.includes(clean)){
@@ -4476,6 +5297,8 @@
     }
 
 
+
+
     function removeSuggestionTerm(term){
       const clean = normalizeText(term);
       if(!clean) return;
@@ -4484,11 +5307,17 @@
     }
 
 
+
+
     function renderWordSuggestions(){
       if(!wordPanel || !wordChips || !activeTerms || !activeTermsWrap || !clearTermsBtn) return;
 
 
+
+
       syncWordToggleButton();
+
+
 
 
       const showAlbumGrid = shouldShowAlbumGrid();
@@ -4502,6 +5331,8 @@
       }
 
 
+
+
       const entries = buildSuggestionEntries();
       const activeTermsList = uniqueTerms(selectedSuggestionTerms || []);
       const rawQuery = qInp ? String(qInp.value || "") : "";
@@ -4510,14 +5341,20 @@
       const hasWordFilter = activeTermsList.length > 0 || typedTerms.length > 0;
 
 
+
+
       wordPanel.hidden = !(entries.length || activeTermsList.length || typedTerms.length);
       clearTermsBtn.hidden = !(activeTermsList.length > 0 || hasTypedCharacters);
       clearTermsBtn.classList.toggle("search-active", hasTypedCharacters);
       activeTermsWrap.hidden = !activeTermsList.length;
 
 
+
+
       wordChips.innerHTML = "";
       activeTerms.innerHTML = "";
+
+
 
 
       if(activeTermsList.length){
@@ -4534,6 +5371,8 @@
         }
         activeTerms.appendChild(activeFrag);
       }
+
+
 
 
       if(!entries.length){
@@ -4558,8 +5397,12 @@
     }
 
 
+
+
     function rebuildSearchTicker(){
       if(!searchWrap || !searchTicker || !tickerInner || !qInp) return;
+
+
 
 
       const text = String(qInp.getAttribute("placeholder") || "").trim();
@@ -4570,7 +5413,11 @@
       }
 
 
+
+
       tickerInner.innerHTML = "";
+
+
 
 
       const seq = document.createElement("div");
@@ -4578,8 +5425,12 @@
       tickerInner.appendChild(seq);
 
 
+
+
       const available = Math.max(1, searchTicker.clientWidth || searchWrap.clientWidth || 1);
       const target = Math.max(280, Math.floor(available * 1.7));
+
+
 
 
       let guard = 0;
@@ -4592,21 +5443,31 @@
       }
 
 
+
+
       const seqWidth = seq.scrollWidth || 0;
       if(seqWidth <= 0) return;
+
+
 
 
       const clone = seq.cloneNode(true);
       tickerInner.appendChild(clone);
 
 
+
+
       const SPEED_PX_PER_SEC = 60;
       const duration = Math.max(8, seqWidth / SPEED_PX_PER_SEC);
+
+
 
 
       searchWrap.style.setProperty("--marquee-distance", seqWidth + "px");
       searchWrap.style.setProperty("--marquee-duration", duration.toFixed(2) + "s");
     }
+
+
 
 
     function clearSelectButKeepFirst(sel){
@@ -4622,6 +5483,8 @@
     }
 
 
+
+
     function fillSelect(sel, values){
       clearSelectButKeepFirst(sel);
       for(const v of values){
@@ -4630,6 +5493,8 @@
         sel.appendChild(opt);
       }
     }
+
+
 
 
     function fragranceFilterBaseProducts(){
@@ -4641,6 +5506,7 @@
       );
     }
 
+
     function uniqueSortedFilterValues(list, getter){
       const map = new Map();
       for(const p of (Array.isArray(list) ? list : [])){
@@ -4651,11 +5517,13 @@
       return Array.from(map.values()).sort((a,b)=>a.localeCompare(b,"es",{sensitivity:"base"}));
     }
 
+
     function renderFragranceFilterButtons(host, values, selectedValue, kind, countSource, getter){
       if(!host) return;
       host.innerHTML = "";
       const fragment = document.createDocumentFragment();
       const selectedKey = cleanNavKey(selectedValue);
+
 
       const addButton = (value, label, count)=>{
         const btn = document.createElement("button");
@@ -4665,17 +5533,21 @@
         btn.dataset.fragranceFilterValue = value;
         btn.setAttribute("aria-pressed", cleanNavKey(value) === selectedKey ? "true" : "false");
 
+
         const text = document.createElement("span");
         text.className = "fragrance-filter-chip-label";
         text.textContent = label;
+
 
         const badge = document.createElement("span");
         badge.className = "fragrance-filter-chip-count";
         badge.textContent = String(count);
 
+
         btn.append(text, badge);
         fragment.appendChild(btn);
       };
+
 
       addButton("", "Todas", countSource.length);
       for(const value of values){
@@ -4687,6 +5559,7 @@
       host.appendChild(fragment);
     }
 
+
     function renderFragranceFilters(){
       if(!fragranceFilterPanel || !fragranceFamilyFilters || !fragranceLineFilters) return;
       const visible = isFragranceNavigationScope();
@@ -4697,9 +5570,11 @@
         return;
       }
 
+
       const base = fragranceFilterBaseProducts();
       const familyValues = uniqueSortedFilterValues(base, p => p.fragranceFamily);
       const lineValues = uniqueSortedFilterValues(base, p => navigationFragranceLineForProduct(p));
+
 
       const familyCountSource = selectedFragranceLineFilter
         ? base.filter(p => cleanNavKey(navigationFragranceLineForProduct(p)) === cleanNavKey(selectedFragranceLineFilter))
@@ -4707,6 +5582,7 @@
       const lineCountSource = selectedFragranceFamilyFilter
         ? base.filter(p => cleanNavKey(p.fragranceFamily) === cleanNavKey(selectedFragranceFamilyFilter))
         : base;
+
 
       renderFragranceFilterButtons(
         fragranceFamilyFilters,
@@ -4726,9 +5602,12 @@
       );
     }
 
+
     function syncFilterVisibility(){
       const showAlbumGrid = shouldShowAlbumGrid();
       const directSelected = isDirectProductAudience(selectedAudience);
+
+
 
 
       if(catSel){
@@ -4793,9 +5672,13 @@
       }
 
 
+
+
       rebuildSearchTicker();
       updateTickerVisibility();
     }
+
+
 
 
     function readStateFromUrl(){
@@ -4810,6 +5693,8 @@
       const tags = (u.searchParams.get("tags") || "").trim();
 
 
+
+
       if(qInp) qInp.value = q || "";
       selectedSuggestionTerms = wordSuggestionsVisible ? uniqueTerms(tags ? tags.split(",") : []) : [];
       const validAudience = NAV_AUDIENCES.find(item => cleanNavKey(item.label) === cleanNavKey(audience));
@@ -4822,6 +5707,8 @@
     }
 
 
+
+
     let _urlTimer = null;
     function writeStateToUrl(){
       const u = new URL(location.href);
@@ -4830,6 +5717,8 @@
       const br = brandSel.value;
       const sort = sortSel ? sortSel.value : "";
       const tags = uniqueTerms(selectedSuggestionTerms || []).join(",");
+
+
 
 
       if (q) u.searchParams.set("q", q); else u.searchParams.delete("q");
@@ -4846,12 +5735,16 @@
       if (tags) u.searchParams.set("tags", tags); else u.searchParams.delete("tags");
 
 
+
+
       history.replaceState(null, "", u.toString());
     }
     function scheduleWriteStateToUrl(){
       clearTimeout(_urlTimer);
       _urlTimer = setTimeout(writeStateToUrl, 180);
     }
+
+
 
 
     function resetDiscoveryFilters(){
@@ -4861,6 +5754,8 @@
       if(sortSel) sortSel.value = "";
       selectedSuggestionTerms = [];
     }
+
+
 
 
     function openAlbum(key, opts={}){
@@ -4889,6 +5784,8 @@
     }
 
 
+
+
     function closeAlbum(opts={}){
       if(selectedFamily){
         selectedFamily = "";
@@ -4907,11 +5804,15 @@
     }
 
 
+
+
     function buildFilteredList(){
       const source = currentProductSourceList();
       const sortMode = sortSel ? sortSel.value : "";
       const terms = getCombinedWordTerms();
       const searchableSource = terms.length ? filterSearchExcludedProducts(source) : source;
+
+
 
 
       let filtered = searchableSource.filter(p=>{
@@ -4922,7 +5823,11 @@
       });
 
 
+
+
       filtered.sort((a,b)=>{
+
+
 
 
         if(sortMode === "price_asc"){
@@ -4933,6 +5838,8 @@
         }
 
 
+
+
         if(sortMode === "price_desc"){
           if((a.hasPrice !== false) !== (b.hasPrice !== false)) return a.hasPrice === false ? 1 : -1;
           return (b.price||0) - (a.price||0)
@@ -4941,13 +5848,19 @@
         }
 
 
+
+
         return String(a.name||"").localeCompare(String(b.name||""), "es", { sensitivity:"base" })
           || String(a.id).localeCompare(String(b.id));
       });
 
 
+
+
       return filtered;
     }
+
+
 
 
     function buildFilteredAlbums(){
@@ -4964,6 +5877,8 @@
       });
 
 
+
+
       filtered.sort((a,b)=>{
         if(!selectedAudience){
           const order = new Map(NAV_AUDIENCES.map((item,index)=>[item.label,index]));
@@ -4975,13 +5890,19 @@
     }
 
 
+
+
     let _renderToken = 0;
     function render(){
       const token = ++_renderToken;
 
 
+
+
       hiddenAlbumNameSet = new Set(getHiddenAlbumNames());
       searchExcludedAlbumNameSet = new Set(getSearchExcludedAlbumNames());
+
+
 
 
       syncFilterVisibility();
@@ -4993,7 +5914,11 @@
       syncCatalogNavigationHistoryCurrent();
 
 
+
+
       const qHas = getCombinedWordTerms().length > 0;
+
+
 
 
       if(shouldShowAlbumGrid()){
@@ -5024,10 +5949,16 @@
         }
 
 
+
+
         scheduleJsonLdUpdate([]);
 
 
+
+
         if(token !== _renderToken) return;
+
+
 
 
         const frag = document.createDocumentFragment();
@@ -5040,10 +5971,14 @@
         }
 
 
+
+
         grid.innerHTML = "";
         grid.appendChild(frag);
         return;
       }
+
+
 
 
       if(grid){
@@ -5051,7 +5986,11 @@
       }
 
 
+
+
       const filtered = buildFilteredList();
+
+
 
 
       if(countEl){
@@ -5060,10 +5999,16 @@
       }
 
 
+
+
       scheduleJsonLdUpdate(filtered);
 
 
+
+
       if(token !== _renderToken) return;
+
+
 
 
       const frag = document.createDocumentFragment();
@@ -5076,8 +6021,12 @@
       }
 
 
+
+
       grid.innerHTML = "";
       grid.appendChild(frag);
+
+
 
 
       for(const el of grid.querySelectorAll(".card")){
@@ -5088,14 +6037,20 @@
     }
 
 
+
+
     function updateCountTextLoading(){
       if(countEl) countEl.textContent = "Cargando productos…";
     }
 
 
+
+
     function updateCountTextError(msg){
       if(countEl) countEl.textContent = msg || "Error al cargar productos.";
     }
+
+
 
 
     function bindGridActions(){
@@ -5108,6 +6063,8 @@
         }
 
 
+
+
         const btn = e.target.closest("button[data-act]");
         if(!btn) return;
         const card = e.target.closest(".card");
@@ -5116,8 +6073,12 @@
         if(!id) return;
 
 
+
+
         const p = productById.get(String(id));
         if(!p) return;
+
+
 
 
         const act = btn.getAttribute("data-act");
@@ -5126,10 +6087,16 @@
         const maxStock = hasKnownStock ? p.stock : null;
 
 
+
+
         const currentQty = safeInt(cart[id]?.qty, 0);
 
 
+
+
         let newQty = currentQty;
+
+
 
 
         if(act === "inc"){
@@ -5143,6 +6110,8 @@
         }else if(act === "dec"){
           newQty = Math.max(0, currentQty - 1);
         }
+
+
 
 
         if(newQty <= 0){
@@ -5160,6 +6129,8 @@
         }
 
 
+
+
         if(act === "inc" && newQty > currentQty){
           registrarConversionCatalogo("Añadió al carrito", String(p.name || ""));
         }
@@ -5167,11 +6138,15 @@
         refreshCardUI(card, p);
 
 
+
+
         if(cartModal && cartModal.classList.contains("open")){
           renderCartModal();
         }
       });
     }
+
+
 
 
     function bindFilters(){
@@ -5188,6 +6163,7 @@
         });
       });
 
+
       [sortSel].forEach(sel=>{
         if(!sel) return;
         sel.addEventListener("change", ()=>{
@@ -5196,9 +6172,13 @@
       });
 
 
+
+
       qInp.addEventListener("input", ()=>{
         render();
       });
+
+
 
 
       if(wordChips){
@@ -5210,6 +6190,8 @@
       }
 
 
+
+
       if(activeTerms){
         activeTerms.addEventListener("click", (e)=>{
           const btn = e.target.closest("[data-role='remove-active-term']");
@@ -5217,6 +6199,8 @@
           removeSuggestionTerm(btn.getAttribute("data-term") || "");
         });
       }
+
+
 
 
       if(clearTermsBtn){
@@ -5228,11 +6212,15 @@
       }
 
 
+
+
       if(toggleWordPanelBtn){
         toggleWordPanelBtn.addEventListener("click", ()=>{
           toggleWordSuggestionsVisible();
         });
       }
+
+
 
 
       qInp.addEventListener("focus", ()=>{
@@ -5243,11 +6231,15 @@
       });
 
 
+
+
       window.addEventListener("resize", ()=>{
         rebuildSearchTicker();
         updateTickerVisibility();
       }, { passive:true });
     }
+
+
 
 
     function buildCategoriesAndBrands(list){
@@ -5264,14 +6256,20 @@
     }
 
 
+
+
     function rebuildCatalogVisibility(){
       hiddenAlbumNameSet = new Set(getHiddenAlbumNames());
       searchExcludedAlbumNameSet = new Set(getSearchExcludedAlbumNames());
 
 
+
+
       all = filterVisibleProducts(allLoadedProducts);
       productById = new Map(all.map(p => [String(p.id), p]));
       refreshNavigationAlbums();
+
+
 
 
       updateCatalogFooterProducts(all);
@@ -5282,9 +6280,13 @@
     }
 
 
+
+
     async function loadProducts(){
       updateCountTextLoading();
       clearLegacyProductCaches();
+
+
 
 
       try{
@@ -5292,6 +6294,8 @@
       }catch(error){
         console.warn("No se pudo preparar la imagen suplente. El catálogo continuará.", error);
       }
+
+
 
 
       let catalogSource;
@@ -5302,6 +6306,8 @@
         updateCountTextError("No se pudieron cargar los productos desde el archivo XLSX de GitHub. Reintenta más tarde.");
         return;
       }
+
+
 
 
       let sheetProducts = [];
@@ -5316,11 +6322,15 @@
       }
 
 
+
+
       if(!sheetProducts.length){
         console.error("El archivo XLSX de GitHub se cargó, pero no produjo productos válidos para mostrar.");
         updateCountTextError("El archivo XLSX de GitHub se cargó, pero no se encontraron productos válidos para mostrar.");
         return;
       }
+
+
 
 
       let giftProducts = [];
@@ -5332,7 +6342,11 @@
       }
 
 
+
+
       allLoadedProducts = [...sheetProducts, ...giftProducts];
+
+
 
 
       try{
@@ -5343,6 +6357,8 @@
         console.warn("No se pudieron aplicar todos los controles de categorías. Se muestran los productos cargados para no dejar el catálogo vacío.", err);
         all = allLoadedProducts.slice();
       }
+
+
 
 
       try{
@@ -5388,10 +6404,14 @@
       }
 
 
+
+
       try{ updateCatalogFooterProducts(all); }catch(err){ console.warn("No se pudo actualizar el pie del catálogo.", err); }
       try{ scheduleJsonLdUpdate(); }catch(err){ console.warn("No se pudo actualizar JSON-LD.", err); }
       try{ refreshFilterOptionsForScope(); }catch(err){ console.warn("No se pudieron actualizar todos los filtros.", err); }
       try{ sanitizeCartWithStock(); }catch(err){ console.warn("No se pudo validar el carrito contra el stock.", err); }
+
+
 
 
       try{
@@ -5403,6 +6423,8 @@
     }
 
 
+
+
     function initCartButton(){
       const btnCart = document.getElementById("btn-cart");
       if(!btnCart) return;
@@ -5412,14 +6434,20 @@
     }
 
 
+
+
     function initShipping(){
       loadShippingFromLS();
     }
 
 
+
+
     function initKeyboardAccessibility(){
       // Cierre de modales ya está en Escape
     }
+
+
 
 
     async function init(){
@@ -5431,11 +6459,15 @@
       initKeyboardAccessibility();
 
 
+
+
       if(albumBackBtn){
         albumBackBtn.addEventListener("click", ()=>{
           closeAlbum({ keepFilters:getCombinedWordTerms().length > 0 });
         });
       }
+
+
 
 
       syncWordToggleButton();
@@ -5444,8 +6476,12 @@
       updateCountAttention();
 
 
+
+
       loadClientFromLS();     // precarga datos
       loadAddressFromLS();    // precarga datos (Santa Marta / Magdalena por defecto)
+
+
 
 
       await initializeRemoteCatalogConfiguration();
@@ -5453,11 +6489,15 @@
     }
 
 
+
+
     // Arranque
     init().catch(error=>{
       console.error("No se pudo iniciar el catálogo.", error);
       updateCountTextError("No se pudo iniciar el catálogo. Reintenta más tarde.");
     });
+
+
 
 
 // Detalle auxiliar conservado del bloque clásico original.
@@ -5477,6 +6517,7 @@ function uxActiveFilterEntries(){
   if(selectedFragranceLineFilter) entries.push({key:"linea",label:`Línea: ${selectedFragranceLineFilter}`});
   return entries;
 }
+
 
 function uxRenderFilterSummary(){
   const host=document.getElementById("filterSummary");
@@ -5499,6 +6540,7 @@ function uxRenderFilterSummary(){
     host.appendChild(btn);
   }
 }
+
 
 function uxRenderBreadcrumb(){
   if(!albumPath) return;
@@ -5533,6 +6575,7 @@ function uxRenderBreadcrumb(){
   });
 }
 
+
 function uxClearOneFilter(key){
   if(key==="query"&&qInp) qInp.value="";
   else if(key==="olfativa") selectedFragranceFamilyFilter="";
@@ -5544,6 +6587,7 @@ function uxClearOneFilter(key){
   render();
 }
 
+
 function uxClearAllFilters(){
   if(qInp) qInp.value="";
   selectedSuggestionTerms=[];
@@ -5551,10 +6595,12 @@ function uxClearAllFilters(){
   render();
 }
 
+
 function uxScrollStack(){
   if(!Array.isArray(window.__catalogUxScrollStack)) window.__catalogUxScrollStack=[];
   return window.__catalogUxScrollStack;
 }
+
 
 function uxScrollToCatalogStart(){
   const target=document.querySelector("main")||grid;
@@ -5563,6 +6609,7 @@ function uxScrollToCatalogStart(){
   requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:"smooth"}));
 }
 
+
 function uxSaveScrollPosition(){
   clearTimeout(window.__catalogUxScrollTimer);
   window.__catalogUxScrollTimer=setTimeout(()=>{
@@ -5570,11 +6617,13 @@ function uxSaveScrollPosition(){
   },120);
 }
 
+
 function uxRestoreScrollPosition(){
   let saved=0;
   try{saved=Number(sessionStorage.getItem("irenismb_catalog_scroll_position")||0);}catch(_){}
   if(saved>0) requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:saved,left:0,behavior:"auto"})));
 }
+
 
 function uxFlashAdded(card,p){
   const btn=card&&card.querySelector('button[data-act="inc"]');
@@ -5587,14 +6636,17 @@ function uxFlashAdded(card,p){
   },850);
 }
 
+
 function rebuildSearchTicker(){
   if(tickerInner) tickerInner.innerHTML="";
   if(searchWrap) searchWrap.classList.remove("show-ticker");
 }
 
+
 function updateTickerVisibility(){
   if(searchWrap) searchWrap.classList.remove("show-ticker");
 }
+
 
 function syncWordToggleButton(){
   if(!toggleWordPanelBtn) return;
@@ -5608,6 +6660,7 @@ function syncWordToggleButton(){
   toggleWordPanelBtn.setAttribute("aria-pressed",wordSuggestionsVisible?"true":"false");
   toggleWordPanelBtn.classList.toggle("is-active",wordSuggestionsVisible||activeCount>0);
 }
+
 
 function renderWordSuggestions(){
   if(!wordPanel||!wordChips||!activeTerms||!activeTermsWrap||!clearTermsBtn) return;
@@ -5634,6 +6687,7 @@ function renderWordSuggestions(){
   activeTerms.innerHTML="";
   uxRenderFilterSummary();
 
+
   if(activeTermsList.length){
     for(const term of activeTermsList){
       const btn=document.createElement("button");
@@ -5646,6 +6700,7 @@ function renderWordSuggestions(){
       activeTerms.appendChild(btn);
     }
   }
+
 
   if(showAlbumGrid){
     const note=document.createElement("div");
@@ -5670,6 +6725,7 @@ function renderWordSuggestions(){
     }
   }
 }
+
 
 function syncFilterVisibility(){
   const showAlbumGrid=shouldShowAlbumGrid();
@@ -5706,6 +6762,7 @@ function syncFilterVisibility(){
   uxRenderFilterSummary();
 }
 
+
 function refreshCardUI(card,p){
   const row=card.querySelector(".row");
   const actions=card.querySelector(".actions");
@@ -5730,6 +6787,7 @@ function refreshCardUI(card,p){
     else incBtn.textContent=q>0?"Agregar otro":"Agregar";
   }
 }
+
 
 function makeCard(p){
   const card=cardTemplate.content.firstElementChild.cloneNode(true);
@@ -5757,6 +6815,7 @@ function makeCard(p){
   return card;
 }
 
+
 function makeEmptyState(message){
   const div=document.createElement("div");div.className="empty-state";
   const title=document.createElement("strong");title.className="empty-state-title";title.textContent=message;div.appendChild(title);
@@ -5769,6 +6828,7 @@ function makeEmptyState(message){
   return div;
 }
 
+
 function openAlbum(key,opts={}){
   const target=albumByKey.get(String(key||""));if(!target) return;
   uxScrollStack().push({scrollY:window.scrollY||0});
@@ -5779,6 +6839,7 @@ function openAlbum(key,opts={}){
   refreshNavigationAlbums();refreshFilterOptionsForScope();pushCatalogNavigationHistory();render();uxScrollToCatalogStart();
 }
 
+
 function closeAlbum(opts={}){
   const restore=uxScrollStack().pop();
   if(selectedFamily){selectedFamily="";clearFragranceFilters();}
@@ -5788,6 +6849,7 @@ function closeAlbum(opts={}){
   refreshNavigationAlbums();refreshFilterOptionsForScope();pushCatalogNavigationHistory();render();
   if(restore&&Number.isFinite(restore.scrollY)) requestAnimationFrame(()=>window.scrollTo({top:restore.scrollY,left:0,behavior:"smooth"}));
 }
+
 
 function renderCartModal(){
   const items=cartItemsArray();
@@ -5821,6 +6883,7 @@ function renderCartModal(){
   cartItemsEl.innerHTML="";cartItemsEl.appendChild(frag);
 }
 
+
 function bindGridActions(){
   grid.addEventListener("click",e=>{
     const clear=e.target.closest("[data-clear-search]");if(clear){uxClearAllFilters();return;}
@@ -5834,6 +6897,7 @@ function bindGridActions(){
   });
 }
 
+
 function bindFilters(){
   [fragranceFamilyFilters,fragranceLineFilters].forEach(host=>{if(!host)return;host.addEventListener("click",e=>{const btn=e.target.closest("[data-fragrance-filter-kind]");if(!btn)return;const kind=btn.dataset.fragranceFilterKind||"";const value=btn.dataset.fragranceFilterValue||"";if(kind==="family")selectedFragranceFamilyFilter=value;if(kind==="line")selectedFragranceLineFilter=value;render();});});
   if(sortSel)sortSel.addEventListener("change",render);qInp.addEventListener("input",render);
@@ -5844,6 +6908,7 @@ function bindFilters(){
   albumPath?.addEventListener("click",e=>{const btn=e.target.closest("[data-breadcrumb-level]");if(!btn)return;const level=btn.dataset.breadcrumbLevel;uxScrollStack().length=0;if(level==="root"){selectedAudience="";selectedCategory="";selectedFamily="";clearFragranceFilters();}else if(level==="audience"){selectedCategory="";selectedFamily="";clearFragranceFilters();}else if(level==="category"){selectedFamily="";clearFragranceFilters();}resetDiscoveryFilters();refreshNavigationAlbums();refreshFilterOptionsForScope();render();uxScrollToCatalogStart();});
   qInp.addEventListener("focus",updateTickerVisibility);qInp.addEventListener("blur",updateTickerVisibility);window.addEventListener("resize",()=>{rebuildSearchTicker();updateTickerVisibility();},{passive:true});window.addEventListener("scroll",uxSaveScrollPosition,{passive:true});
 }
+
 
 async function init(){
   refreshCartCount();initCartButton();initShipping();bindFilters();bindGridActions();initKeyboardAccessibility();
