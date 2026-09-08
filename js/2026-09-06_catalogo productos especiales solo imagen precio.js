@@ -9,7 +9,7 @@
 
     // Fuente principal de datos comerciales del catálogo: Google Sheet oficial.
     // Las imágenes se relacionan por el código interno global de cuatro dígitos.
-    // Hoja Productos, estructura A:M: Código, Sección, Público, Categoría, Condición, Estado comercial, Nombre, Precio, Costo, Stock, Referencia externa, Descripción y Código Natura.
+    // Hoja Productos, estructura A:N: Código, Sección, Categoría, Subcategoría, Familia olfativa, Condición, Estado comercial, Nombre, Precio, Costo, Stock, Referencia externa, Descripción y Código Natura.
     const GOOGLE_SHEET_SOURCE = {
       spreadsheetId: "1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs",
       sheetName: "Productos",
@@ -18,7 +18,7 @@
 
     // Control global remoto. Las hojas deben estar en el mismo archivo de Google Sheets.
     // Configuracion: A=Control, B=Estado, C=Qué hace, D=Recomendación, E=Clave técnica.
-    // Categorias: A=Sección, B=Público, C=Categoría, D=Estado comercial, E=Ocultar del catálogo, F=Excluir de búsquedas, G=Nota.
+    // Categorias: A=Sección, B=Categoría, C=Subcategoría, D=Familia olfativa, E=Estado comercial, F=Ocultar del catálogo, G=Excluir de búsquedas, H=Nota.
     const REMOTE_CONTROL_SOURCE = {
       enabled: true,
       spreadsheetId: GOOGLE_SHEET_SOURCE.spreadsheetId,
@@ -72,8 +72,8 @@
     window.REMOTE_CONTROL_VALUES = window.REMOTE_CONTROL_VALUES || {};
 
     const ALBUMES_OCULTOS_SEGUROS = [
-      "Otros productos||Medicamentos|A la venta",
-      "Otros productos||Tecnología y hogar|No a la venta"
+      "Otros productos|Otros productos|Medicamentos||A la venta",
+      "Otros productos|Otros productos|Electrodomésticos de segunda mano no a la venta||No a la venta"
     ];
     const ALBUMES_EXCLUIDOS_SEGUROS = ALBUMES_OCULTOS_SEGUROS.slice();
     const REMOTE_CATEGORIES_CACHE_KEY = "irenismb_remote_routes_cache";
@@ -86,7 +86,10 @@
         if(!parsed || typeof parsed !== "object") return null;
 
         const cleanList = value => Array.isArray(value)
-          ? value.map(item => String(item || "").trim()).filter(Boolean)
+          ? value
+              .map(item => String(item || "").trim())
+              .filter(Boolean)
+              .filter(item => item.split("|").length === 5)
           : null;
 
         const hidden = cleanList(parsed.hidden);
@@ -183,9 +186,6 @@
       if(!raw) return "";
       const key = normalizeText(raw).replace(/\s+/g, " ");
       const labels = {
-        "para ella": "Para ella",
-        "para el": "Para él",
-        "unisex": "Unisex",
         "otros productos": "Otros productos",
         "perfumes": "Perfumes",
         "desodorantes": "Desodorantes",
@@ -327,8 +327,8 @@
       const query = new URLSearchParams({
         sheet: GOOGLE_SHEET_SOURCE.sheetName,
         headers: "1",
-        range: "A:M",
-        tq: "select A,B,C,D,E,F,G,H,I,J,K,L,M",
+        range: "A:N",
+        tq: "select A,B,C,D,E,F,G,H,I,J,K,L,M,N",
         tqx: `out:json;responseHandler:${callbackName}`
       });
       return `${base}?${query.toString()}`;
@@ -374,27 +374,29 @@
 
           const rows = payload.table.rows.map(row=>{
             const c = Array.isArray(row && row.c) ? row.c : [];
-            let code = cellValue(c[0]).trim();
+            const value = index => cellValue(c[index]).trim();
+            let code = value(0);
             if(/^\d{1,4}$/.test(code)) code = code.padStart(4, "0");
 
             return {
               code,
-              section: cellValue(c[1]).trim(),
-              audience: cellValue(c[2]).trim(),
-              category: cellValue(c[3]).trim(),
-              condition: cellValue(c[4]).trim(),
-              commercialState: cellValue(c[5]).trim(),
-              name: cellValue(c[6]).trim(),
-              priceText: cellValue(c[7]).trim(),
-              costText: cellValue(c[8]).trim(),
-              stockText: cellValue(c[9]).trim(),
-              referenceExternal: cellValue(c[10]).trim(),
-              description: cellValue(c[11]).trim(),
-              codeNatura: cellValue(c[12]).trim(),
+              section: value(1),
+              category: value(2),
+              subcategory: value(3),
+              fragranceFamily: value(4),
+              condition: value(5),
+              commercialState: value(6),
+              name: value(7),
+              priceText: value(8),
+              costText: value(9),
+              stockText: value(10),
+              referenceExternal: value(11),
+              description: value(12),
+              codeNatura: value(13),
               fullTxtRecord: [
-                cellValue(c[6]).trim(),
+                value(7),
                 "",
-                `Precio: ${cellValue(c[7]).trim()} Costo: ${cellValue(c[8]).trim()} Stock: ${cellValue(c[9]).trim()} Referencia externa: ${cellValue(c[10]).trim()}. ${cellValue(c[11]).trim()}`
+                `Precio: ${value(8)} Costo: ${value(9)} Stock: ${value(10)} Referencia externa: ${value(11)}. ${value(12)}`
               ].join("\n")
             };
           }).filter(row => /^\d{4}$/.test(row.code) && row.name);
@@ -513,8 +515,8 @@
       return changed;
     }
 
-    function routeKeyFromParts(section, audience, category, commercialState){
-      return [section, audience, category, commercialState]
+    function routeKeyFromParts(section, category, subcategory, fragranceFamily, commercialState){
+      return [section, category, subcategory, fragranceFamily, commercialState]
         .map(value => normalizeText(value).replace(/\s+/g, " "))
         .join("|");
     }
@@ -527,17 +529,18 @@
 
       for(const row of (Array.isArray(rows) ? rows : [])){
         const section = String(row?.[0] || "").trim();
-        const audience = String(row?.[1] || "").trim();
-        const category = String(row?.[2] || "").trim();
-        const commercialState = String(row?.[3] || "").trim();
-        if(!section || !category) continue;
+        const category = String(row?.[1] || "").trim();
+        const subcategory = String(row?.[2] || "").trim();
+        const fragranceFamily = String(row?.[3] || "").trim();
+        const commercialState = String(row?.[4] || "").trim();
+        if(!section || !category || !commercialState) continue;
 
-        const hiddenState = parseRemoteBoolean(row?.[4]);
-        const excludedState = parseRemoteBoolean(row?.[5]);
+        const hiddenState = parseRemoteBoolean(row?.[5]);
+        const excludedState = parseRemoteBoolean(row?.[6]);
         if(hiddenState === null && excludedState === null) continue;
 
         validRows++;
-        const routeKey = routeKeyFromParts(section, audience, category, commercialState);
+        const routeKey = routeKeyFromParts(section, category, subcategory, fragranceFamily, commercialState);
         allowed.push(routeKey);
         if(hiddenState === true) hidden.push(routeKey);
         if(excludedState === true) excluded.push(routeKey);
@@ -548,17 +551,21 @@
         return false;
       }
 
+      const uniqueHidden = [...new Set(hidden)];
+      const uniqueExcluded = [...new Set(excluded)];
+      const uniqueAllowed = [...new Set(allowed)];
+
       const previousHidden = JSON.stringify(window.ALBUMES_OCULTOS || []);
       const previousExcluded = JSON.stringify(window.ALBUMES_EXCLUIDOS_EN_BUSQUEDA || []);
       const previousAllowed = JSON.stringify([...allowedProductRouteKeySet].sort());
 
-      window.ALBUMES_OCULTOS = hidden;
-      window.ALBUMES_EXCLUIDOS_EN_BUSQUEDA = excluded;
-      allowedProductRouteKeySet = new Set(allowed);
-      saveRemoteCategoryCache(hidden, excluded);
+      window.ALBUMES_OCULTOS = uniqueHidden;
+      window.ALBUMES_EXCLUIDOS_EN_BUSQUEDA = uniqueExcluded;
+      allowedProductRouteKeySet = new Set(uniqueAllowed);
+      saveRemoteCategoryCache(uniqueHidden, uniqueExcluded);
 
-      return previousHidden !== JSON.stringify(hidden) ||
-             previousExcluded !== JSON.stringify(excluded) ||
+      return previousHidden !== JSON.stringify(uniqueHidden) ||
+             previousExcluded !== JSON.stringify(uniqueExcluded) ||
              previousAllowed !== JSON.stringify([...allowedProductRouteKeySet].sort());
     }
 
@@ -577,8 +584,8 @@
         ),
         loadGoogleSheetRemoteMatrix(
           REMOTE_CONTROL_SOURCE.categoriesSheetName,
-          "A:G",
-          "select A,B,C,D,E,F,G",
+          "A:H",
+          "select A,B,C,D,E,F,G,H",
           "__remoteCatalogCategories"
         )
       ]);
@@ -942,9 +949,10 @@
       const code = String(row.code || "").trim();
       const name = String(row.name || "").trim();
       const section = String(row.section || "").trim();
-      const audience = String(row.audience || "").trim();
       const rawCategory = String(row.category || "").trim();
       const category = section === "Regalos para toda ocasión" ? rawCategory : (rawCategory || "General");
+      const subcategory = String(row.subcategory || "").trim();
+      const fragranceFamily = String(row.fragranceFamily || "").trim();
       const condition = String(row.condition || "").trim();
       const commercialState = String(row.commercialState || "A la venta").trim() || "A la venta";
       if(!/^\d{4}$/.test(code) || !name) return null;
@@ -971,8 +979,9 @@
         id: code,
         name,
         section,
-        audience,
         category,
+        subcategory,
+        fragranceFamily,
         condition,
         commercialState,
         brand: /\bnatura\b/i.test(name) ? "Natura" : (/\bavon\b/i.test(name) ? "AVON" : ""),
@@ -993,7 +1002,7 @@
         docsImageUrl,
         imageUrls,
         docsDocumentUrl: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_SOURCE.spreadsheetId}/edit#gid=${GOOGLE_SHEET_SOURCE.gid}`,
-        searchKey: normalizeText([code, name, section, audience, category, condition, row.description, row.referenceExternal].filter(Boolean).join(" "))
+        searchKey: normalizeText([code, name, section, category, subcategory, fragranceFamily, condition, row.description, row.referenceExternal].filter(Boolean).join(" "))
       };
     }
 
@@ -1008,8 +1017,9 @@
             id: `regalo-galeria-${String(index + 1).padStart(2,"0")}`,
             name: "",
             section: GIFT_GITHUB_SOURCE.section,
-            audience: "",
-            category: "",
+            category: "Regalos",
+            subcategory: "",
+            fragranceFamily: "",
             condition: "",
             commercialState: "A la venta",
             brand: "",
@@ -1054,8 +1064,9 @@
 
       const sorted = source.slice().sort((a,b)=>
         String(a?.section || "").localeCompare(String(b?.section || ""), "es", { sensitivity:"base" }) ||
-        String(a?.audience || "").localeCompare(String(b?.audience || ""), "es", { sensitivity:"base" }) ||
         String(a?.category || "").localeCompare(String(b?.category || ""), "es", { sensitivity:"base" }) ||
+        String(a?.subcategory || "").localeCompare(String(b?.subcategory || ""), "es", { sensitivity:"base" }) ||
+        String(a?.fragranceFamily || "").localeCompare(String(b?.fragranceFamily || ""), "es", { sensitivity:"base" }) ||
         String(a?.name || "").localeCompare(String(b?.name || ""), "es", { sensitivity:"base" })
       );
       const fragment = document.createDocumentFragment();
@@ -1073,9 +1084,11 @@
         const meta = document.createElement("span");
         meta.className = "beauty-product-meta";
         const metaParts = [];
-        if(product?.section === "Belleza y cuidado" && product?.audience) metaParts.push(String(product.audience));
-        if(product?.section === "Regalos para toda ocasión") metaParts.push(String(product.section));
-        if(product?.category) metaParts.push(String(product.category));
+        const mainGroup = mainNavigationGroupForProduct(product);
+        const subcategory = navigationCategoryForProduct(product);
+        if(mainGroup) metaParts.push(mainGroup);
+        if(subcategory && cleanNavKey(subcategory) !== cleanNavKey(mainGroup)) metaParts.push(subcategory);
+        if(product?.fragranceFamily) metaParts.push(product.fragranceFamily);
         if(product?.id && shouldShowProductCodes()) metaParts.push(`Código ${product.id}`);
         if(shouldShowProductPrices() && product?.hasPrice !== false && Number(product?.price) >= 0){
           metaParts.push(fmtCOP.format(Number(product.price)));
@@ -1374,28 +1387,43 @@
 
     const NAV_AUDIENCES = [
       {
-        label:"Para ella",
+        label:"Perfumes y fragancias",
         section:"Belleza y cuidado",
-        subtitle:"Belleza y cuidado seleccionados para ella.",
-        iconImage:ROOT_ICON_IMAGES.ella,
-        theme:"ella"
+        subtitle:"Perfumería femenina, perfumería masculina y perfumes.",
+        iconImage:githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria perfumes fragancia floral rosa.webp"),
+        theme:"perfumes"
       },
       {
-        label:"Para él",
+        label:"Cabello",
         section:"Belleza y cuidado",
-        subtitle:"Perfumes, desodorantes y cuidado personal para él.",
-        iconImage:ROOT_ICON_IMAGES.el,
-        theme:"el"
+        subtitle:"Reparación, nutrición, hidratación, rizos, anticaída, color, limpieza y protección.",
+        iconImage:githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cabello mechon brillante capilar.webp"),
+        theme:"cabello"
       },
       {
-        label:"Unisex",
+        label:"Cuidado personal",
         section:"Belleza y cuidado",
-        subtitle:"Cuidado para todos, sin repetir etiquetas.",
-        iconImage:ROOT_ICON_IMAGES.unisex,
-        theme:"unisex"
+        subtitle:"Cuidado facial y corporal, higiene, desodorantes, manos, pies y protección solar.",
+        iconImage:githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado corporal locion vegetal.webp"),
+        theme:"personal"
       },
       {
-        label:"Regalos para toda ocasión",
+        label:"Maquillaje",
+        section:"Belleza y cuidado",
+        subtitle:"Productos de maquillaje.",
+        iconImage:githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria maquillaje brocha labial rosa.webp"),
+        theme:"maquillaje"
+      },
+      {
+        label:"Kits y combos",
+        section:"Belleza y cuidado",
+        subtitle:"Combinaciones de distintas familias de productos.",
+        iconImage:githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria kits combos regalo cosmeticos.webp"),
+        theme:"kits",
+        directProducts:true
+      },
+      {
+        label:"Regalos",
         section:"Regalos para toda ocasión",
         subtitle:"Detalles y arreglos listos para regalar en cualquier ocasión.",
         iconImage:ROOT_ICON_IMAGES.regalos,
@@ -1405,7 +1433,7 @@
       {
         label:"Otros productos",
         section:"Otros productos",
-        subtitle:"Tecnología, hogar, juguetes, papelería y más.",
+        subtitle:"Electrodomésticos, juguetes, papelería, medicamentos y más.",
         iconImage:ROOT_ICON_IMAGES.otros,
         theme:"otros"
       }
@@ -1445,6 +1473,34 @@
       "juguetes": { iconImage:SUBCATEGORY_ICON_IMAGES["juguetes"] },
       "papeleria": { iconImage:SUBCATEGORY_ICON_IMAGES["papeleria"] },
       "medicamentos": { iconImage:SUBCATEGORY_ICON_IMAGES["medicamentos"] },
+      "perfumeria femenina": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "perfumeria masculina": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "fragancias femeninas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "fragancias masculinas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "fragancias unisex": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "frescas, citricas y acuaticas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "florales y frutales": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "dulces y orientales": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "amaderadas, chipre y especiadas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "aromaticas y herbales": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "amaderadas y especiadas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "intensas y ambaradas": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "frescas, citricas y verdes": { iconImage:SUBCATEGORY_ICON_IMAGES["perfumes"] },
+      "cuidado capilar": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "reparacion y nutricion": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "peinado y proteccion": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "rizos y definicion": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "anticaida y crecimiento": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "hidratacion": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "color, matizacion y liso": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "limpieza y anticaspa": { iconImage:SUBCATEGORY_ICON_IMAGES["cabello"] },
+      "hidratacion y tratamiento corporal": { iconImage:SUBCATEGORY_ICON_IMAGES["cuidado corporal"] },
+      "cuidado de manos y pies": { iconImage:SUBCATEGORY_ICON_IMAGES["manos y pies"] },
+      "higiene y exfoliacion corporal": { iconImage:SUBCATEGORY_ICON_IMAGES["higiene corporal"] },
+      "electrodomesticos de segunda mano a la venta": { iconImage:SUBCATEGORY_ICON_IMAGES["tecnologia y hogar"] },
+      "electrodomesticos de segunda mano no a la venta": { iconImage:SUBCATEGORY_ICON_IMAGES["tecnologia y hogar"] },
+      "juguetes de segunda mano": { iconImage:SUBCATEGORY_ICON_IMAGES["juguetes"] },
+      "papeleria de segunda mano": { iconImage:SUBCATEGORY_ICON_IMAGES["papeleria"] },
       "regalos": { icon:"🎁" }
     };
 
@@ -1452,6 +1508,7 @@
     let albumByKey = new Map();
     let selectedAudience = "";
     let selectedCategory = "";
+    let selectedFamily = "";
     let selectedAlbumKey = "";
     let hiddenAlbumNameSet = new Set(getHiddenAlbumNames());
     let searchExcludedAlbumNameSet = new Set(getSearchExcludedAlbumNames());
@@ -1463,7 +1520,7 @@
 
     function getProductRouteKey(p){
       if(!p) return "";
-      return routeKeyFromParts(p.section, p.audience, p.category, p.commercialState);
+      return routeKeyFromParts(p.section, p.category, p.subcategory, p.fragranceFamily, p.commercialState);
     }
 
     function isProductRouteAuthorized(p){
@@ -1484,14 +1541,24 @@
       return Boolean(key && searchExcludedAlbumNameSet.has(key));
     }
 
+    function mainNavigationGroupForProduct(p){
+      if(!p) return "";
+      if(p.section === "Regalos para toda ocasión") return "Regalos";
+      return String(p.category || "").trim();
+    }
+
     function productMatchesAudience(p, audienceLabel){
-      if(!p) return false;
-      const group = NAV_AUDIENCES.find(item => cleanNavKey(item.label) === cleanNavKey(audienceLabel));
-      if(!group) return false;
-      if(group.section === "Belleza y cuidado"){
-        return p.section === group.section && p.audience === group.label;
-      }
-      return p.section === group.section;
+      return cleanNavKey(mainNavigationGroupForProduct(p)) === cleanNavKey(audienceLabel);
+    }
+
+    function navigationCategoryForProduct(p){
+      if(!p) return "General";
+      return String(p.subcategory || p.category || "General").trim() || "General";
+    }
+
+    function navigationFamilyForProduct(p){
+      if(!p) return "";
+      return String(p.fragranceFamily || "").trim();
     }
 
     function isDirectProductAudience(audienceLabel){
@@ -1546,7 +1613,7 @@
       const byCategory = new Map();
       for(const p of (Array.isArray(list) ? list : [])){
         if(!productMatchesAudience(p, audienceLabel)) continue;
-        const category = String(p.category || "General").trim() || "General";
+        const category = navigationCategoryForProduct(p);
         const key = cleanNavKey(category);
         const visual = CATEGORY_VISUALS[cleanNavKey(category)] || { icon:"•" };
         const found = byCategory.get(key) || {
@@ -1579,24 +1646,69 @@
         }));
     }
 
+    function buildFamilyAlbums(list, audienceLabel, categoryLabel){
+      const byFamily = new Map();
+      for(const p of (Array.isArray(list) ? list : [])){
+        if(!productMatchesAudience(p, audienceLabel)) continue;
+        if(cleanNavKey(navigationCategoryForProduct(p)) !== cleanNavKey(categoryLabel)) continue;
+        const family = navigationFamilyForProduct(p);
+        if(!family) continue;
+        const key = cleanNavKey(family);
+        const visual = CATEGORY_VISUALS[key] || { icon:"•" };
+        const found = byFamily.get(key) || {
+          key:`family::${cleanNavKey(audienceLabel)}::${cleanNavKey(categoryLabel)}::${key}`,
+          navType:"family",
+          navValue:family,
+          audience:audienceLabel,
+          category:categoryLabel,
+          label:categoryDisplayLabel(family),
+          subtitle:"",
+          icon:visual.icon || "•",
+          iconImage:visual.iconImage || "",
+          products:[],
+          cover:null,
+          previewImages:[],
+          searchKey:normalizeText(`${family} ${categoryLabel} ${audienceLabel}`),
+          hasStructuredProducts:true,
+          hasUnstructuredProducts:false
+        };
+        found.products.push(p);
+        collectAlbumPreview(found,p);
+        byFamily.set(key,found);
+      }
+      return Array.from(byFamily.values())
+        .sort((a,b)=>a.label.localeCompare(b.label,"es",{sensitivity:"base"}))
+        .map((album,index)=>({
+          ...album,
+          count:album.products.length,
+          onlyUnstructured:false,
+          colorIndex:index % ALBUM_COLORS.length
+        }));
+    }
+
     function buildAlbums(list){
+      if(selectedAudience && selectedCategory) return buildFamilyAlbums(list, selectedAudience, selectedCategory);
       return selectedAudience ? buildCategoryAlbums(list, selectedAudience) : buildRootAlbums(list);
     }
 
     function refreshNavigationAlbums(){
-      if(selectedCategory){
+      if(selectedFamily){
         albums = [];
         albumByKey = new Map();
-        selectedAlbumKey = `category::${cleanNavKey(selectedAudience)}::${cleanNavKey(selectedCategory)}`;
+        selectedAlbumKey = `family::${cleanNavKey(selectedAudience)}::${cleanNavKey(selectedCategory)}::${cleanNavKey(selectedFamily)}`;
         return;
       }
       albums = buildAlbums(all);
       albumByKey = new Map(albums.map(album => [album.key, album]));
-      selectedAlbumKey = selectedAudience ? `audience::${cleanNavKey(selectedAudience)}` : "";
+      if(selectedCategory){
+        selectedAlbumKey = `category::${cleanNavKey(selectedAudience)}::${cleanNavKey(selectedCategory)}`;
+      }else{
+        selectedAlbumKey = selectedAudience ? `audience::${cleanNavKey(selectedAudience)}` : "";
+      }
     }
 
     function getProductAlbumKey(p){
-      return cleanNavKey((p && p.category) || "General") || ROOT_ALBUM_KEY;
+      return cleanNavKey(navigationCategoryForProduct(p) || "General") || ROOT_ALBUM_KEY;
     }
 
     function albumLabelFromKey(key){
@@ -1636,10 +1748,13 @@
         window.INTERRUPTORES &&
         window.INTERRUPTORES.MOSTRAR_PRODUCTOS_COINCIDENTES_AL_ESCRIBIR === true
       );
-      return albumModeEnabled() && !selectedCategory && !isDirectProductAudience(selectedAudience) && !showDirectMatches;
+      return albumModeEnabled() && albums.length > 0 && !selectedFamily && !isDirectProductAudience(selectedAudience) && !showDirectMatches;
     }
 
     function getSelectedAlbum(){
+      if(selectedFamily){
+        return { label:selectedFamily, navType:"family", audience:selectedAudience, category:selectedCategory };
+      }
       if(selectedCategory){
         return { label:selectedCategory, navType:"category", audience:selectedAudience };
       }
@@ -1655,7 +1770,10 @@
         source = source.filter(p => productMatchesAudience(p, selectedAudience));
       }
       if(selectedCategory){
-        source = source.filter(p => cleanNavKey(p.category) === cleanNavKey(selectedCategory));
+        source = source.filter(p => cleanNavKey(navigationCategoryForProduct(p)) === cleanNavKey(selectedCategory));
+      }
+      if(selectedFamily){
+        source = source.filter(p => cleanNavKey(navigationFamilyForProduct(p)) === cleanNavKey(selectedFamily));
       }
       return source;
     }
@@ -2803,9 +2921,9 @@
             "@type":"Product",
             "name":String(p.name || ""),
             "description":String(p.description || ""),
-            "category":p.section === "Regalos para toda ocasión"
-              ? p.section
-              : [p.audience, p.category].filter(Boolean).join(" > ")
+            "category":[p.category, p.subcategory, p.fragranceFamily]
+              .filter(Boolean)
+              .join(" > ")
           };
           if(shouldShowProductCodes()) item.sku = String(p.id || "");
           if(shouldShowProductImages() && p.docsImageUrl) item.image = [p.docsImageUrl];
@@ -2874,9 +2992,11 @@
       const hasKnownStock = Number.isInteger(p.stock) && p.stock >= 0;
       const stockVal = hasKnownStock ? p.stock : 0;
       const parts = [];
-      if(p.section === "Belleza y cuidado" && p.audience) parts.push(p.audience);
-      if(p.section === "Regalos para toda ocasión") parts.push(p.section);
-      if(p.category) parts.push(p.category);
+      const mainGroup = mainNavigationGroupForProduct(p);
+      const subcategory = navigationCategoryForProduct(p);
+      if(mainGroup) parts.push(mainGroup);
+      if(subcategory && cleanNavKey(subcategory) !== cleanNavKey(mainGroup)) parts.push(subcategory);
+      if(p.fragranceFamily) parts.push(p.fragranceFamily);
       if(p.id && shouldShowProductCodes()) parts.push(`Código ${p.id}`);
       if(INTERRUPTORES.MOSTRAR_CANTIDAD_STOCK){
         parts.push(hasKnownStock ? `Stock: ${stockVal}` : "Stock: Por confirmar");
@@ -3281,7 +3401,6 @@
 
       for(const p of (Array.isArray(list) ? list : [])){
         for(const token of parseSuggestionTokens(p && p.category ? p.category : "")) blocked.add(token);
-        for(const token of parseSuggestionTokens(p && p.audience ? p.audience : "")) blocked.add(token);
         for(const token of parseSuggestionTokens(p && p.section ? p.section : "")) blocked.add(token);
       }
 
@@ -3525,24 +3644,33 @@
         albumNav.hidden = !selectedAudience;
       }
       if(albumBackBtn){
-        albumBackBtn.textContent = selectedCategory ? `← Volver a ${selectedAudience}` : "← Volver al inicio";
+        albumBackBtn.textContent = selectedFamily
+          ? `← Volver a ${selectedCategory}`
+          : (selectedCategory ? `← Volver a ${selectedAudience}` : "← Volver al inicio");
       }
       placeResponsiveHeaderMeta();
       if(albumPath){
         albumPath.textContent = selectedAudience
-          ? (selectedCategory ? `${selectedAudience} › ${selectedCategory}` : selectedAudience)
+          ? (selectedFamily
+              ? `${selectedAudience} › ${selectedCategory} › ${selectedFamily}`
+              : (selectedCategory ? `${selectedAudience} › ${selectedCategory}` : selectedAudience))
           : "";
       }
       if(qInp){
+        const searchScopeLabel = selectedFamily || selectedCategory || selectedAudience;
         qInp.placeholder = selectedAudience
-          ? `🔍 Buscar dentro de ${selectedCategory || selectedAudience}...`
+          ? `🔍 Buscar dentro de ${searchScopeLabel}...`
           : "🔍 Busca aquí por nombre del producto...";
-        qInp.setAttribute("aria-label", selectedAudience ? `Buscar dentro de ${selectedCategory || selectedAudience}` : "Buscar producto por nombre");
+        qInp.setAttribute("aria-label", selectedAudience ? `Buscar dentro de ${searchScopeLabel}` : "Buscar producto por nombre");
       }
       if(grid){
         grid.classList.toggle("album-grid-mode", showAlbumGrid);
         grid.classList.toggle("root-nav-mode", showAlbumGrid && !selectedAudience);
-        const label = !selectedAudience ? "Secciones principales" : (directSelected ? "Productos" : (!selectedCategory ? "Categorías" : "Productos"));
+        const label = !selectedAudience
+          ? "Secciones principales"
+          : (directSelected
+              ? "Productos"
+              : (!selectedCategory ? "Subcategorías" : (albums.length > 0 && !selectedFamily ? "Familias olfativas" : "Productos")));
         grid.setAttribute("aria-label", showAlbumGrid ? label : "Productos");
       }
       if(catalogEntryIntro){
@@ -3554,7 +3682,7 @@
         if(catalogEntryText){
           catalogEntryText.textContent = selectedAudience
             ? (directSelected ? "Explora los regalos disponibles." : "Elige una categoría para ver los productos disponibles.")
-            : "Elige Para ella, Para él, Unisex, Regalos para toda ocasión u Otros productos para comenzar.";
+            : "Elige una categoría para comenzar.";
         }
       }
 
@@ -3568,6 +3696,7 @@
       const sort = (u.searchParams.get("sort") || "").trim();
       const audience = (u.searchParams.get("audience") || "").trim();
       const category = (u.searchParams.get("category") || "").trim();
+      const family = (u.searchParams.get("family") || "").trim();
       const tags = (u.searchParams.get("tags") || "").trim();
 
       if(qInp) qInp.value = q || "";
@@ -3575,6 +3704,7 @@
       const validAudience = NAV_AUDIENCES.find(item => cleanNavKey(item.label) === cleanNavKey(audience));
       selectedAudience = validAudience ? validAudience.label : "";
       selectedCategory = selectedAudience && category && !isDirectProductAudience(selectedAudience) ? category : "";
+      selectedFamily = selectedCategory && family ? family : "";
       if(sort && sortSel) sortSel.value = sort;
     }
 
@@ -3593,6 +3723,7 @@
       if (sort) u.searchParams.set("sort", sort); else u.searchParams.delete("sort");
       if (selectedAudience) u.searchParams.set("audience", selectedAudience); else u.searchParams.delete("audience");
       if (selectedCategory) u.searchParams.set("category", selectedCategory); else u.searchParams.delete("category");
+      if (selectedFamily) u.searchParams.set("family", selectedFamily); else u.searchParams.delete("family");
       u.searchParams.delete("album");
       if (tags) u.searchParams.set("tags", tags); else u.searchParams.delete("tags");
 
@@ -3617,9 +3748,15 @@
       if(target.navType === "audience"){
         selectedAudience = target.navValue;
         selectedCategory = "";
+        selectedFamily = "";
       }else if(target.navType === "category"){
         selectedAudience = target.audience || selectedAudience;
         selectedCategory = target.navValue;
+        selectedFamily = "";
+      }else if(target.navType === "family"){
+        selectedAudience = target.audience || selectedAudience;
+        selectedCategory = target.category || selectedCategory;
+        selectedFamily = target.navValue;
       }
       if(!opts.keepFilters) resetDiscoveryFilters();
       refreshNavigationAlbums();
@@ -3628,7 +3765,9 @@
     }
 
     function closeAlbum(opts={}){
-      if(selectedCategory){
+      if(selectedFamily){
+        selectedFamily = "";
+      }else if(selectedCategory){
         selectedCategory = "";
       }else{
         selectedAudience = "";
@@ -4009,14 +4148,26 @@
         productById = new Map(all.map(p => [String(p.id), p]));
         readStateFromUrl();
         if(selectedCategory){
-          const hasCategory = all.some(p => productMatchesAudience(p, selectedAudience) && cleanNavKey(p.category) === cleanNavKey(selectedCategory));
-          if(!hasCategory) selectedCategory = "";
+          const hasCategory = all.some(p => productMatchesAudience(p, selectedAudience) && cleanNavKey(navigationCategoryForProduct(p)) === cleanNavKey(selectedCategory));
+          if(!hasCategory){
+            selectedCategory = "";
+            selectedFamily = "";
+          }
+        }
+        if(selectedFamily){
+          const hasFamily = all.some(p =>
+            productMatchesAudience(p, selectedAudience) &&
+            cleanNavKey(navigationCategoryForProduct(p)) === cleanNavKey(selectedCategory) &&
+            cleanNavKey(navigationFamilyForProduct(p)) === cleanNavKey(selectedFamily)
+          );
+          if(!hasFamily) selectedFamily = "";
         }
         refreshNavigationAlbums();
       }catch(err){
         console.warn("Los productos se cargaron, pero no se pudo reconstruir toda la navegación. Se restablece la vista principal.", err);
         selectedAudience = "";
         selectedCategory = "";
+        selectedFamily = "";
         selectedAlbumKey = "";
         albums = [];
         albumByKey = new Map();
