@@ -27,8 +27,7 @@ try:
 except urllib.error.HTTPError as error: raise SystemExit("No se pudo renovar acceso Google: HTTP "+str(error.code)) from None
 # Verificar el destino antes de crear la aplicacion.
 request("https://www.googleapis.com/drive/v3/files/1b1S1Xry9kroXgZm_-bPveC7iYWOAyAbc?fields=id,mimeType",token=access)
-project=request("https://script.googleapis.com/v1/projects","POST",{"title":"espejo github drive"},access)
-script_id=project["scriptId"]
+script_id="1_2l5YJhxCGygllgtIEHGkeaCvT2tPHpTYIIFoBclJ9pRwfvUtyTzafXe"
 manifest={"timeZone":"America/Bogota","runtimeVersion":"V8","exceptionLogging":"STACKDRIVER",
     "oauthScopes":["https://www.googleapis.com/auth/drive","https://www.googleapis.com/auth/script.external_request"],
     "webapp":{"access":"ANYONE_ANONYMOUS","executeAs":"USER_DEPLOYING"}}
@@ -39,10 +38,6 @@ version=request("https://script.googleapis.com/v1/projects/"+script_id+"/version
 deployment=request("https://script.googleapis.com/v1/projects/"+script_id+"/deployments","POST",
     {"versionNumber":version["versionNumber"],"manifestFileName":"appsscript","description":"espejo github drive"},access)
 url=next(e["webApp"]["url"] for e in deployment.get("entryPoints",[]) if e.get("webApp"))
-# Ubicar el proyecto nuevo en la carpeta autorizada de documentos nuevos.
-metadata=request("https://www.googleapis.com/drive/v3/files/"+script_id+"?fields=parents",token=access)
-query=urllib.parse.urlencode({"addParents":"16DmWgblOF75LrNp0YJ5XL_FRU4TSgyBV","removeParents":",".join(metadata.get("parents",[])),"fields":"id"})
-request("https://www.googleapis.com/drive/v3/files/"+script_id+"?"+query,"PATCH",{},access)
 oidc_url=os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]+"&audience=drive-mirror.gruemp"
 oidc=request(oidc_url,token=os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"])["value"]
 result=request(url,"POST",{"token":oidc,"op":"probe"})
