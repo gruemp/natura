@@ -6,7 +6,14 @@ def request(url, method="GET", payload=None, token=None):
     req=urllib.request.Request(url,data=None if payload is None else json.dumps(payload).encode(),headers=headers,method=method)
     try:
         with urllib.request.urlopen(req, timeout=60) as response: return json.load(response)
-    except urllib.error.HTTPError as error: raise SystemExit("Operacion remota bloqueada: HTTP "+str(error.code)) from None
+    except urllib.error.HTTPError as error:
+        try:
+            detail=json.load(error).get("error",{})
+            reasons=[d.get("reason","") for d in detail.get("details",[]) if isinstance(d,dict)]
+            reasons += [d.get("reason","") for d in detail.get("errors",[]) if isinstance(d,dict)]
+        except Exception: reasons=[]
+        print("Operacion: "+method+" "+urllib.parse.urlparse(url).hostname+" "+urllib.parse.urlparse(url).path)
+        raise SystemExit("Operacion remota bloqueada: HTTP "+str(error.code)+"; "+",".join(reasons)) from None
 auth=json.loads(os.environ["CLASPRC_JSON"])
 credentials=(auth.get("tokens") or {}).get("default") or auth.get("token") or auth
 client_id=credentials.get("client_id") or auth.get("client_id") or auth.get("clientId")

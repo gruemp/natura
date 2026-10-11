@@ -30,3 +30,4 @@ jobs:
           path: ${{ runner.temp }}/espejo-conexion.json
           if-no-files-found: ignore
           retention-days: 7
+# Diagnostico acotado de permisos Google, sin valores de credenciales.
