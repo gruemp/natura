@@ -11,10 +11,11 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 
 ## Origen de trabajo y continuidad (2026-10-11)
 
-- Se trabaja temporalmente el código en GitHub, en `irenismb/stock/natura/apps-script/`. El cambio definitivo de fuente principal no está aprobado ni desplegado.
+- Se trabaja temporalmente el código en GitHub, en `irenismb/natura/apps-script/`. El cambio definitivo de fuente principal no está aprobado ni desplegado.
 - No ejecutar sincronización GitHub → Google Drive ni Drive → GitHub durante esta preparación. La dirección final, la conciliación de versiones y los permisos deberán decidirse y validarse expresamente.
-- Las publicaciones vigentes de Apps Script proceden de los workflows operativos situados en `stock/.github/workflows/`; los flujos preparados bajo `natura/.github/workflows/` no se ejecutan desde el repositorio `stock`.
+- Las publicaciones vigentes de Apps Script proceden de los workflows operativos situados en `stock/.github/workflows/`; los flujos de `natura/.github/workflows/` ya están en la raíz del repositorio independiente, pero sus publicaciones siguen deshabilitadas.
 - Antes de publicar desde el repositorio individual, verificar `scriptId`, implementación, secreto, permisos y relación con cada proyecto remoto. No activar dos publicadores ni usar `clasp push --force` con identidades no conciliadas.
+- El lector depende de las propiedades de visibilidad y configuración del administrador. La hoja antigua solo se importa una vez: un proyecto nuevo no debe utilizar esa hoja como si reflejara el estado actual.
 - `lector publico natura/.clasp.json` y `administrar precios natura/.clasp.json` señalan actualmente el mismo `scriptId`. No publicar el lector mediante sobrescritura temporal del código administrativo: el workflow futuro incorpora una protección que bloquea esta operación hasta resolverla.
 - `google-projects.json` documenta el flujo anterior Drive → GitHub. Se conserva por ahora sin cambiar su estructura técnica y no debe tomarse como autorización de sincronización.
 - Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización independiente.

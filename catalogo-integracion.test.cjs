@@ -218,7 +218,7 @@ function environment(){
     requestAnimationFrame:fn=>{fn();return 1;},MutationObserver:class {observe(){}disconnect(){}},
     Image:class {set src(value){this._src=value;queueMicrotask(()=>this.onload?.());}},
     CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},
-    location:{href:'https://irenismb.github.io/stock/natura/catalogo.html',origin:'https://irenismb.github.io',protocol:'https:',search:'',hash:''},
+    location:{href:'https://irenismb.github.io/natura/catalogo.html',origin:'https://irenismb.github.io',protocol:'https:',search:'',hash:''},
     history:{state:null,replaceState(){},pushState(){}},navigator:{},performance:{now:()=>0,getEntriesByType:()=>[]},
     addEventListener:(name,fn)=>events.set(name,fn),dispatchEvent:event=>events.get(event.type)?.(event),
     PRECIOS_ADMIN_CONFIG:{endpoint:'https://script.google.com/macros/s/PRUEBA_SIN_RED/exec'},
