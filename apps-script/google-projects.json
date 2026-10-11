@@ -1,0 +1,27 @@
+{
+  "source": "Google Drive stock/natura/apps-script",
+  "selection": "explicit production allowlist",
+  "projects": [
+    {
+      "scriptId": "1-wBaemhULEFETfQHJDocPTOjbXnVds27DZfiIU9sMnCYf01qSycs1jc4",
+      "name": "administrar precios natura",
+      "gitPath": "administrar precios natura"
+    },
+    {
+      "scriptId": "12M9b5tq5xV0tqMxoJgJgjPKaOE8Q9PQj5TfyzhFEBtNcJHOijKkByEwt",
+      "name": "pedidos natura",
+      "gitPath": "pedidos natura"
+    },
+    {
+      "scriptId": "1wN8Cyp7JmJOtIY0etPKyo_3r5y48MYpMrT5PFQeVmoyztPwYO53sWfLf",
+      "name": "lectura de carpetas en natura",
+      "gitPath": "lectura de carpetas en natura"
+    },
+    {
+      "scriptId": "1T2y1xSKlZueX-SYDU9HxFi6K4ShLbiHRUGY21caNtSv9Gz-6h1aLd5ZN",
+      "name": "coordenadas de visitantes natura",
+      "gitPath": "coordenadas de visitantes natura"
+    }
+  ],
+  "flow": "Google Drive -> GitHub -> Google Apps Script"
+}
