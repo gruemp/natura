@@ -1,0 +1,56 @@
+name: Verificar acceso Google Natura
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/verificar-acceso-google-natura.yml"]
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Instalar herramienta oficial
+        run: npm install --global @google/clasp@3.4.1
+      - name: Restaurar credencial sin mostrarla
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          test -n "$CLASPRC_JSON" || { echo "::error::Falta CLASPRC_JSON"; exit 1; }
+          printf '%s' "$CLASPRC_JSON" > "$RUNNER_TEMP/.clasprc.json"
+          chmod 600 "$RUNNER_TEMP/.clasprc.json"
+      - name: Verificar proyectos y despliegues de Natura sin modificarlos
+        env:
+          clasp_config_auth: ${{ runner.temp }}/.clasprc.json
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          projects = [
+              ('administrar precios natura', 'AKfycbwAUk8ysr-3k_T5iRxFpbp8KxmvPpYeGRNbL156lp9CsVjNFjQQgg5v7ySaxO7dcP_X'),
+              ('pedidos natura', 'AKfycby85yLxa9PK8-cbwTk-FVlS3zKE0HqFs3rQf6D7pZPNzylaxDGPagOhfG0rZy_A0cxP'),
+              ('lectura de carpetas en natura', 'AKfycbzuHYa9Uf_5v5-FhDXQFu6WRuW49DgxJLUHrm_tq1Vdk539VZjeQeGrlWWqgJj4SzMg2w'),
+              ('coordenadas de visitantes natura', 'AKfycbygXijUyDrpyeA8qmheyZpYw9HVWuN_JZPIeYNbqRKKNYhqFFUguEMZmof4yLTtGbVO'),
+              ('lector publico natura', 'AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A')
+          ]
+          for name, expected in projects:
+              root = Path('apps-script') / name
+              script_id = json.loads((root / '.clasp.json').read_text())['scriptId']
+              result = subprocess.run(['clasp', 'deployments', script_id, '--json'], capture_output=True, text=True)
+              if result.returncode:
+                  print(f'::error::No se pudo consultar {name}; salida reservada')
+                  raise SystemExit(1)
+              deployments = json.loads(result.stdout)
+              if not any(d.get('deploymentId') == expected for d in deployments):
+                  print(f'::error::No se encontró el despliegue oficial de {name}')
+                  raise SystemExit(1)
+              print(f'Acceso y despliegue oficial verificados: {name}')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Credencial válida: cinco proyectos y sus despliegues oficiales consultados. No se modificó Google.\n')
+          PY
