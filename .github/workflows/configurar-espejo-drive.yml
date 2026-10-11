@@ -1,0 +1,32 @@
+name: Configurar conexion GitHub Drive
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/configurar-espejo-drive.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: configurar-espejo-drive
+  cancel-in-progress: false
+jobs:
+  configurar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Crear conexion con la autorizacion Google existente
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: python .github/espejo-drive/desplegar.py
+      - name: Conservar identificadores y resultado
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: espejo-conexion
+          path: ${{ runner.temp }}/espejo-conexion.json
+          if-no-files-found: ignore
+          retention-days: 7
