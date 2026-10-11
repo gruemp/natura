@@ -2,11 +2,19 @@
   "timeZone": "America/Bogota",
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
-  "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets"
-  ],
+  "oauthScopes": [],
   "webapp": {
     "executeAs": "USER_DEPLOYING",
     "access": "ANYONE_ANONYMOUS"
+  },
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "AdminNatura",
+        "libraryId": "1-wBaemhULEFETfQHJDocPTOjbXnVds27DZfiIU9sMnCYf01qSycs1jc4",
+        "version": "35",
+        "developmentMode": false
+      }
+    ]
   }
 }

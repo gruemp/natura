@@ -1,5 +1,5 @@
 {
-  "source": "Google Drive stock/natura/apps-script",
+  "source": "GitHub irenismb/natura; originales Google conservados",
   "selection": "explicit production allowlist",
   "projects": [
     {
@@ -21,7 +21,12 @@
       "scriptId": "1T2y1xSKlZueX-SYDU9HxFi6K4ShLbiHRUGY21caNtSv9Gz-6h1aLd5ZN",
       "name": "coordenadas de visitantes natura",
       "gitPath": "coordenadas de visitantes natura"
+    },
+    {
+      "scriptId": "1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX",
+      "name": "lector publico natura",
+      "gitPath": "lector publico natura"
     }
   ],
-  "flow": "Google Drive -> GitHub -> Google Apps Script"
+  "flow": "GitHub -> Google Apps Script (automatización pendiente de autorización segura)"
 }

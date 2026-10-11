@@ -54,34 +54,31 @@ jobs:
           if [ -z "$CLASPRC_JSON" ]; then echo "::error::Falta CLASPRC_JSON"; exit 1; fi
           printf '%s' "$CLASPRC_JSON" > "$RUNNER_TEMP/.clasprc.json"
           chmod 600 "$RUNNER_TEMP/.clasprc.json"
-      - name: Comprobar codigo y proyecto
+      - name: Comprobar codigo y despliegue independiente
         run: |
           node --check "apps-script/lector publico natura/Lector.js"
-          python3 - <<'PY'
+          python3 - <<'PY_CHECK'
           import json
-          project = 'apps-script/lector publico natura/'
-          conf=json.load(open(project+'.clasp.json'))
-          assert conf['scriptId']=='1-wBaemhULEFETfQHJDocPTOjbXnVds27DZfiIU9sMnCYf01qSycs1jc4'
-          manifest=json.load(open(project+'appsscript.json'))
-          assert manifest['webapp']=={'executeAs':'USER_DEPLOYING','access':'ANYONE_ANONYMOUS'}
-          PY
-      - name: Publicar version inmutable y restaurar codigo administrativo
+          from pathlib import Path
+          reader = Path('apps-script/lector publico natura')
+          conf = json.loads((reader / '.clasp.json').read_text())
+          assert conf['scriptId'] == '1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX'
+          manifest = json.loads((reader / 'appsscript.json').read_text())
+          assert manifest['webapp'] == {'executeAs': 'USER_DEPLOYING', 'access': 'ANYONE_ANONYMOUS'}
+          assert manifest['oauthScopes'] == []
+          assert manifest['dependencies']['libraries'][0]['version'] == '35'
+          deployment = json.loads((reader / 'deployment.json').read_text())
+          if not deployment.get('deploymentId'):
+              raise SystemExit('Falta autorizar y registrar el despliegue independiente inicial')
+          assert deployment['deploymentId'] not in ['AKfycbzotfE1aifLWmjJjyQRTXZo2C9intQnhGZA57n27MCqDDB_BnuhkxhDvDmeuUlK9v09', 'AKfycbwAUk8ysr-3k_T5iRxFpbp8KxmvPpYeGRNbL156lp9CsVjNFjQQgg5v7ySaxO7dcP_X']
+          PY_CHECK
+      - name: Publicar exclusivamente el lector independiente
         env:
           clasp_config_auth: ${{ runner.temp }}/.clasprc.json
         run: |
           set -euo pipefail
-          admin="$GITHUB_WORKSPACE/apps-script/administrar precios natura"
-          reader="$GITHUB_WORKSPACE/apps-script/lector publico natura"
-          restore_admin() {
-            echo "Restaurando codigo fuente de Apps Script administrativo"
-            (cd "$admin" && clasp push --force)
-          }
-          trap restore_admin EXIT
-          clasp list-scripts >/dev/null
-          if ! (cd "$admin" && clasp deployments) | grep -Fq 'AKfycbwAUk8ysr-3k_T5iRxFpbp8KxmvPpYeGRNbL156lp9CsVjNFjQQgg5v7ySaxO7dcP_X'; then
-            echo "::error::No se encuentra el despliegue administrativo esperado."
-            exit 1
-          fi
-          (cd "$reader" && clasp push --force && clasp deploy --deploymentId "AKfycbzotfE1aifLWmjJjyQRTXZo2C9intQnhGZA57n27MCqDDB_BnuhkxhDvDmeuUlK9v09" --description "Lector publico aislado de solo lectura ${GITHUB_SHA}") | tee "$RUNNER_TEMP/lector-deploy.log"
-          echo "El lector publico se publico como version independiente."
-          echo "DEPLOY DEL LECTOR: verificar la URL en el registro de esta accion." >> "$GITHUB_STEP_SUMMARY"
+          cd "$GITHUB_WORKSPACE/apps-script/lector publico natura"
+          deployment_id="$(node -p 'JSON.parse(require("fs").readFileSync("deployment.json","utf8")).deploymentId')"
+          clasp push --force
+          clasp deploy --deploymentId "$deployment_id" --description "Lector independiente de solo lectura ${GITHUB_SHA}"
+          echo "Lector independiente publicado; no se modificó el administrador." >> "$GITHUB_STEP_SUMMARY"
