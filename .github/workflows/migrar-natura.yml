@@ -1,0 +1,87 @@
+name: Migrar Natura conservando historial
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: migrar-natura
+  cancel-in-progress: false
+jobs:
+  migrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Importar historia y comprobar fuentes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-tree -r --name-only HEAD | wc -l)" -eq 1
+          git fetch https://github.com/irenismb/stock.git 33a1026b32544f3a350b41f6f923a6ef763e2b95
+          git update-ref refs/heads/fuente-natura FETCH_HEAD
+          python3 - <<'PY'
+          import subprocess, os
+          def git(*args, input=None, env=None):
+              return subprocess.check_output(['git', *args], input=input, env=env, stderr=subprocess.DEVNULL).decode().strip()
+          source = git('rev-parse', 'fuente-natura')
+          assert source == '33a1026b32544f3a350b41f6f923a6ef763e2b95'
+          commits = git('rev-list', '--reverse', '--topo-order', source).splitlines()
+          mapped, trees, kept = {}, {}, 0
+          for old in commits:
+              raw = subprocess.check_output(['git', 'show', '-s', '--format=%P%x00%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI%x00%B', old]).decode()
+              f = raw.split('\0', 7)
+              try:
+                  tree = git('rev-parse', old + ':natura')
+              except subprocess.CalledProcessError:
+                  mapped[old] = None
+                  continue
+              parents = list(dict.fromkeys(mapped[p] for p in f[0].split() if mapped.get(p)))
+              if len(parents) == 1 and trees[parents[0]] == tree:
+                  mapped[old] = parents[0]
+                  continue
+              env = os.environ.copy()
+              for k, v in zip(['GIT_AUTHOR_NAME','GIT_AUTHOR_EMAIL','GIT_AUTHOR_DATE','GIT_COMMITTER_NAME','GIT_COMMITTER_EMAIL','GIT_COMMITTER_DATE'], f[1:7]):
+                  env[k] = v
+              args = ['commit-tree', tree]
+              for p in parents:
+                  args += ['-p', p]
+              new = git(*args, input=f[7].encode(), env=env)
+              mapped[old], trees[new] = new, tree
+              kept += 1
+          head = mapped[source]
+          assert git('rev-parse', head + '^{tree}') == git('rev-parse', source + ':natura')
+          git('update-ref', 'refs/heads/historial-natura', head)
+          print('Commits de Natura conservados:', kept)
+          PY
+          mkdir -p "$RUNNER_TEMP/natura"
+          git archive historial-natura | tar -x -C "$RUNNER_TEMP/natura"
+          cd "$RUNNER_TEMP/natura"
+          find . -type f -name '*.js' -print0 | xargs -0 -r -n 1 node --check
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          for p in Path("apps-script").rglob("*.json"):
+              json.loads(p.read_text(encoding="utf-8"))
+          PY
+          node --test catalogo-integracion.test.cjs
+      - name: Guardar Natura en la raíz sin activar despliegues
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          original="$(git rev-parse HEAD)"
+          split="$(git rev-parse historial-natura)"
+          bootstrap="$(git rev-parse HEAD:.github/workflows/migrar-natura.yml)"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/indice-natura"
+          git read-tree "$split"
+          git update-index --add --cacheinfo "100644,$bootstrap,.github/workflows/migrar-natura.yml"
+          tree="$(git write-tree)"
+          nuevo="$(printf '%s\n' 'Independizar Natura conservando la historia de su carpeta y el proceso de migración' | git commit-tree "$tree" -p "$original" -p "$split")"
+          git push origin "$nuevo:refs/heads/main"
+          printf 'Repositorio autónomo preparado. Publicadores deshabilitados; no se modificó Drive ni Apps Script.\n' >> "$GITHUB_STEP_SUMMARY"
