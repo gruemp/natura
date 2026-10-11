@@ -77,8 +77,14 @@ jobs:
           clasp_config_auth: ${{ runner.temp }}/.clasprc.json
         run: |
           set -euo pipefail
-          cd "$GITHUB_WORKSPACE/apps-script/lector publico natura"
-          deployment_id="$(node -p 'JSON.parse(require("fs").readFileSync("deployment.json","utf8")).deploymentId')"
+          source_dir="$GITHUB_WORKSPACE/apps-script/lector publico natura"
+          deployment_id="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).deploymentId' "$source_dir/deployment.json")"
+          # El original de Google se llama Código.gs; conservar su nombre y sus archivos.
+          publish_dir="$(mktemp -d "$RUNNER_TEMP/natura-lector.XXXXXX")"
+          cp "$source_dir/.clasp.json" "$publish_dir/.clasp.json"
+          cp "$source_dir/appsscript.json" "$publish_dir/appsscript.json"
+          cp "$source_dir/Lector.js" "$publish_dir/Código.js"
+          cd "$publish_dir"
           clasp push --force
           clasp deploy --deploymentId "$deployment_id" --description "Lector independiente de solo lectura ${GITHUB_SHA}"
           echo "Lector independiente publicado; no se modificó el administrador." >> "$GITHUB_STEP_SUMMARY"
