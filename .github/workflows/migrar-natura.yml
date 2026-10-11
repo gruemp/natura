@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git ls-tree -r --name-only HEAD | wc -l)" -eq 1
+          test "$(git ls-tree -r --name-only HEAD | wc -l)" -eq 6
           git fetch https://github.com/irenismb/stock.git 33a1026b32544f3a350b41f6f923a6ef763e2b95
           git update-ref refs/heads/fuente-natura FETCH_HEAD
           python3 - <<'PY'
