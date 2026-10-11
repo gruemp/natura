@@ -31,9 +31,9 @@ Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el có
 - Las fuentes están en la raíz de https://github.com/gruemp/natura .
 - Se trasladaron los 104 archivos de la carpeta preparada, conservando 1.019 commits de su historial; los identificadores de los commits cambian al extraer la subcarpeta. El repositorio stock conserva su historia original.
 - `.github/workflows/verificar-fuentes-natura.yml` comprueba sintaxis, manifiestos y pruebas sin datos comerciales ni secretos.
-- Los flujos que interactúan con Google permanecen bloqueados por `NATURA_PUBLICACION_HABILITADA`; no se ha transferido ningún secreto.
+- La credencial `CLASPRC_JSON` está guardada como secreto del repositorio y `NATURA_PUBLICACION_HABILITADA=true` habilita sus publicaciones. Los cinco proyectos y despliegues oficiales de Google fueron consultados y publicados correctamente el 2026-10-11; los publicadores anteriores de Apps Script en stock están desactivados.
 - Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
-- El lector público y el administrador siguen compartiendo proyecto y propiedades. Separarlos exige conservar la visibilidad y la configuración vigentes; no basta con cambiar `scriptId`.
+- El lector público utiliza un proyecto independiente y consulta tres propiedades públicas vigentes mediante la biblioteca privada del administrador, fijada en la versión 35. Su publicación conserva el archivo original Código.gs y no modifica el administrador.
 - Google Drive no está sincronizado. La dirección definitiva de sincronización queda pendiente.
 - `migrar-natura.yml` conserva el proceso de extracción utilizado y rechaza una nueva ejecución sobre un repositorio ya poblado.
 

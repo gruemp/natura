@@ -10,22 +10,27 @@ Origen exacto: https://github.com/gruemp/stock/tree/33a1026b32544f3a350b41f6f923
 Los 104 archivos del origen se trasladaron a la raíz con igualdad de sus objetos Git. Se conservaron 1.019 commits propios de Natura, con autores, fechas, mensajes y relaciones entre padres aplicables a la subcarpeta. Los SHA cambian al extraer el árbol; la historia original permanece en stock.
 
 Evidencia del traslado: https://github.com/gruemp/natura/actions/runs/38117286206 .
-La extracción ejecutó sintaxis JavaScript, JSON y 78 pruebas: 77 aprobadas y una opcional omitida, sin escrituras comerciales. El primer intento fue rechazado por permisos de workflows; el segundo terminó correctamente después de añadir las automatizaciones con el conector autorizado.
 
 ## Publicación y servicios
 
-Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages está configurado desde main y la raíz del repositorio; el despliegue inicial terminó correctamente y catalogo.html respondió HTTP 200. Canonical, sitemap, robots y enlaces de exportación y pedidos se adaptan a esa dirección.
+Catálogo: https://gruemp.github.io/natura/catalogo.html . GitHub Pages utiliza main y la raíz del repositorio. Canonical, sitemap, robots y enlaces de exportación y pedidos utilizan esa dirección. La cuenta personal existente fue renombrada por el titular de irenismb a gruemp; no se creó otra cuenta.
 
-Las publicaciones Apps Script continúan desde stock. Los cuatro flujos del nuevo repositorio que interactúan con Google exigen NATURA_PUBLICACION_HABILITADA=true; no se habilitaron ni se trasladaron secretos. No hay dos publicadores Apps Script activos.
+La credencial CLASPRC_JSON fue reutilizada con autorización del titular, mediante un archivo cifrado temporal de GitHub Actions con retención de un día, y guardada como secreto en gruemp/natura. No forma parte del código ni de los commits. El flujo temporal de transferencia quedó desactivado. La variable NATURA_PUBLICACION_HABILITADA=true activa las publicaciones del repositorio independiente.
 
-El lector y el administrador comparten scriptId y propiedades. La visibilidad y la configuración vigentes están en PropertiesService; las hojas anteriores son fuentes de importación inicial. Separar proyectos requiere un mecanismo que preserve ese estado y sus futuras actualizaciones, además de verificar permisos e implementaciones. La protección del lector sigue bloqueando la sobrescritura del administrador.
+Acceso Google y concordancia con los originales verificados mediante consultas de solo lectura: https://github.com/gruemp/natura/actions/runs/38121650952 .
+
+Publicación automática correcta de los cuatro proyectos oficiales: https://github.com/gruemp/natura/actions/runs/38121936290 .
+Versiones publicadas: administrador 37, pedidos 13, imágenes 8 y visitantes 49. Se conservaron sus identificadores y enlaces de servicio.
+
+Lector independiente publicado automáticamente como versión 2: https://github.com/gruemp/natura/actions/runs/38121936291 .
+Proyecto: https://script.google.com/home/projects/1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX/edit .
+Servicio: https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec .
+Conserva el nombre original Código.gs; publica únicamente ese archivo y el manifiesto, sin enviar deployment.json ni sobrescribir el administrador. Lee tres propiedades públicas vigentes de la biblioteca privada del administrador, fijada en versión 35. Las consultas públicas iniciales de configuración y visibilidad coincidieron con el servicio anterior. El permiso de hojas heredado de la biblioteca fue autorizado por el titular; oauthScopes vacío no lo elimina.
+
+Los publicadores anteriores de Apps Script y el importador de imágenes de Natura en stock están desactivados. También están pausados los flujos anteriores que sincronizaban o adaptaban fuentes en Drive. Los archivos e historiales se conservan y el PR #8 de stock sigue sin fusionar.
+
+Validación técnica: https://github.com/gruemp/natura/actions/runs/38121936301 ; 79 pruebas aprobadas y una opcional omitida. No se crearon pedidos, ventas, visitas ni cambios de inventario como pruebas.
 
 ## Pendientes
 
-1. Publicación web realizada; las comprobaciones de fuente se ejecutan automáticamente después de este ajuste.
-2. Acceder a los proyectos originales de Google y resolver el lector público con su estado vigente; el acceso del navegador quedó bloqueado por revisión automática al redirigir a developers.google.com.
-3. Reconectar credenciales y permisos de Google de forma segura; verificar los servicios antes de sustituir el publicador de stock.
-4. Definir la fuente principal definitiva y la sincronización con Drive; no se ha modificado Drive.
-5. Cuenta renombrada por el titular a gruemp el 2026-10-11; referencias del catálogo actualizadas.
-
-No se borraron archivos del repositorio stock, no se fusionó su PR #8 y no se registraron pedidos, ventas, visitas ni modificaciones de inventario como pruebas.
+Definir y autorizar la conciliación y sincronización de fuentes con Google Drive. Drive no se sincronizó durante esta etapa. El sitio anterior de stock se conserva; cualquier retirada o redirección debe coordinarse con sus enlaces y los restantes proyectos del repositorio.
