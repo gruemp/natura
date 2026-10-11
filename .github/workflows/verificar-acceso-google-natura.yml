@@ -51,6 +51,25 @@ jobs:
                   print(f'::error::No se encontró el despliegue oficial de {name}')
                   raise SystemExit(1)
               print(f'Acceso y despliegue oficial verificados: {name}')
+              import urllib.request, hashlib
+              auth = json.loads(Path(os.environ['clasp_config_auth']).read_text())
+              token = ((auth.get('tokens') or {}).get('default') or auth.get('token') or auth).get('access_token')
+              request = urllib.request.Request(f'https://script.googleapis.com/v1/projects/{script_id}/content', headers={'Authorization': f'Bearer {token}'})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  live = json.load(response)['files']
+              extensions = {'SERVER_JS': '.js', 'HTML': '.html', 'JSON': '.json'}
+              normalize = lambda text: text.replace('\\r\\n', '\\n').strip()
+              expected = {file.stem: file for file in root.iterdir() if file.suffix in ['.js', '.html', '.json'] and file.name not in ['deployment.json', '.clasp.json']}
+              for file in live:
+                  local = expected.pop(file['name'], None)
+                  if local is None:
+                      matching = [f.name for f in expected.values() if normalize(f.read_text()) == normalize(file['source'])]
+                      print(f"Archivo original sin nombre equivalente en repositorio: {name}/{file['name']}; contenido equivalente: {matching}")
+                  elif normalize(local.read_text()) != normalize(file['source']):
+                      print(f"Diferencia de contenido por conciliar: {name}/{file['name']}")
+              for file in expected.values():
+                  print(f"Archivo nuevo en repositorio: {name}/{file.name}")
+
           with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
               summary.write('Credencial válida: cinco proyectos y sus despliegues oficiales consultados. No se modificó Google.\n')
           PY
