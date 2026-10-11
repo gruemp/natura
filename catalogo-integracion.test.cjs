@@ -467,6 +467,8 @@ test('Rango oficial opcional: todos los registros conservan nombre, código y va
 test('La configuración y visibilidad públicas consultan únicamente lector Apps Script de solo lectura',()=>{
   const env=environment();const node=env.requests.at(-1);const url=new URL(node.src);
   assert.equal(url.hostname,'script.google.com');assert.equal(url.searchParams.get('modo'),'visibilidad');
+  const deployment=JSON.parse(fs.readFileSync(path.join(__dirname,'apps-script/lector publico natura/deployment.json'),'utf8'));
+  assert.equal(url.origin+url.pathname,deployment.endpoint);
   assert.ok(url.searchParams.get('callback'));
   const config=env.run('loadRemoteCatalogConfiguration("__testControl")');
   const request=new URL(env.requests.at(-1).src);

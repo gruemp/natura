@@ -8,6 +8,7 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 - `pedidos natura`
 - `lectura de carpetas en natura`
 - `coordenadas de visitantes natura`
+- `lector publico natura`
 
 ## Origen de trabajo y continuidad (2026-10-11)
 
@@ -18,10 +19,10 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 - El lector depende de las propiedades de visibilidad y configuración del administrador. La hoja antigua solo se importa una vez: un proyecto nuevo no debe utilizar esa hoja como si reflejara el estado actual.
 - El lector nuevo es el proyecto independiente `1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX`. Su código y manifiesto ya están guardados en Google.
 - Consulta solo tres propiedades públicas mediante `AdminNatura.leerEstadoPublicoNatura()` en la biblioteca privada del administrador, versión inmutable 35. No importa hojas antiguas, escribe propiedades ni contiene métodos administrativos.
-- La biblioteca 35 quedó creada sin modificar las implementaciones web existentes ni compartir el proyecto administrativo. La publicación inicial del lector requiere una autorización Google nueva; Google muestra el aviso de aplicación no verificada del propietario.
-- `deployment.json` mantiene el nuevo despliegue sin registrar hasta completar la autorización. El catálogo usa todavía el lector antiguo verificado. El workflow nuevo solo podrá publicar el proyecto independiente; se eliminó la sobrescritura y restauración temporal del administrador.
-- No habilitar los workflows hasta registrar y comprobar el endpoint nuevo y reconectar `CLASPRC_JSON` por un canal seguro. Las credenciales existentes en stock no son exportables desde GitHub.
-- `google-projects.json` documenta el flujo anterior Drive → GitHub. Se conserva por ahora sin cambiar su estructura técnica y no debe tomarse como autorización de sincronización.
+- La biblioteca 35 quedó creada sin modificar las implementaciones web existentes ni compartir el proyecto administrativo. El titular completó la autorización Google y se publicó la versión 1 del lector el 2026-10-11.
+- `deployment.json` registra el despliegue independiente versión 1. Se verificaron las respuestas de configuración y visibilidad contra el lector anterior: coinciden, incluida la revisión de configuración 2026-10-07T23:00:14.772Z. El catálogo usa el endpoint nuevo https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec . El workflow publica exclusivamente este proyecto; se eliminó la sobrescritura y restauración temporal del administrador.
+- Falta reconectar `CLASPRC_JSON` por un canal seguro en irenismb/natura antes de habilitar publicación automática. Las credenciales existentes en stock no son exportables desde GitHub. Los publicadores de stock se conservan hasta comprobar el reemplazo automático; no hay dos publicadores habilitados.
+- `google-projects.json` registra los cinco proyectos actuales. No autoriza ninguna sincronización con Drive.
 - Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización independiente.
 
 ## Pedidos Natura

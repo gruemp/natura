@@ -18,7 +18,7 @@
     // Apps Script guarda los ajustes y publica exclusivamente las claves públicas en esta hoja.
     const REMOTE_CONTROL_SOURCE = {
       enabled: true,
-      endpoint: "https://script.google.com/macros/s/AKfycbzotfE1aifLWmjJjyQRTXZo2C9intQnhGZA57n27MCqDDB_BnuhkxhDvDmeuUlK9v09/exec",
+      endpoint: "https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec",
       cacheKey: "irenismb_public_configuration_v1"
     };
     window.REMOTE_CONTROL_SOURCE = REMOTE_CONTROL_SOURCE;

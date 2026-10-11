@@ -1,6 +1,8 @@
 {
-  "deploymentId": null,
-  "endpoint": null,
-  "status": "Pendiente de autorización Google y publicación inicial",
-  "libraryVersion": 35
+  "deploymentId": "AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A",
+  "endpoint": "https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec",
+  "status": "Publicado; configuración y visibilidad verificadas contra lector anterior",
+  "version": 1,
+  "libraryVersion": 35,
+  "verifiedAt": "2026-10-11"
 }
