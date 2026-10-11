@@ -35,10 +35,10 @@
     // GitHub Pages se conserva únicamente para recursos web fijos del sitio (logos, iconos y archivos publicados).
     // Las imágenes dinámicas de productos y regalos NO se obtienen de GitHub.
     const GITHUB_CATALOG_SOURCE = {
-      owner: "irenismb",
-      repo: "stock",
+      owner: "gruemp",
+      repo: "natura",
       branch: "main",
-      catalogDir: "natura"
+      catalogDir: ""
     };
 
     // Servicio público vigente que indexa directamente la carpeta productos de Google Drive.
@@ -132,7 +132,7 @@
 
     const fmtCOP = new Intl.NumberFormat("es-CO", { maximumFractionDigits:0 });
 
-    const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/${GITHUB_CATALOG_SOURCE.catalogDir}/`;
+    const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/`;
 
     const COMPANY_LOGOS = [
       SITE_BASE + LOGOS_DIR + "/logo_empresa.webp",

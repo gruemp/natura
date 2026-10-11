@@ -1,6 +1,6 @@
 # Natura — mapa de archivos
 
-Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el código de Natura se realiza exclusivamente en GitHub, en el repositorio independiente `irenismb/natura`. Google Drive no se modifica. El cambio definitivo de fuente principal y la futura sincronización GitHub → Drive permanecen pendientes de decisión y validación; no se presupone que todos los archivos ya estén conciliados.
+Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el código de Natura se realiza exclusivamente en GitHub, en el repositorio independiente `gruemp/natura`. Google Drive no se modifica. El cambio definitivo de fuente principal y la futura sincronización GitHub → Drive permanecen pendientes de decisión y validación; no se presupone que todos los archivos ya estén conciliados.
 
 ## Sitio público
 
@@ -28,11 +28,11 @@ Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el có
 
 ## Repositorio independiente
 
-- Las fuentes están en la raíz de https://github.com/irenismb/natura .
+- Las fuentes están en la raíz de https://github.com/gruemp/natura .
 - Se trasladaron los 104 archivos de la carpeta preparada, conservando 1.019 commits de su historial; los identificadores de los commits cambian al extraer la subcarpeta. El repositorio stock conserva su historia original.
 - `.github/workflows/verificar-fuentes-natura.yml` comprueba sintaxis, manifiestos y pruebas sin datos comerciales ni secretos.
 - Los flujos que interactúan con Google permanecen bloqueados por `NATURA_PUBLICACION_HABILITADA`; no se ha transferido ningún secreto.
-- Catálogo publicado: https://irenismb.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
+- Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
 - El lector público y el administrador siguen compartiendo proyecto y propiedades. Separarlos exige conservar la visibilidad y la configuración vigentes; no basta con cambiar `scriptId`.
 - Google Drive no está sincronizado. La dirección definitiva de sincronización queda pendiente.
 - `migrar-natura.yml` conserva el proceso de extracción utilizado y rechaza una nueva ejecución sobre un repositorio ya poblado.

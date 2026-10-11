@@ -218,7 +218,7 @@ function environment(){
     requestAnimationFrame:fn=>{fn();return 1;},MutationObserver:class {observe(){}disconnect(){}},
     Image:class {set src(value){this._src=value;queueMicrotask(()=>this.onload?.());}},
     CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},
-    location:{href:'https://irenismb.github.io/natura/catalogo.html',origin:'https://irenismb.github.io',protocol:'https:',search:'',hash:''},
+    location:{href:'https://gruemp.github.io/natura/catalogo.html',origin:'https://gruemp.github.io',protocol:'https:',search:'',hash:''},
     history:{state:null,replaceState(){},pushState(){}},navigator:{},performance:{now:()=>0,getEntriesByType:()=>[]},
     addEventListener:(name,fn)=>events.set(name,fn),dispatchEvent:event=>events.get(event.type)?.(event),
     PRECIOS_ADMIN_CONFIG:{endpoint:'https://script.google.com/macros/s/PRUEBA_SIN_RED/exec'},
@@ -436,7 +436,7 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
   const result=assess(env,table);assert.equal(result.report.pending,1);assert.match(result.report.records[0].causes[0].reason,/Nombre/);
 });
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
-  assert.match(htmlSource,/<link rel="canonical" href="https:\/\/irenismb\.github\.io\/natura\/catalogo\.html"/);
+  assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=descripcion-dos-columnas-beneficios-ajuste-2026-10-10-5'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=fichas-precios-unificados-2026-10-10-4'));

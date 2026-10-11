@@ -12,7 +12,7 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 
 ## Origen de trabajo y continuidad (2026-10-11)
 
-- Se trabaja temporalmente el código en GitHub, en `irenismb/natura/apps-script/`. El cambio definitivo de fuente principal no está aprobado ni desplegado.
+- Se trabaja temporalmente el código en GitHub, en `gruemp/natura/apps-script/`. El cambio definitivo de fuente principal no está aprobado ni desplegado.
 - No ejecutar sincronización GitHub → Google Drive ni Drive → GitHub durante esta preparación. La dirección final, la conciliación de versiones y los permisos deberán decidirse y validarse expresamente.
 - Las publicaciones vigentes de Apps Script proceden de los workflows operativos situados en `stock/.github/workflows/`; los flujos de `natura/.github/workflows/` ya están en la raíz del repositorio independiente, pero sus publicaciones siguen deshabilitadas.
 - Antes de publicar desde el repositorio individual, verificar `scriptId`, implementación, secreto, permisos y relación con cada proyecto remoto. No activar dos publicadores ni usar `clasp push --force` con identidades no conciliadas.
@@ -21,7 +21,7 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 - Consulta solo tres propiedades públicas mediante `AdminNatura.leerEstadoPublicoNatura()` en la biblioteca privada del administrador, versión inmutable 35. No importa hojas antiguas, escribe propiedades ni contiene métodos administrativos.
 - La biblioteca 35 quedó creada sin modificar las implementaciones web existentes ni compartir el proyecto administrativo. El titular completó la autorización Google y se publicó la versión 1 del lector el 2026-10-11.
 - `deployment.json` registra el despliegue independiente versión 1. Se verificaron las respuestas de configuración y visibilidad contra el lector anterior: coinciden, incluida la revisión de configuración 2026-10-07T23:00:14.772Z. El catálogo usa el endpoint nuevo https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec . El workflow publica exclusivamente este proyecto; se eliminó la sobrescritura y restauración temporal del administrador.
-- Falta reconectar `CLASPRC_JSON` por un canal seguro en irenismb/natura antes de habilitar publicación automática. Las credenciales existentes en stock no son exportables desde GitHub. Los publicadores de stock se conservan hasta comprobar el reemplazo automático; no hay dos publicadores habilitados.
+- Falta reconectar `CLASPRC_JSON` por un canal seguro en gruemp/natura antes de habilitar publicación automática. Las credenciales existentes en stock no son exportables desde GitHub. Los publicadores de stock se conservan hasta comprobar el reemplazo automático; no hay dos publicadores habilitados.
 - `google-projects.json` registra los cinco proyectos actuales. No autoriza ninguna sincronización con Drive.
 - Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización independiente.
 

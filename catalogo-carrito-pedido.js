@@ -530,7 +530,7 @@
       direccion: "Calle 10A #20A-06, Santa Marta, Magdalena",
       barrio: "Los Almendros",
       mapa: "https://maps.google.com/?q=11.244833370782679,-74.19066001689564",
-      catalogo: "https://irenismb.github.io/natura/catalogo.html",
+      catalogo: "https://gruemp.github.io/natura/catalogo.html",
       referencias: "Entre la tienda Surtifruver y la tienda 5Y6, por la panadería Madepan."
     };
 

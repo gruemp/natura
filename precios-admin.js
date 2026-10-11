@@ -330,7 +330,7 @@
       alert("La administración no funciona abriendo catalogo.html directamente como archivo. Inicia el catálogo con un servidor local (localhost o 127.0.0.1) o usa la versión publicada.");
       return;
     }
-    const allowedCatalogOrigin=catalogOrigin==="https://irenismb.github.io"||/^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/.test(catalogOrigin);
+    const allowedCatalogOrigin=catalogOrigin==="https://gruemp.github.io"||/^http:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d{1,5})?$/.test(catalogOrigin);
     if(!allowedCatalogOrigin){
       alert("Este origen no está autorizado para administrar el catálogo. Usa la versión publicada o un servidor local en localhost/127.0.0.1.");
       return;
