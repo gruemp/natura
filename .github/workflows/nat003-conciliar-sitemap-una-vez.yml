@@ -1,0 +1,64 @@
+name: Natura nat003 paquete sitemap corregido y lectura publica
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sitemap.xml"
+      - ".github/workflows/nat003-conciliar-sitemap-una-vez.yml"
+permissions:
+  contents: read
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Obtener fuentes GitHub sin secretos
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validar y empaquetar sitemap
+        run: |
+          python3 - <<'PY'
+          import pathlib,xml.etree.ElementTree as ET
+          f=pathlib.Path("sitemap.xml")
+          d=f.read_bytes()
+          root=ET.fromstring(d)
+          ns="{http://www.sitemaps.org/schemas/sitemap/0.9}"
+          entries=root.findall(ns+"url")
+          assert len(entries)==1
+          assert entries[0].findtext(ns+"loc")=="https://gruemp.github.io/natura/catalogo.html"
+          assert entries[0].findtext(ns+"lastmod")=="2026-10-12"
+          target=pathlib.Path("paquete-nat003/sitemap.xml")
+          target.parent.mkdir(exist_ok=True)
+          target.write_bytes(d)
+          print("SITEMAP_SOURCE_OK 2026-10-12 BYTES",len(d))
+          PY
+      - name: Guardar sitemap exacto para Drive
+        uses: actions/upload-artifact@v4
+        with:
+          name: nat003-sitemap-vigente
+          path: paquete-nat003/sitemap.xml
+          retention-days: 1
+          if-no-files-found: error
+      - name: Confirmar sitemap HTTP publicado
+        run: |
+          python3 - <<'PY'
+          import time,urllib.request,urllib.error,xml.etree.ElementTree as ET
+          uri="https://gruemp.github.io/natura/sitemap.xml"
+          ns="{http://www.sitemaps.org/schemas/sitemap/0.9}"
+          for attempt in range(1,11):
+              try:
+                  req=urllib.request.Request(uri,headers={"User-Agent":"NaturaPublicSitemapCheck/1.0"})
+                  with urllib.request.urlopen(req,timeout=20) as r:
+                      content=r.read()
+                      status=r.status
+                  last=ET.fromstring(content).findtext(ns+"url/"+ns+"lastmod")
+                  print("PUBLICADO_INTENTO",attempt,"HTTP",status,"LASTMOD",last,"BYTES",len(content))
+                  if status==200 and last=="2026-10-12":
+                      print("NAT003_SITEMAP_PUBLICADO_Y_VERIFICADO")
+                      break
+              except Exception as ex:
+                  print("PUBLICADO_INTENTO",attempt,"ERROR",type(ex).__name__)
+              if attempt==10:raise SystemExit("El CDN no ha servido aun el sitemap corregido")
+              time.sleep(12)
+          PY
