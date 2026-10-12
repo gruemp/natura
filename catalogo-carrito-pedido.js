@@ -664,7 +664,7 @@
     }
 
     async function invoiceLoadOfficialLogo(){
-      const candidates = ["logos/logo_empresa.svg"];
+      const candidates = [window.NATURA_RECURSOS?.logoUrl].filter(Boolean);
       for(const src of candidates){
         try{ return await invoiceLoadImage(src); }catch(_){}
       }
