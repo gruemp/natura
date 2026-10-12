@@ -440,8 +440,8 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=folleto-sin-instagram-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -529,7 +529,7 @@ test('Datos extensos y precio se ajustan juntos sin salir del cuadrado en anchos
     const e=fichaLayoutEnvironment({width,factsHeight:680});e.run();
     assert.equal(e.attributes.parentNode,e.facts);
     assert.ok(e.facts.scrollHeight<=e.main.clientHeight+1,'Ancho '+width);
-    assert.equal(e.properties.get('--ficha-unit'),width/420+'px');
+    assert.equal(e.properties.get('--ficha-unit'),width/1080+'px');
     assert.equal(e.square.classList.contains('ficha-description-expanded'),false);
   }
 });
@@ -568,7 +568,7 @@ test('Precio de Folleto es opcional, conserva los importes reales y distingue pr
   const withPrice=env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997","9998"],prices:true})');
   assert.equal(withPrice.settings.prices,true);
   assert.equal(withPrice.products.find(p=>p.id==='9997').priceText,new Intl.NumberFormat('es-CO',{maximumFractionDigits:0}).format(original));
-  assert.equal(withPrice.products.find(p=>p.id==='9998').priceText,'Consultar precio');
+  assert.equal(withPrice.products.find(p=>p.id==='9998').priceText,'','Sin importe oficial no debe quedar bloque ni separador de precio.');
   const withoutPrice=env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997","9998"],prices:false})');
   assert.equal(withoutPrice.settings.prices,false);assert.ok(withoutPrice.products.every(p=>p.priceText===''));
   env.sandbox.a=withPrice;env.sandbox.b=withoutPrice;
@@ -685,23 +685,61 @@ test('Administrador rechaza conflictos, fórmulas, códigos o precios ambiguos s
   }
   const env=compactPriceBackend();assert.throws(()=>env.run('actualizarPrecioWeb("0042","30000","20000")'));assert.equal(env.writes(),0);
 });
-test('Ficha conserva orden explícito de atributos alrededor de nombre y precio y descripción al pie',()=>{
-  const nodes={},node=tag=>({tag,children:[],hidden:false,classList:{add(){},toggle(){}},setAttribute(){},addEventListener(){},append(...items){for(const item of items){item.parent?.children.splice(item.parent.children.indexOf(item),1);this.children.push(item);item.parent=this;}},prepend(item){this.children.unshift(item);}});
+test('Web y Folleto componen los mismos atributos en el orden oficial sin separar Código',()=>{
+  const context=vm.createContext({});
+  vm.runInContext(toolsSource,context);
+  const product={id:'0042',name:'Kit',brand:'Natura',fichaSelectionExplicit:true,
+    fichaFields:[{key:'marca',label:'Marca',value:'Natura'},{key:'precio',label:'Precio',value:'25000'},
+      {key:'nombre',label:'Nombre',value:'Kit'},{key:'codigo',label:'Código',value:'0042'}]};
+  context.product=product;
+  const list=JSON.parse(JSON.stringify(vm.runInContext('fichaOrderedFacts(product)',context)));
+  assert.deepEqual(list,[{label:'Marca',value:'Natura'},{label:'Código',value:'0042'}]);
+  assert.deepEqual(JSON.parse(JSON.stringify(vm.runInContext('fichaOrderedFacts(product,false)',context))),[{label:'Marca',value:'Natura'}]);
+  // No hay fila artificial para Precio ni un tratamiento diferente de Código.
+  assert.ok(!list.some(f=>f.label==='Precio'));
+  const webAttributes=JSON.parse(JSON.stringify(vm.runInContext('buildFichaModel({id:"0042",name:"Kit",facts:fichaOrderedFacts(product)})',context).facts));
+  assert.deepEqual(webAttributes,list);
+});
+test('La ficha interactiva usa un único bloque de etiquetas y mantiene el precio en la fila de controles',()=>{
+  const nodes={},node=tag=>({tag,children:[],hidden:false,textContent:'',classList:{add(){},toggle(){}},setAttribute(){},addEventListener(){},append(...items){for(const item of items){item.parent?.children.splice(item.parent.children.indexOf(item),1);this.children.push(item);item.parent=this;}},prepend(item){this.children.unshift(item);}});
   for(const selector of ['.name','.img','.pad','.product-details','.description','.meta','.row','.product-line'])nodes[selector]=node(selector);
   nodes['.img'].querySelector=()=>node('img');nodes['.product-details'].querySelector=()=>node('summary');
   const card=node('card');card.append(...Object.values(nodes));
   card.querySelector=selector=>{const find=parent=>parent===nodes[selector]?parent:parent.children.map(find).find(Boolean);return find(card)||null;};
-  const context=vm.createContext({document:{createElement:node},stockMetaText:()=>'',folletoPresentation:()=>'',folletoProductAttributes:()=>[],
+  const context=vm.createContext({document:{createElement:node},fichaHeaderFields:()=>({name:'Kit',presentation:''}),
+    fichaOrderedFacts:()=>[{label:'Código',value:'0042'},{label:'Marca',value:'Natura'}],
     buildFichaModel:p=>p,drawCatalogFichaImage(){},queueCatalogFichaLayout(){}});
   const start=toolsSource.indexOf('function renderCatalogFicha('),end=toolsSource.indexOf('const CATALOG_FICHA_LAYOUT_KEYS',start);
   vm.runInContext(toolsSource.slice(start,end),context);
-  context.card=card;context.product={name:'Kit',description:'Texto completo',fichaSelectionExplicit:true,fichaFields:[{key:'marca',label:'Marca',value:'Natura'},{key:'precio',label:'Precio',value:'25000'},{key:'nombre',label:'Nombre',value:'Kit'},{key:'codigo',label:'Código',value:'0042'}]};
+  context.card=card;context.product={id:'0042',name:'Kit',description:'Texto completo'};
   vm.runInContext('renderCatalogFicha(card,product)',context);
   const square=card.children[0],main=square.children[0],facts=main.children[1];
   assert.equal(square.children[1],nodes['.product-details']);
-  assert.deepEqual(facts.children.filter(n=>!n.hidden).map(n=>n===nodes['.name']?'Nombre':n===nodes['.row']?'Precio':n.children[0]?.children[0]?.textContent),['Marca:','Precio','Nombre','Código:']);
+  const attributes=facts.children[2];
+  assert.equal(attributes.className,'ficha-attributes');
+  assert.deepEqual(attributes.children.map(item=>item.children[0].textContent),['Código:','Marca:']);
+  assert.equal(facts.children[3],nodes['.row']);
+  assert.equal(nodes['.meta'].hidden,true);
 });
-
+test('El mismo motor omite completamente el bloque de precio si no existe un importe',()=>{
+  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\\d.]+)px/)[1])*.52};},
+    save(){},restore(){},translate(){},scale(){},beginPath(){},roundRect(){},closePath(){},fill(){},clip(){},fillRect(){},moveTo(){},lineTo(){},stroke(){this.strokes=(this.strokes||0)+1;},
+    createLinearGradient(){return {addColorStop(){}};},createRadialGradient(){return {addColorStop(){}};},fillText(t){(this.printed||(this.printed=[])).push(t);}};
+  const context=vm.createContext({ctx});vm.runInContext(toolsSource,context);
+  context.p={id:'0042',name:'Colonia',presentation:'120 ml',facts:[{label:'Código',value:'0042'},{label:'Marca',value:'Avon'}],description:'Texto de prueba',priceText:'',imageUrl:''};
+  const noPrice=vm.runInContext('measureFicha(ctx,buildFichaModel(p))',context);
+  assert.equal(noPrice.priced,false);assert.equal(noPrice.price,null);
+  context.measure=noPrice;
+  vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
+  assert.equal(ctx.strokes,2,'Solo los separadores de atributos y descripción; sin separador de precio.');
+  assert.ok(ctx.printed.some(v=>v.includes('Código:')));assert.ok(ctx.printed.some(v=>v.includes('Marca:')));
+  context.p.priceText='15.000';
+  const withPrice=vm.runInContext('measureFicha(ctx,buildFichaModel(p))',context);
+  assert.equal(withPrice.priced,true);
+  context.measure=withPrice;ctx.strokes=0;
+  vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
+  assert.equal(ctx.strokes,3,'El tercer separador pertenece exclusivamente al precio visible.');
+});
 test('Orden de la ficha reconoce el nuevo encabezado y rechaza selecciones ambiguas',()=>{
   const env=environment(),headers=['Descripción integral del producto','Orden de la ficha'];
   assert.equal(assess(env,tableFromValues([headers,[compactDescription,'Marca:\nNombre:']])).report.pending,0);
