@@ -664,7 +664,7 @@
     }
 
     async function invoiceLoadOfficialLogo(){
-      const candidates = ["logos/logo_empresa.webp", "logos/logo_empresa.png"];
+      const candidates = ["logos/logo_empresa.svg"];
       for(const src of candidates){
         try{ return await invoiceLoadImage(src); }catch(_){}
       }

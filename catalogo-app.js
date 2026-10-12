@@ -59,7 +59,7 @@
 	const INTERRUPTORES = {
 	  MOSTRAR_CANTIDAD_STOCK: false,
 	  MOSTRAR_PRECIOS_PRODUCTO: true,
-	  IMAGEN_SUPLENTE_PRODUCTO: "suplente.webp"
+	  IMAGEN_SUPLENTE_PRODUCTO: "suplente.svg"
     };
     window.INTERRUPTORES = INTERRUPTORES;
     const NAVIGATION_ORDER_CONFIG_KEY = "ORDEN_NAVEGACION";
@@ -135,8 +135,7 @@
     const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/`;
 
     const COMPANY_LOGOS = [
-      SITE_BASE + LOGOS_DIR + "/logo_empresa.webp",
-      SITE_BASE + LOGOS_DIR + "/logo_empresa.png"
+      SITE_BASE + LOGOS_DIR + "/logo_empresa.svg"
     ];
     const COMPANY_LOGO = COMPANY_LOGOS[0];
 
@@ -216,8 +215,8 @@
       }
 
       list.push(
-        SITE_BASE + LOGOS_DIR + "/suplente.webp",
-        SITE_BASE + LOGOS_DIR + "/suplente.png",
+        SITE_BASE + LOGOS_DIR + "/suplente.svg",
+        SITE_BASE + LOGOS_DIR + "/suplente.svg",
         ...COMPANY_LOGOS
       );
 
@@ -1233,11 +1232,11 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
 
     const ROOT_ICON_IMAGES = {
-      ella: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para ella perfume floral.webp"),
-      el: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para el perfume azul.webp"),
-      unisex: githubPagesAssetUrl("iconos/2026-09-06_icono categoria unisex cuidado botanico neutro.webp"),
-      regalos: githubPagesAssetUrl("iconos/2026-09-06_icono categoria regalos caja lazo rosa.webp"),
-      otros: githubPagesAssetUrl("iconos/2026-09-06_icono categoria otros productos hogar variedad.webp")
+      ella: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para ella perfume floral.svg"),
+      el: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para el perfume azul.svg"),
+      unisex: githubPagesAssetUrl("iconos/2026-09-06_icono categoria unisex cuidado botanico neutro.svg"),
+      regalos: githubPagesAssetUrl("iconos/2026-09-06_icono categoria regalos caja lazo rosa.svg"),
+      otros: githubPagesAssetUrl("iconos/2026-09-06_icono categoria otros productos hogar variedad.svg")
     };
 
     const NAV_SECTIONS = [
@@ -1256,21 +1255,21 @@ function readCompactGoogleSheetProductRows(table,indices){
     ];
 
     const SUBCATEGORY_ICON_IMAGES = {
-      "perfumes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria perfumes fragancia floral rosa.webp"),
-      "desodorantes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria desodorantes roll on vegetal.webp"),
-      "maquillaje": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria maquillaje brocha labial rosa.webp"),
-      "cuidado facial": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado facial crema rosa.webp"),
-      "cuidado corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado corporal locion vegetal.webp"),
-      "cabello": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cabello mechon brillante capilar.webp"),
-      "manos y pies": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria manos pies cuidado suave.webp"),
-      "higiene corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene corporal jabon turquesa.webp"),
-      "higiene intima": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene intima flor rosa.webp"),
-      "proteccion solar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria proteccion solar crema amarilla.webp"),
-      "kits y combos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria kits combos regalo cosmeticos.webp"),
-      "tecnologia y hogar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria tecnologia hogar asistente inteligente.webp"),
-      "juguetes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria juguetes oso bloques infantiles.webp"),
-      "papeleria": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria papeleria cuaderno lapiz corazon.webp"),
-      "medicamentos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria medicamentos frasco capsulas medicas.webp")
+      "perfumes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria perfumes fragancia floral rosa.svg"),
+      "desodorantes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria desodorantes roll on vegetal.svg"),
+      "maquillaje": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria maquillaje brocha labial rosa.svg"),
+      "cuidado facial": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado facial crema rosa.svg"),
+      "cuidado corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado corporal locion vegetal.svg"),
+      "cabello": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cabello mechon brillante capilar.svg"),
+      "manos y pies": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria manos pies cuidado suave.svg"),
+      "higiene corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene corporal jabon turquesa.svg"),
+      "higiene intima": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene intima flor rosa.svg"),
+      "proteccion solar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria proteccion solar crema amarilla.svg"),
+      "kits y combos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria kits combos regalo cosmeticos.svg"),
+      "tecnologia y hogar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria tecnologia hogar asistente inteligente.svg"),
+      "juguetes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria juguetes oso bloques infantiles.svg"),
+      "papeleria": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria papeleria cuaderno lapiz corazon.svg"),
+      "medicamentos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria medicamentos frasco capsulas medicas.svg")
     };
 
     const CATEGORY_VISUALS = {

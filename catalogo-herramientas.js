@@ -673,7 +673,7 @@ async function prepareFolletoPage(snapshot,plan,index,signal){
   const page=plan.pages[index],images=new Map(),missing=new Set();
   const products=new Map(page.cards.map(c=>[c.product.id,c.product]));
   const [logo]=await Promise.all([
-    plan.formatKey==="document"?folletoCachedImage("logos/logo_empresa.png",signal):null,
+    plan.formatKey==="document"?folletoCachedImage("logos/logo_empresa.svg",signal):null,
     ...[...products.values()].map(async p=>{
     const image=await folletoCachedImage(p.imageUrl,signal);
     images.set(p.id,image);if(snapshot.settings.images&&!image)missing.add(p.id);
