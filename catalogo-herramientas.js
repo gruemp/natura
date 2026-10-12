@@ -1,5 +1,24 @@
 // Folleto: una fuente, un snapshot, un layout y un renderer para todas las salidas.
 const FOLLETO_SELECTION=new Set();
+// Las casillas del Folleto son independientes de los filtros y del carrito.
+function syncFolletoSelectionControls(){
+  const count=FOLLETO_SELECTION.size;
+  const clearButton=document.getElementById("folletoClearSelectionBtn");
+  if(clearButton){
+    clearButton.hidden=count===0;clearButton.disabled=count===0;
+    clearButton.textContent="Deseleccionar todo ("+count+")";
+  }
+  const dialogClear=document.getElementById("folletoDialogClearSelectionBtn");
+  if(dialogClear){dialogClear.hidden=count===0;dialogClear.disabled=count===0;}
+  const counter=document.getElementById("folletoSelectedCount");
+  if(counter)counter.textContent="("+(count||cartItemsArray().length)+")";
+}
+function clearFolletoSelection(){
+  if(!FOLLETO_SELECTION.size)return;
+  FOLLETO_SELECTION.clear();
+  document.querySelectorAll("input[data-folleto-select]").forEach(check=>{check.checked=false;});
+  syncFolletoSelectionControls();
+}
 const FOLLETO_FORMATS=Object.freeze({
   marketplace:{width:1200,height:1200,label:"Marketplace",extension:"png"},
   document:{width:1191,height:1684,label:"Documento",extension:"pdf"}
@@ -815,6 +834,7 @@ function initFolleto(){
           <label class="folleto-choice"><input name="scope" type="radio" value="branch" checked><span><strong>Todos desde este nivel</strong><small>Incluye los productos del nivel actual y sus descendientes.</small></span></label>
           <label class="folleto-choice"><input name="scope" type="radio" value="filtered"><span><strong>Solo filtrados</strong><small>Incluye los productos que coinciden con los filtros actuales.</small></span></label>
           <label class="folleto-choice"><input name="scope" type="radio" value="selected"><span><strong>Productos seleccionados <span id="folletoSelectedCount"></span></strong><small>Usa tu selección de tarjetas o, si está vacía, los productos del carrito.</small></span></label>
+          <div class="folleto-selection-actions"><button type="button" id="folletoDialogClearSelectionBtn" class="btn-ghost" hidden>Deseleccionar todo</button></div>
         </fieldset>
         <fieldset class="folleto-content"><legend><span>2</span> Opciones de contenido</legend>
           <div class="folleto-checkboxes"><label><input name="descriptions" type="checkbox" checked><span>Mostrar descripción</span></label><label><input name="codes" type="checkbox" checked><span>Mostrar código</span></label><label><input name="images" type="checkbox" checked><span>Mostrar imágenes</span></label><label><input name="prices" type="checkbox"><span>Mostrar precio</span></label></div>
@@ -847,6 +867,7 @@ function initFolleto(){
     fields=[...form.elements,...dialog.querySelectorAll('input[name="format"]')],
     previous=dialog.querySelector("#folletoPrevPage"),next=dialog.querySelector("#folletoNextPage");
   form.elements.prices.checked=shouldShowFolletoPrices();
+  syncFolletoSelectionControls();
   let previewController=null,exportController=null,previewUrl="",busy=false,lastFocus=null,version=0,
     state=null,pageIndex=0,timer=null,valid=false;
   const format=()=>dialog.querySelector('input[name="format"]:checked').value;
@@ -935,7 +956,10 @@ function initFolleto(){
       details.replaceChildren();summary.textContent="";showPlaceholder(e.message);status.textContent=e.message;updateActions();
     }
   }
-  button.addEventListener("click",()=>{lastFocus=document.activeElement;form.elements.prices.checked=shouldShowFolletoPrices();dialog.showModal();refresh(true);});
+  button.addEventListener("click",()=>{lastFocus=document.activeElement;form.elements.prices.checked=shouldShowFolletoPrices();syncFolletoSelectionControls();dialog.showModal();refresh(true);});
+  const clearSelection=()=>{if(busy)return;clearFolletoSelection();if(dialog.open)refresh(true);};
+  document.getElementById("folletoClearSelectionBtn")?.addEventListener("click",clearSelection);
+  dialog.querySelector("#folletoDialogClearSelectionBtn").addEventListener("click",clearSelection);
   dialog.querySelector("#folletoClose").addEventListener("click",()=>dialog.close());
   dialog.addEventListener("close",()=>{
     clearTimeout(timer);version++;previewController?.abort();exportController?.abort();state=null;clearPreview();
@@ -945,7 +969,7 @@ function initFolleto(){
   form.addEventListener("submit",e=>e.preventDefault());
   document.addEventListener("change",e=>{
     const id=e.target.dataset?.folletoSelect;
-    if(id){e.target.checked?FOLLETO_SELECTION.add(id):FOLLETO_SELECTION.delete(id);if(dialog.open)refresh();}
+    if(id){e.target.checked?FOLLETO_SELECTION.add(id):FOLLETO_SELECTION.delete(id);syncFolletoSelectionControls();if(dialog.open&&!busy)refresh();}
   });
   previous.addEventListener("click",()=>{if(!busy&&state&&pageIndex>0)showPage(pageIndex-1,version);});
   next.addEventListener("click",()=>{if(!busy&&state&&pageIndex<state.plan.pages.length-1)showPage(pageIndex+1,version);});

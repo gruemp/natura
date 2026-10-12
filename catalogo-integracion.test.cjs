@@ -442,8 +442,8 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-paridad-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=fichas-paridad-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=seleccion-folleto-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=seleccion-folleto-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -913,4 +913,35 @@ test('Folleto reserva la misma columna para fotografía real y marcador sin foto
     assert.equal(measure.textX,562);
     assert.equal(measure.textWidth,464);
   }
+});
+
+test('Deseleccionar todo quita las marcas visibles y ocultas sin modificar filtros ni carrito',()=>{
+  const checkA={dataset:{folletoSelect:'0042'},checked:true};
+  const checkB={dataset:{folletoSelect:'0088'},checked:false};
+  const toolbar={hidden:true,disabled:true,textContent:''};
+  const dialogButton={hidden:true,disabled:true};
+  const count={textContent:''};
+  const nodes={folletoClearSelectionBtn:toolbar,folletoDialogClearSelectionBtn:dialogButton,folletoSelectedCount:count};
+  const cart=[{id:'0088',qty:1}];
+  const document={
+    getElementById:id=>nodes[id]||null,
+    querySelectorAll:selector=>selector==='input[data-folleto-select]'?[checkA,checkB]:[]
+  };
+  const context=vm.createContext({document,cartItemsArray:()=>cart});
+  vm.runInContext(toolsSource,context);
+  vm.runInContext('FOLLETO_SELECTION.add("0042");FOLLETO_SELECTION.add("9999");syncFolletoSelectionControls()',context);
+  assert.equal(toolbar.hidden,false);assert.equal(dialogButton.hidden,false);
+  assert.equal(toolbar.textContent,'Deseleccionar todo (2)');
+  assert.equal(count.textContent,'(2)');
+  vm.runInContext('clearFolletoSelection()',context);
+  assert.equal(vm.runInContext('FOLLETO_SELECTION.size',context),0);
+  assert.equal(checkA.checked,false);assert.equal(checkB.checked,false);
+  assert.equal(toolbar.hidden,true);assert.equal(toolbar.disabled,true);
+  assert.equal(dialogButton.hidden,true);assert.equal(count.textContent,'(1)','El carrito sigue siendo la fuente alternativa existente');
+  assert.equal(cart[0].qty,1,'No se cambia la cantidad del carrito');
+  vm.runInContext('clearFolletoSelection()',context);
+  assert.equal(cart.length,1);
+  assert.ok(htmlSource.includes('id="folletoClearSelectionBtn"'));
+  assert.ok(toolsSource.includes('id="folletoDialogClearSelectionBtn"'));
+  assert.ok(toolsSource.includes('syncFolletoSelectionControls();if(dialog.open&&!busy)refresh()'));
 });
