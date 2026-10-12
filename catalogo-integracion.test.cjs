@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const visualSource = fs.readFileSync(path.join(__dirname, 'recursos-visuales.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(__dirname, 'catalogo-app.js'), 'utf8');
 const adminSource = fs.readFileSync(path.join(__dirname, 'precios-admin.js'), 'utf8');
 const cartSource = fs.readFileSync(path.join(__dirname, 'catalogo-carrito-pedido.js'), 'utf8');
@@ -225,6 +226,7 @@ function environment(){
     fetch(){throw new Error('Las pruebas no permiten solicitudes de red.');}};
   sandbox.window=sandbox;
   context=vm.createContext(sandbox);
+  vm.runInContext(visualSource,context,{filename:'recursos-visuales.js'});
   vm.runInContext(appSource,context,{filename:'catalogo-app.js'});
   vm.runInContext(cartSource,context,{filename:'catalogo-carrito-pedido.js'});
   vm.runInContext(adminSource,context,{filename:'precios-admin.js'});
