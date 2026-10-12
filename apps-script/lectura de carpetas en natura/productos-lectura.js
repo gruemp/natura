@@ -21,14 +21,18 @@ function productoCampos_(rich){
   }
   return fields;
 }
-function productoPublico_(rich,row){
-  const fields=productoCampos_(rich),selected=fields.filter(f=>f.selected&&!productoPrivado_(f.label));
+// A define las etiquetas que verá el comprador; B guarda el registro integral.
+// B se procesa solo en Apps Script. Nunca se entrega íntegro al navegador.
+function productoPublico_(rich,row,richIntegral){
+  const fields=productoCampos_(rich),integral=richIntegral?productoCampos_(richIntegral):fields;
+  const selected=fields.filter(f=>f.selected&&!productoPrivado_(f.label));
   const aliases={
     'codigo interno':'Código','codigo interno del producto':'Código','codigo':'Código',
     'nombre':'Nombre','nombre comercial del producto':'Nombre','nombre completo para publicar':'Nombre',
     'seccion':'Sección','seccion del catalogo':'Sección',
     'categoria':'Categoría','categoria del producto':'Categoría',
     'subcategoria':'Subcategoría','subcategoria del producto':'Subcategoría',
+    'tipo de producto':'Tipo','tipo':'Tipo',
     'linea':'Línea','linea comercial':'Línea','marca':'Marca',
     'publico':'Público','publico destinatario':'Público',
     'precio':'Precio','precio de venta':'Precio',
@@ -36,10 +40,12 @@ function productoPublico_(rich,row){
     'condicion':'Condición','condicion del producto':'Condición'
   };
   const canonical=label=>aliases[productoClave_(label)]||productoClave_(label);
+  const allowed=new Set(['Código','Nombre','Sección','Categoría','Subcategoría','Tipo','Línea','Marca','Público','Precio','Estado comercial','Condición']);
   const publicFields=selected.map(f=>({...f})),seen=new Set(publicFields.map(f=>canonical(f.label)));
-  for(const field of fields){
+  // Extraer de B exclusivamente valores operativos expresamente permitidos.
+  for(const field of integral){
     const label=aliases[productoClave_(field.label)];
-    if(!label||seen.has(label))continue;
+    if(!label||!allowed.has(label)||seen.has(label))continue;
     let value=field.value;
     if(label==='Código'){
       if(!/^\d{1,4}$/.test(value))continue;
@@ -47,10 +53,14 @@ function productoPublico_(rich,row){
     }
     publicFields.push({label:label,value:value,selected:false});seen.add(label);
   }
-  // Duplicate operational labels are reported through the table, never silently picked.
-  for(const label of ['Código','Nombre','Precio']){
-    const matches=fields.filter(f=>aliases[productoClave_(f.label)]===label);
+  // Rechazar duplicados y discordancias en valores críticos, sin publicar la fuente B.
+  for(const label of ['Código','Nombre','Precio','Sección','Categoría','Condición','Estado comercial']){
+    const matches=integral.filter(f=>aliases[productoClave_(f.label)]===label);
     if(matches.length>1)publicFields.push({label:label,value:matches[1].value,selected:false});
+    if(!richIntegral||!matches.length)continue;
+    const publicSelected=selected.filter(f=>canonical(f.label)===label);
+    if(publicSelected.some(f=>f.value!==matches[0].value))
+      publicFields.push({label:label,value:matches[0].value,selected:false});
   }
   const lines=[],textFormatRuns=[];let offset=0;
   for(const f of publicFields){
@@ -62,14 +72,21 @@ function productoPublico_(rich,row){
 }
 function leerProductosPublicos_(){
   const id='1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs';
-  // The built-in SpreadsheetApp reader demands a write-capable scope. Sheets API accepts readonly.
-  const metadata=Sheets.Spreadsheets.get(id,{fields:'sheets(properties(title,gridProperties(rowCount)))'});
+  // Sheets API readonly: A selecciona etiquetas visibles; B aporta identidad, navegación y precio.
+  const metadata=Sheets.Spreadsheets.get(id,{fields:'sheets(properties(title,gridProperties(rowCount,columnCount)))'});
   const sheet=(metadata.sheets||[]).find(s=>s.properties.title==='Productos');
-  if(!sheet)throw new Error('Fuente de productos no confirmada.');
-  const data=Sheets.Spreadsheets.get(id,{ranges:["'Productos'!A1:A"+sheet.properties.gridProperties.rowCount],includeGridData:true,fields:'sheets(data(rowData(values(userEnteredValue,textFormatRuns,userEnteredFormat(textFormat(bold))))))'});
+  if(!sheet||sheet.properties.gridProperties.columnCount<2)throw new Error('Fuente de productos de dos columnas no confirmada.');
+  const data=Sheets.Spreadsheets.get(id,{ranges:["'Productos'!A1:B"+sheet.properties.gridProperties.rowCount],includeGridData:true,fields:'sheets(data(rowData(values(userEnteredValue,textFormatRuns,userEnteredFormat(textFormat(bold))))))'});
   const cells=data.sheets[0].data[0].rowData||[];
-  if(productoClave_(cells[0]?.values?.[0]?.userEnteredValue?.stringValue)!=='informacion del producto')throw new Error('Fuente de productos no confirmada.');
-  const rows=cells.slice(1).map((r,i)=>productoPublico_(productoRichText_(r.values?.[0]||{}),i+2)).filter(r=>r.c[0].v);
+  if(productoClave_(cells[0]?.values?.[0]?.userEnteredValue?.stringValue)!=='informacion del producto'
+     ||productoClave_(cells[0]?.values?.[1]?.userEnteredValue?.stringValue)!=='descripcion para marketplace')
+    throw new Error('Encabezados de la fuente de productos no confirmados.');
+  const rows=cells.slice(1).map((r,i)=>{
+    const a=r.values?.[0]||{},b=r.values?.[1]||{};
+    if(!a.userEnteredValue?.stringValue&&!b.userEnteredValue?.stringValue)return null;
+    if(!a.userEnteredValue?.stringValue||!b.userEnteredValue?.stringValue)throw new Error('Registro incompleto en Productos.');
+    return productoPublico_(productoRichText_(a),i+2,productoRichText_(b));
+  }).filter(r=>r&&r.c[0].v);
   return {ok:true,version:2,actualizadoEn:new Date().toISOString(),table:{cols:[{id:'A',label:'Informacion del producto'}],rows:rows}};
 }
 function productoRichText_(cell){
