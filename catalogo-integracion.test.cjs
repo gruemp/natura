@@ -441,7 +441,7 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=productos-rich-text-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=ficha-b-resumida-2026-10-12-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-sin-descripcion-2026-10-12-1'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=descripcion-justificada-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
