@@ -242,7 +242,7 @@
     }
 
 // Contrato compacto: datos etiquetados y títulos de ficha, sin columnas posicionales.
-const CATALOG_COMPACT_ALIASES = {"Código":["Código interno del producto"],"Nombre":["Nombre comercial del producto"],"Nombre completo":["Nombre completo para publicar"],"Sección":["Sección del catálogo"],"Categoría":["Categoría del producto"],"Subcategoría":["Subcategoría del producto"],"Línea":["Línea comercial"],"Característica":["Característica distintiva"],"Público":["Público destinatario"],"Tipo":["Tipo de producto"],"Presentación":["Tipo de presentación"],"Condición":["Condición del producto"],"Estado comercial":["Estado comercial del producto"],"Precio":["Precio de venta"],"Código Natura":["Código de catálogo Natura"],"Referencia externa":["Enlace de referencia del producto"],"Descripción":["Descripción sensorial y uso recomendado"],"Beneficios":["Beneficios y funciones del producto"],"Variante":["Variante del producto"],"Contenido":["Cantidad de contenido"],"Unidad":["Unidad de medida del contenido"],"Costo":["Costo de adquisición"]};
+const CATALOG_COMPACT_ALIASES = {"Código":["Código interno del producto","Código interno"],"Nombre":["Nombre comercial del producto"],"Nombre completo":["Nombre completo para publicar"],"Sección":["Sección del catálogo"],"Categoría":["Categoría del producto"],"Subcategoría":["Subcategoría del producto"],"Línea":["Línea comercial"],"Característica":["Característica distintiva"],"Público":["Público destinatario"],"Tipo":["Tipo de producto"],"Presentación":["Tipo de presentación","Formato de presentación"],"Condición":["Condición del producto"],"Estado comercial":["Estado comercial del producto","Disponibilidad"],"Precio":["Precio de venta"],"Código Natura":["Código de catálogo Natura"],"Referencia externa":["Enlace de referencia del producto"],"Descripción":["Descripción sensorial y uso recomendado"],"Beneficios":["Beneficios y funciones del producto"],"Variante":["Variante del producto"],"Contenido":["Cantidad de contenido"],"Unidad":["Unidad de medida del contenido"],"Costo":["Costo de adquisición"]};
 function catalogFieldKey(label){
   const key=catalogHeaderKey(String(label||"").replace(/:\s*$/,""));
   for(const [canonical,aliases] of Object.entries(CATALOG_COMPACT_ALIASES)){
@@ -251,7 +251,7 @@ function catalogFieldKey(label){
   return key;
 }
 function catalogPrivateField(label){
-  return /^(?:costo|coste|numero de serie|serial|mac|direccion mac|p\/n|numero de parte|ubicacion interna|proveedor|margen|rentabilidad|precio de compra)(?:\b|$)/.test(catalogFieldKey(label));
+  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion mac|p\/n|numero de parte|identificadores?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(catalogFieldKey(label));
 }
 function catalogDescriptionRecord(text){
   const fields=[],byKey=new Map(),duplicates=new Set();let current=null;
@@ -286,9 +286,26 @@ function catalogOrderedFields(record,selection){
   }
   return fields;
 }
+// A missing or mixed label style never selects an attribute for public output.
+function catalogRichTextSelection(cell){
+  const text=String(cell?.v??""),runs=Array.isArray(cell?.textFormatRuns)?cell.textFormatRuns:[];
+  const boldAt=index=>{
+    let bold=cell?.userEnteredFormat?.textFormat?.bold===true;
+    for(const run of runs){if((run.startIndex||0)>index)break;bold=run.format?.bold===true;}
+    return bold;
+  };
+  let offset=0;const labels=[];
+  for(const line of text.split("\n")){
+    const colon=line.indexOf(":");
+    if(colon>0&&Array.from({length:colon},(_,i)=>i).filter(i=>/\S/.test(line[i])).every(i=>boldAt(offset+i)))labels.push(line.slice(0,colon).trim());
+    offset+=line.length+1;
+  }
+  return labels.join("\n");
+}
 function readCompactGoogleSheetProductRows(table,indices){
-  const descriptionIndex=indices.get(catalogHeaderKey("Descripción integral del producto"));
-  const selectionIndex=catalogFichaOrderIndex(indices);
+  const rich=indices.has(catalogHeaderKey("Informacion del producto"));
+  const descriptionIndex=rich?indices.get(catalogHeaderKey("Informacion del producto")):indices.get(catalogHeaderKey("Descripción integral del producto"));
+  const selectionIndex=rich?null:catalogFichaOrderIndex(indices);
   const codeIndex=indices.get(catalogHeaderKey("Código interno del producto"));
   const mapping={
     code:"Código",name:"Nombre",section:"Sección",category:"Categoría",subcategory:"Subcategoría",
@@ -305,9 +322,9 @@ function readCompactGoogleSheetProductRows(table,indices){
     const text=catalogCellText(source?.c?.[descriptionIndex]);
     if(!text)return [];
     const record=catalogDescriptionRecord(text),get=label=>record.byKey.get(catalogFieldKey(label))?.value||"";
-    const selection=catalogCellText(source.c[selectionIndex]);
+    const selection=rich?catalogRichTextSelection(source.c[descriptionIndex]):catalogCellText(source.c[selectionIndex]);
     const row={sourceRow:index+2,technicalIssues:[],compact:true,
-      fichaFields:[],fichaSelectionExplicit:Boolean(selection.trim())};
+      fichaFields:[],fichaSelectionExplicit:rich||Boolean(selection.trim()),richTextSource:rich};
     for(const [field,label] of Object.entries(mapping))row[field]=get(label);
     row.code=/^\d{1,4}$/.test(row.code)?row.code.padStart(4,"0"):"";
     if(!row.name)row.name=get("Nombre completo");
@@ -333,18 +350,22 @@ function readCompactGoogleSheetProductRows(table,indices){
     }).filter(Boolean);
     if(components.length)row.presentation=[row.presentation,...components].filter(Boolean).join(" · ");
     // La presentación reúne datos confirmados aunque su título no exista en A.
-    const presentation=[row.presentation,[row.content,row.unit].filter(Boolean).join(" "),row.units?row.units+" unidades":""].filter(Boolean).join(" · ");
+    const presentation=rich?row.presentation:[row.presentation,[row.content,row.unit].filter(Boolean).join(" "),row.units?row.units+" unidades":""].filter(Boolean).join(" · ");
     const fichaRecord={...record,byKey:new Map(record.byKey)};
     if(presentation)fichaRecord.byKey.set("presentacion",{key:"presentacion",label:"Presentación",value:presentation});
     row.fichaFields=catalogOrderedFields(fichaRecord,selection);
-    row.description=["Beneficios","Descripción","Especificaciones técnicas"].map(get).filter(Boolean).join("\n");
-    row.fullTxtRecord=record.fields.filter(f=>!catalogPrivateField(f.key)).map(f=>f.label+": "+f.value).join("\n");
+    row.description=rich?"": ["Beneficios","Descripción","Especificaciones técnicas"].map(get).filter(Boolean).join("\n");
+    row.fullTxtRecord=(rich?row.fichaFields:record.fields.filter(f=>!catalogPrivateField(f.key))).map(f=>f.label+": "+f.value).join("\n");
     return [row];
   });
 }
 
     function readGoogleSheetProductRows(table){
       const compactIndices=catalogHeaderIndices(table?.cols,[]);
+      if(compactIndices.has(catalogHeaderKey("Informacion del producto"))){
+        catalogHeaderIndices(table?.cols,["Informacion del producto"]);
+        return readCompactGoogleSheetProductRows(table,compactIndices);
+      }
       if(compactIndices.has(catalogHeaderKey("Descripción integral del producto"))){
         catalogHeaderIndices(table?.cols,["Descripción integral del producto"]);
         catalogFichaOrderIndex(compactIndices);
@@ -476,9 +497,29 @@ function readCompactGoogleSheetProductRows(table,indices){
       });
     }
 
+    function queryPublicRichTextProducts(){
+      return new Promise((resolve,reject)=>{
+        const callback="__naturaRichText_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+        const script=document.createElement("script");let settled=false;
+        const cleanup=()=>{delete window[callback];script.parentNode?.removeChild(script);window.clearTimeout(timer);};
+        const finish=(error,table)=>{if(settled)return;settled=true;cleanup();error?reject(error):resolve(table);};
+        const timer=window.setTimeout(()=>finish(new Error("No se pudo leer la selección comercial del maestro.")),GOOGLE_SHEET_QUERY_TIMEOUT_MS);
+        window[callback]=payload=>{
+          if(payload?.ok!==true||payload?.version!==2||!Array.isArray(payload?.table?.rows))return finish(new Error("El lector Rich Text no confirmó los datos públicos."));
+          finish(null,payload.table);
+        };
+        script.onerror=()=>finish(new Error("No se pudo conectar con el lector Rich Text."));
+        script.src=APPS_SCRIPT_IMAGE_SOURCE.endpoint+"?"+new URLSearchParams({modo:"productos",callback,_:String(Date.now())});
+        script.async=true;document.head.appendChild(script);
+      });
+    }
     async function loadGoogleSheetRows(){
       // Descubrir encabezados sin filas; después leer únicamente datos públicos necesarios.
       const schema = await queryGoogleSheetTable();
+      if(Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Informacion del producto"))){
+        catalogHeaderIndices(schema.cols,["Informacion del producto"]);
+        return readGoogleSheetProductRows(await queryPublicRichTextProducts());
+      }
       const compact=Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Descripción integral del producto"));
       if(compact){
         const indices=catalogHeaderIndices(schema.cols,["Descripción integral del producto"]);
@@ -893,6 +934,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         facetAttributes: buildProductFacetAttributes(row),
         fichaFields: row.fichaFields,
         fichaSelectionExplicit: row.fichaSelectionExplicit === true,
+        richTextSource:row.richTextSource===true,
         price: row.priceValue ?? 0,
         priceText,
         hasPrice: row.priceValue !== null && row.priceValue !== undefined,
@@ -911,7 +953,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         docsImageUrl,
         imageUrls,
         docsDocumentUrl: `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_SOURCE.spreadsheetId}/edit#gid=${GOOGLE_SHEET_SOURCE.gid}`,
-        searchKey: normalizeText([code, name, section, category, subcategory, publicLabel, line, condition, commercialStatus, row.description, row.referenceExternal].filter(Boolean).join(" "))
+        searchKey: normalizeText([code, name, section, category, subcategory, publicLabel, line, condition, commercialStatus, row.description, row.referenceExternal, row.richTextSource?row.fullTxtRecord:""].filter(Boolean).join(" "))
       };
     }
 
@@ -1889,7 +1931,7 @@ function readCompactGoogleSheetProductRows(table,indices){
           icon.replaceChildren();
         }
       }
-      setSearchHighlightedText(label,album.label);
+      setSearchHighlightedText(label,catalogTabLabel(album.label));
       if(meta){meta.hidden=!meta.textContent;setSearchHighlightedText(meta,meta.textContent || "");}
 
       return card;
@@ -1974,7 +2016,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     let selectedSuggestionTerms = [];
     // La búsqueda histórica y los atributos conservan estados independientes.
     let selectedFacetFilters = [];
-    const CATALOG_FACET_GROUPS = Object.freeze([
+    const CATALOG_FACET_GROUPS = [
       {id:"section",label:"Sección",field:"section",columns:["Sección"],level:"section"},
       {id:"category",label:"Categoría",field:"category",columns:["Categoría"],level:"category"},
       {id:"subcategory",label:"Subcategoría",field:"subcategory",columns:["Subcategoría"],level:"subcategory"},
@@ -1996,18 +2038,36 @@ function readCompactGoogleSheetProductRows(table,indices){
       {id:"players",label:"Número de jugadores",field:"players",columns:["Número de jugadores"]},
       {id:"materials",label:"Materiales",field:"materials",columns:["Materiales"],multiple:true,concise:true},
       {id:"components",label:"Componentes del kit",columns:Array.from({length:4},(_,i)=>`Nombre del componente ${i+1}`)}
-    ]);
+    ];
     const CATALOG_FACET_BY_ID = new Map(CATALOG_FACET_GROUPS.map(group=>[group.id,group]));
 
+    function catalogTabLabel(value){return String(value||"").trim().split(/\s+/).slice(0,3).join(" ");}
+    function registerRichTextFacets(row){
+      for(const field of row.fichaFields||[]){
+        if(["nombre","precio","codigo","presentacion","descripcion","stock"].includes(field.key)||catalogPrivateField(field.key))continue;
+        if(CATALOG_FACET_GROUPS.some(g=>(g.columns||[]).some(label=>catalogFieldKey(label)===field.key)))continue;
+        const id="atributo:"+field.key;
+        if(!CATALOG_FACET_BY_ID.has(id)){
+          const group={id,label:catalogTabLabel(field.label),columns:[field.label],richKey:field.key};
+          CATALOG_FACET_GROUPS.push(group);CATALOG_FACET_BY_ID.set(id,group);
+        }
+      }
+    }
     function facetValueKey(value){
       return String(value??"").normalize("NFC").trim().replace(/\s+/g," ").toLocaleLowerCase("es");
     }
 
     function buildProductFacetAttributes(row){
       const attributes={};
+      if(row.richTextSource)registerRichTextFacets(row);
       for(const group of CATALOG_FACET_GROUPS){
         let values;
-        if(group.id==="content"){
+        if(row.richTextSource){
+          // Navigation uses its operational metadata; all other facets require selected labels.
+          const fields=(row.fichaFields||[]).filter(f=>group.richKey?f.key===group.richKey:(group.columns||[]).some(label=>catalogFieldKey(label)===f.key));
+          values=fields.flatMap(f=>String(f.value).split(group.multiple?/[;\r\n]+/:/\r?\n/));
+          if(group.level&&!values.length)values=[row[group.field]||""];
+        }else if(group.id==="content"){
           const amount=row.contentValue;
           const unit=String(row.unit||"").trim();
           values=Number.isFinite(amount)&&amount>0&&unit
@@ -2017,9 +2077,9 @@ function readCompactGoogleSheetProductRows(table,indices){
         const unique=new Map();
         for(const raw of values){
           const label=String(raw||"").trim().replace(/\s+/g," ");
-          if(!label||label.length>96||/^(?:no aplica|n\/a|por confirmar|desconocido|sin datos|[-—])$/i.test(label)) continue;
+          if(!label||label.length>(row.richTextSource?4000:96)||/^(?:no aplica|n\/a|por confirmar|desconocido|sin datos|[-—])$/i.test(label)) continue;
           // Las frases extensas permanecen en la ficha, sin extraer palabras sueltas.
-          if(group.concise && (label.length>64 || label.split(/\s+/).length>9)) continue;
+          if(!row.richTextSource&&group.concise && (label.length>64 || label.split(/\s+/).length>9)) continue;
           const value=facetValueKey(label);
           if(!unique.has(value)) unique.set(value,{value,label});
         }
@@ -2032,7 +2092,8 @@ function readCompactGoogleSheetProductRows(table,indices){
       const unique=new Map();
       for(const filter of (Array.isArray(filters)?filters:[])){
         const group=String(filter?.group||""),label=String(filter?.label||"").trim();
-        if(!CATALOG_FACET_BY_ID.has(group)||!label||label.length>96) continue;
+        const dynamic=group.startsWith("atributo:")&&group.length<150&&!catalogPrivateField(group.slice(9));
+        if((!CATALOG_FACET_BY_ID.has(group)&&!dynamic)||!label||label.length>4000) continue;
         const value=facetValueKey(label);
         unique.set(JSON.stringify([group,value]),{group,value,label});
       }
@@ -3231,7 +3292,7 @@ function renderWordSuggestions(){
     const section=document.createElement("div");section.className="word-filter-group";
     section.setAttribute("role","group");section.setAttribute("aria-labelledby",`facet-heading-${group.id}`);
     const heading=document.createElement("div");heading.className="word-filter-heading";
-    heading.id=`facet-heading-${group.id}`;heading.textContent=group.label;
+    heading.id=`facet-heading-${group.id}`;heading.textContent=catalogTabLabel(group.label);
     const options=document.createElement("div");options.className="word-filter-options";
     for(const option of group.options){
       const btn=document.createElement("button");btn.type="button";
@@ -3240,7 +3301,7 @@ function renderWordSuggestions(){
       btn.dataset.role="toggle-term";btn.setAttribute("aria-pressed",String(option.selected));
       btn.setAttribute("aria-label",`${group.label}: ${option.label}, ${option.count} productos${option.selected?", seleccionado; pulsar para quitar":""}`);
       btn.title=`${option.count} productos con ${option.label}, según la búsqueda y los filtros de los demás grupos`;
-      const label=document.createElement("span");label.textContent=option.label;
+      const label=document.createElement("span");label.textContent=catalogTabLabel(option.label);
       const count=document.createElement("span");count.className="term-chip-count";count.textContent=String(option.count);
       btn.append(label,count);options.appendChild(btn);
       if(focusGroup===group.id&&focusValue===option.value) restoreFocus=btn;

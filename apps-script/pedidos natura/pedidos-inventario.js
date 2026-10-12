@@ -30,12 +30,12 @@ function normalizeRequestedItems_(items) {
 function compactInventoryRecord_(value, rowNumber) {
   const record = { __duplicates: [] };
   const aliases = {
-    "codigo interno del producto": "codigo",
-    "nombre comercial del producto": "nombre",
-    "categoria del producto": "categoria",
+    "codigo interno del producto": "codigo", "codigo interno":"codigo", "codigo":"codigo",
+    "nombre comercial del producto": "nombre", "nombre":"nombre",
+    "categoria del producto": "categoria", "categoria":"categoria",
     "marca": "marca",
-    "precio de venta": "precio",
-    "estado comercial del producto": "estado"
+    "precio de venta": "precio", "precio":"precio",
+    "estado comercial del producto": "estado", "estado comercial":"estado", "disponibilidad":"estado"
   };
   String(value == null ? "" : value).split(/\r?\n/).forEach(function(line) {
     const colon = line.indexOf(":");
@@ -59,7 +59,7 @@ function resolveInventoryItems_(requestedItems) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= context.headerRow) throw new Error("El inventario oficial no contiene productos.");
 
-  const descriptionColumn = columns["Descripción integral del producto"];
+  const descriptionColumn = columns["Informacion del producto"]||columns["Descripción integral del producto"];
   if (!descriptionColumn) throw new Error("Falta la descripción integral en el inventario.");
   const descriptions = sheet.getRange(context.headerRow + 1, descriptionColumn,
     lastRow - context.headerRow, 1).getDisplayValues();
@@ -69,7 +69,7 @@ function resolveInventoryItems_(requestedItems) {
   descriptions.forEach(function(row, index) {
     // Los códigos duplicados son ambiguos aun cuando otro campo tenga errores.
     const parsed = compactInventoryRecord_(row[0], context.headerRow + index + 1);
-    const code = safe_(parsed.codigo);
+    const code = /^\d{1,4}$/.test(safe_(parsed.codigo))?safe_(parsed.codigo).padStart(4,"0"):safe_(parsed.codigo);
     if (!wanted.has(code)) return;
     if (parsed.__duplicates.length) {
       throw new Error("Atributos duplicados en Productos fila " + (context.headerRow + index + 1) + ": " + parsed.__duplicates.join(", ") + ".");
@@ -93,7 +93,7 @@ function resolveInventoryItems_(requestedItems) {
     if (status === "no a la venta") {
       throw new Error("El producto " + requested.codigo + " no está a la venta.");
     }
-    const price = optionalNonNegativeNumber_(product.precio || "", "Precio", requested.codigo);
+    const price = optionalNonNegativeNumber_(compactPriceNumber_(product.precio || ""), "Precio", requested.codigo);
     return {
       codigo: requested.codigo,
       cantidadSolicitada: requested.cantidadSolicitada,
@@ -158,4 +158,12 @@ function optionalRequestAmount_(value, label) {
     throw new Error((label || "Valor") + " inválido.");
   }
   return Math.round(n);
+}
+
+function compactPriceNumber_(value){
+  let text=String(value==null?"":value).trim().replace(/^(?:COP\s*|\$\s*)/i,"").replace(/\s/g,"");
+  if(/^\d{1,3}(?:\.\d{3})+(?:,\d+)?$/.test(text))text=text.replace(/\./g,"").replace(",",".");
+  else if(/^\d+(?:,\d+)?$/.test(text))text=text.replace(",",".");
+  if(text&&!/^\d+(?:\.\d+)?$/.test(text))throw new Error("Precio inválido en Productos.");
+  return text;
 }

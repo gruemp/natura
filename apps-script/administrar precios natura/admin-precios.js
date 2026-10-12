@@ -24,8 +24,31 @@ function actualizarPrecioCompacto_(contexto,codigo,precioNuevo,precioAnterior){
     if(catalogFieldKey(label)!=="precio")return line;
     replaced=true;return label+":"+space+precioNuevo;
   });
-  if(!replaced&&precioNuevo!=="")next+=(/\r?\n$/.test(next)?"":next.includes("\r\n")?"\r\n":"\n")+"Precio de venta: "+precioNuevo;
-  if(next!==match.text){cell.setValue(next);SpreadsheetApp.flush();}
+  if(!replaced&&precioNuevo!=="")next+=(/\r?\n$/.test(next)?"":next.includes("\r\n")?"\r\n":"\n")+(contexto.textoRico?"Precio: ":"Precio de venta: ")+precioNuevo;
+  if(next!==match.text){
+    const rich=typeof cell.getRichTextValue==="function"?cell.getRichTextValue():null;
+    if(contexto.textoRico&&!rich)throw new Error("No se pudo conservar la selección comercial. No se guardó el precio.");
+    if(rich){
+      const builder=rich.copy().setText(next);
+      // Every original style is mapped around the sole modified price value.
+      let start=match.text.length,end=start,newLength=next.length-start;
+      if(replaced){
+        let offset=0;
+        for(const line of match.text.split("\n")){
+          const m=/^([^:\r\n]+):([ \t]*)([^\r\n]*)/.exec(line);
+          if(m&&catalogFieldKey(m[1])==="precio"){start=offset+m[1].length+1+m[2].length;end=start+m[3].length;newLength=precioNuevo.length;break;}
+          offset+=line.length+1;
+        }
+      }
+      const mapped=i=>i<=start?i:i>=end?i+newLength-(end-start):start+Math.min(i-start,newLength);
+      for(const run of rich.getRuns()){
+        const a=mapped(run.getStartIndex()),b=mapped(run.getEndIndex());
+        if(b>a)builder.setTextStyle(a,b,run.getTextStyle());
+      }
+      cell.setRichTextValue(builder.build());
+    }else cell.setValue(next);
+    SpreadsheetApp.flush();
+  }
   if(String(cell.getValue())!==next)throw new Error("Google Sheets no confirmó la descripción esperada.");
   return {ok:true,codigo:codigo,precioAnterior:actual,precioGuardado:precioNuevo,actualizadoEn:new Date().toISOString()};
 }

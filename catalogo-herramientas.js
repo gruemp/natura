@@ -64,14 +64,14 @@ function buildFolletoSnapshot(options={}){
   source.sort(compareCatalogProductOrder);
   const settings=Object.freeze({
     prices:(options.prices===undefined?shouldShowFolletoPrices():options.prices===true)&&shouldShowProductPrices(),
-    descriptions:options.descriptions!==false,codes:options.codes!==false,
+    descriptions:false,codes:options.codes!==false,
     images:options.images!==false&&shouldShowProductImages()
   });
   const seen=new Set();
   const products=source.filter(p=>{const id=String(p.id);if(seen.has(id))return false;seen.add(id);return true;}).map(p=>Object.freeze({
     id:String(p.id),name:fichaHeaderFields(p).name,
     priceText:settings.prices&&p.hasPrice!==false?fmtCOP.format(p.price):"",
-    description:settings.descriptions?String(p.description||"").trim():"",
+    description:"",
     code:settings.codes?`Código ${p.id}`:"",
     line:String(p.line||"").trim(),
     presentation:fichaHeaderFields(p).presentation,
@@ -169,9 +169,11 @@ function folletoProductAttributes(p){
 function fichaOrderedFacts(product,includeCode=true){
   const p=product||{},ordered=Array.isArray(p.fichaFields)?p.fichaFields:[];
   if(p.fichaSelectionExplicit){
-    return ordered.filter(f=>f&&f.key!=="nombre"&&f.key!=="presentacion"&&f.key!=="precio"
+    const facts=ordered.filter(f=>f&&f.key!=="nombre"&&(p.richTextSource||f.key!=="presentacion")&&f.key!=="precio"
       &&(includeCode||f.key!=="codigo")&&String(f.value||"").trim())
       .map(f=>({label:String(f.label||f.key||"").trim(),value:String(f.value).trim()}));
+    if(p.richTextSource&&includeCode&&p.id&&!ordered.some(f=>f.key==="codigo"))facts.push({label:"Código",value:String(p.id)});
+    return facts;
   }
   const facts=folletoProductAttributes(p).map(f=>({label:f.label,value:f.value}));
   if(includeCode&&p.id)facts.unshift({label:"Código",value:String(p.id)});
@@ -185,14 +187,14 @@ function fichaHeaderFields(p){
   const selected=key=>fields.find(f=>f?.key===key);
   return {
     name:!p?.fichaSelectionExplicit||!!selected("nombre")?catalogFichaName(p):"",
-    presentation:p?.fichaSelectionExplicit?String(selected("presentacion")?.value||"").trim():folletoPresentation(p)
+    presentation:p?.richTextSource?"":p?.fichaSelectionExplicit?String(selected("presentacion")?.value||"").trim():folletoPresentation(p)
   };
 }
 function buildFichaModel(product){
   return {
     id:String(product.id),name:String(product.name||""),
     line:String(product.line||""),presentation:String(product.presentation||""),
-    code:String(product.code||""),description:String(product.description||""),priceText:String(product.priceText||""),
+    code:String(product.code||""),description:"",priceText:String(product.priceText||""),
     facts:Array.isArray(product.facts)?product.facts:(
       (product.code?[{label:"Código",value:String(product.code).replace(/^C[oó]digo\s*:?\s*/i,"")}]:[])
        .concat(Array.isArray(product.attributes)?product.attributes:[])
@@ -223,7 +225,7 @@ function renderCatalogFicha(card,p){
   const facts=document.createElement("div");facts.className="ficha-facts";
   const image=card.querySelector(".img"),description=card.querySelector(".description");
   const details=card.querySelector(".product-details"),summary=details.querySelector("summary");
-  details.hidden=!model.description;
+  details.hidden=true;
   summary.setAttribute("aria-label","Descripción de "+(p.name||"producto"));
   const name=card.querySelector(".name"),priceRow=card.querySelector(".row");
   name.hidden=!model.name;facts.append(name);
@@ -239,7 +241,7 @@ function renderCatalogFicha(card,p){
   attributes.hidden=!model.facts.length;facts.append(attributes,priceRow);
   card.querySelector(".product-line").hidden=true;
   details.append(description);
-  main.append(image,facts);square.append(main,details);
+  main.append(image,facts);square.append(main);
   card.prepend(square);
   image.querySelector("img")?.addEventListener("load",()=>drawCatalogFichaImage(card));
   details.addEventListener("toggle",()=>{
@@ -262,38 +264,17 @@ function queueCatalogFichaLayout(){
 function fitCatalogFicha(card){
   const square=card.querySelector(".ficha-square"),width=square.getBoundingClientRect().width;
   if(!width)return;
-  const details=square.querySelector(".product-details"),description=details.querySelector(".description");
   const facts=square.querySelector(".ficha-facts"),main=square.querySelector(".ficha-main");
-  const attributes=card.querySelector(".ficha-attributes");
+  const details=card.querySelector(".product-details")||square.querySelector(".product-details");
+  if(details){details.hidden=true;details.open=false;details.classList.remove("ficha-description-inline");}
+  square.classList.remove("ficha-description-expanded");
   const editor=card.querySelector(".price-admin-editor"),row=card.querySelector(".row");
-  const key=[Math.round(width*10),Boolean(editor),row.textContent,description.textContent,
-    getComputedStyle(description).fontSize,getComputedStyle(facts).fontFamily].join("|");
+  const key=[Math.round(width*10),Boolean(editor),row.textContent,getComputedStyle(facts).fontFamily].join("|");
   if(CATALOG_FICHA_LAYOUT_KEYS.get(card)===key)return;
-  const expanded=details.open&&!details.classList.contains("ficha-description-inline");
   square.style.setProperty("--ficha-side",width+"px");
   square.style.setProperty("--ficha-unit",width/FICHA_SIZE.width+"px");
-  square.classList.remove("ficha-description-expanded");
-  details.classList.remove("ficha-description-inline");details.open=false;
-  // Administration keeps its usable editor and original handlers in the controls footer.
-  if(editor){
-    const pad=card.querySelector(".pad");
-    if(editor.parentNode!==pad)pad.append(editor);
-  }
-  if(!details.hidden){
-    details.classList.add("ficha-description-inline");details.open=true;
-    const fits=main.clientHeight>=width*.52&&details.scrollHeight<=width*.38;
-    if(!fits){
-      details.classList.remove("ficha-description-inline");details.open=false;
-      square.style.setProperty("--ficha-main-height",main.clientHeight+"px");
-    }
-  }
-  // Fit every fact together. Never move attributes below the square or clip their text.
+  if(editor){const pad=card.querySelector(".pad");if(editor.parentNode!==pad)pad.append(editor);}
   fitCatalogFichaFacts(square,facts,main);
-  if(!details.hidden&&!details.classList.contains("ficha-description-inline")){
-    square.style.setProperty("--ficha-main-height",main.clientHeight+"px");
-    details.open=expanded;
-    square.classList.toggle("ficha-description-expanded",expanded);
-  }
   CATALOG_FICHA_LAYOUT_KEYS.set(card,key);
   drawCatalogFichaImage(card);
 }
@@ -837,7 +818,7 @@ function initFolleto(){
           <div class="folleto-selection-actions"><button type="button" id="folletoDialogClearSelectionBtn" class="btn-ghost" hidden>Deseleccionar todo</button></div>
         </fieldset>
         <fieldset class="folleto-content"><legend><span>2</span> Opciones de contenido</legend>
-          <div class="folleto-checkboxes"><label><input name="descriptions" type="checkbox" checked><span>Mostrar descripción</span></label><label><input name="codes" type="checkbox" checked><span>Mostrar código</span></label><label><input name="images" type="checkbox" checked><span>Mostrar imágenes</span></label><label><input name="prices" type="checkbox"><span>Mostrar precio</span></label></div>
+          <div class="folleto-checkboxes"><input name="descriptions" type="hidden" value=""><label><input name="codes" type="checkbox" checked><span>Mostrar código</span></label><label><input name="images" type="checkbox" checked><span>Mostrar imágenes</span></label><label><input name="prices" type="checkbox"><span>Mostrar precio</span></label></div>
         </fieldset>
         <fieldset id="folletoAdminOptions" hidden><legend>Opciones avanzadas <small>Solo administrador</small></legend>
           <div class="folleto-checkboxes"><label><input name="includeHidden" type="checkbox"><span>Incluir productos ocultos</span></label><label><input name="includeNotForSale" type="checkbox"><span>Incluir productos no a la venta</span></label></div>

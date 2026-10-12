@@ -81,6 +81,10 @@ function resolveSheetContext_() {
   return resolveTableContext_(SpreadsheetApp.openById(SPREADSHEET_ID), REQUIRED_HEADERS, "");
 }
 function resolveInventoryContext_() {
+  const book=SpreadsheetApp.openById(INVENTORY_SPREADSHEET_ID),sheet=book.getSheetByName(INVENTORY_SHEET_NAME);
+  if(!sheet)throw new Error("No existe la pestaña Productos.");
+  const header=sheet.getRange(1,1,1,Math.max(1,sheet.getLastColumn())).getDisplayValues()[0];
+  if(header.some(value=>normalizeHeader_(value)==="informacion del producto"))return resolveTableContext_(book,["Informacion del producto"],INVENTORY_SHEET_NAME);
   return resolveTableContext_(
     SpreadsheetApp.openById(INVENTORY_SPREADSHEET_ID),
     INVENTORY_REQUIRED_HEADERS,

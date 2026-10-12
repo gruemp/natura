@@ -202,7 +202,7 @@
     host.appendChild(allButton);
     for(const album of items){
       const button=document.createElement("button");
-      button.type="button";button.textContent=album.label;
+      button.type="button";button.textContent=catalogTabLabel(album.label);
       button.addEventListener("click",()=>{
         if(album.products?.length&&album.products.every(p=>p.isGiftGalleryImage))setShowAllEnabled(false);
         openAlbum(album.key,{keepFilters:typeof hasActiveDiscoveryFilters==="function"?hasActiveDiscoveryFilters():typeof getCombinedWordTerms==="function"&&getCombinedWordTerms().length>0});

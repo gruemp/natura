@@ -38,6 +38,10 @@ Las funciones públicas `doGet` y `doPost` permanecen en `Código.js`; la separa
 
 ## Lectura de carpetas Natura
 
+Desde 2026-10-12, el mismo servicio de solo lectura ofrece `modo=productos`: `productos-lectura.js` lee exclusivamente `Productos!A` del maestro original. El encabezado vigente es `Informacion del producto`; no existe una columna B operativa. Los nombres de etiquetas íntegramente en negrita seleccionan los atributos comerciales y conservan su orden. La respuesta elimina datos privados y notas antes de enviarlos; solo añade código normalizado, identidad, navegación, disponibilidad y precio necesarios para operar. Una etiqueta sin negrita o con formato mixto no autoriza publicar su valor. Los permisos del servicio se limitan a lectura de Drive y de Sheets.
+
+El catálogo muestra hasta tres palabras en pestañas y opciones, conservando la identidad completa de los filtros. Las fichas web, PNG y PDF omiten el bloque inferior de descripción y su separador; conservan precio y controles. La actualización administrativa del precio mantiene los tramos de Rich Text de A. Las pruebas de integración incluyen el contrato de una sola columna, privacidad, filtros y pedidos sin escribir movimientos comerciales.
+
 El proyecto `lectura de carpetas en natura` está dividido por responsabilidades sin cambiar su endpoint público ni sus funciones manuales de mantenimiento:
 
 - `Código.js`: configuración y `doGet` del índice público de imágenes.

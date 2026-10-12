@@ -1,7 +1,7 @@
 // Resolución de hojas, encabezados y normalización compartida.
 function catalogHeaderKey(value){return normalizarEncabezado_(value);}
 // Contrato compacto: datos etiquetados y títulos de ficha, sin columnas posicionales.
-const CATALOG_COMPACT_ALIASES = {"Código":["Código interno del producto"],"Nombre":["Nombre comercial del producto"],"Nombre completo":["Nombre completo para publicar"],"Sección":["Sección del catálogo"],"Categoría":["Categoría del producto"],"Subcategoría":["Subcategoría del producto"],"Línea":["Línea comercial"],"Característica":["Característica distintiva"],"Público":["Público destinatario"],"Tipo":["Tipo de producto"],"Presentación":["Tipo de presentación"],"Condición":["Condición del producto"],"Estado comercial":["Estado comercial del producto"],"Precio":["Precio de venta"],"Código Natura":["Código de catálogo Natura"],"Referencia externa":["Enlace de referencia del producto"],"Descripción":["Descripción sensorial y uso recomendado"],"Beneficios":["Beneficios y funciones del producto"],"Variante":["Variante del producto"],"Contenido":["Cantidad de contenido"],"Unidad":["Unidad de medida del contenido"],"Costo":["Costo de adquisición"]};
+const CATALOG_COMPACT_ALIASES = {"Código":["Código interno del producto","Código interno"],"Nombre":["Nombre comercial del producto"],"Nombre completo":["Nombre completo para publicar"],"Sección":["Sección del catálogo"],"Categoría":["Categoría del producto"],"Subcategoría":["Subcategoría del producto"],"Línea":["Línea comercial"],"Característica":["Característica distintiva"],"Público":["Público destinatario"],"Tipo":["Tipo de producto"],"Presentación":["Tipo de presentación","Formato de presentación"],"Condición":["Condición del producto"],"Estado comercial":["Estado comercial del producto","Disponibilidad"],"Precio":["Precio de venta"],"Código Natura":["Código de catálogo Natura"],"Referencia externa":["Enlace de referencia del producto"],"Descripción":["Descripción sensorial y uso recomendado"],"Beneficios":["Beneficios y funciones del producto"],"Variante":["Variante del producto"],"Contenido":["Cantidad de contenido"],"Unidad":["Unidad de medida del contenido"],"Costo":["Costo de adquisición"]};
 function catalogFieldKey(label){
   const key=catalogHeaderKey(String(label||"").replace(/:\s*$/,""));
   for(const [canonical,aliases] of Object.entries(CATALOG_COMPACT_ALIASES)){
@@ -10,7 +10,7 @@ function catalogFieldKey(label){
   return key;
 }
 function catalogPrivateField(label){
-  return /^(?:costo|coste|numero de serie|serial|mac|direccion mac|p\/n|numero de parte|ubicacion interna|proveedor|margen|rentabilidad|precio de compra)(?:\b|$)/.test(catalogFieldKey(label));
+  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion mac|p\/n|numero de parte|identificadores?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(catalogFieldKey(label));
 }
 function catalogDescriptionRecord(text){
   const fields=[],byKey=new Map(),duplicates=new Set();let current=null;
@@ -67,6 +67,9 @@ function obtenerContextoInventario_() {
     .getRange(INVENTARIO_HEADER_ROW, 1, 1, ultimaColumna)
     .getDisplayValues()[0];
 
+  if(encabezados.some(h=>normalizarEncabezado_(h)==="informacion del producto")){
+    return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,textoRico:true,columnas:{descripcion:buscarEncabezadoUnico_(encabezados,"Informacion del producto")}};
+  }
   if(encabezados.some(h=>normalizarEncabezado_(h)==="descripcion integral del producto")){
     return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,columnas:{
       descripcion:buscarEncabezadoUnico_(encabezados,"Descripción integral del producto"),

@@ -441,8 +441,8 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=seleccion-folleto-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=productos-rich-text-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-sin-descripcion-2026-10-12-1'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=descripcion-justificada-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
@@ -501,22 +501,22 @@ function fichaLayoutEnvironment({width=350,descriptionHeight=48,factsHeight=150,
   vm.runInContext(toolsSource,context);
   return {run:()=>vm.runInContext('fitCatalogFicha(card)',context),details,square,description,row,attributes,facts,main,properties,layouts:()=>layouts,setWidth:n=>{width=n;}};
 }
-test('Ficha corta muestra descripción completa sin desplegable y conserva tamaño cuadrado',()=>{
+test('Ficha corta omite el bloque inferior de descripción y conserva tamaño cuadrado',()=>{
   const e=fichaLayoutEnvironment();e.run();
-  assert.equal(e.details.classList.contains('ficha-description-inline'),true);
-  assert.equal(e.details.open,true);assert.equal(e.square.classList.contains('ficha-description-expanded'),false);
+  assert.equal(e.details.hidden,true);assert.equal(e.details.classList.contains('ficha-description-inline'),false);
+  assert.equal(e.details.open,false);assert.equal(e.square.classList.contains('ficha-description-expanded'),false);
   assert.equal(e.description.textContent,'Descripción ficticia completa');
 });
-test('Ficha extensa contrae sin recortar texto y conserva expansión al cambiar de ancho',()=>{
+test('Ficha extensa mantiene retirada la descripción al cambiar de ancho',()=>{
   const e=fichaLayoutEnvironment({descriptionHeight:850});e.run();
   assert.equal(e.details.classList.contains('ficha-description-inline'),false);assert.equal(e.details.open,false);
   e.details.open=true;e.setWidth(390);e.run();
-  assert.equal(e.details.open,true);assert.equal(e.square.classList.contains('ficha-description-expanded'),true);
+  assert.equal(e.details.hidden,true);assert.equal(e.details.open,false);assert.equal(e.square.classList.contains('ficha-description-expanded'),false);
   assert.equal(e.description.textContent,'Descripción ficticia completa');
 });
-test('Descripción que cabe en pantalla amplia cambia a desplegable cuando el espacio disminuye',()=>{
+test('El cambio de ancho no restaura el bloque de descripción retirado',()=>{
   const e=fichaLayoutEnvironment({width:500,descriptionHeight:180,factsHeight:190});e.run();
-  assert.equal(e.details.classList.contains('ficha-description-inline'),true);
+  assert.equal(e.details.hidden,true);assert.equal(e.details.classList.contains('ficha-description-inline'),false);
   e.setWidth(320);e.run();assert.equal(e.details.classList.contains('ficha-description-inline'),false);assert.equal(e.details.open,false);
 });
 test('Descripción vacía no muestra control y los atributos extensos permanecen dentro del cuadrado',()=>{
@@ -577,7 +577,7 @@ test('Precio de Folleto es opcional, conserva los importes reales y distingue pr
   assert.notEqual(env.run('folletoPreparationKey(a,"marketplace")'),env.run('folletoPreparationKey(b,"marketplace")'));
   assert.equal(env.sandbox.products[0].price,original);
 });
-test('Ficha exportada ajusta datos y precio juntos, conserva descripción completa y los formatos disponibles',()=>{
+test('Ficha exportada conserva datos y precio y omite la descripción inferior en PNG y PDF',()=>{
   const rendered=[];
   const ctx={font:'400 32px Arial',measureText(text){return {width:String(text).length*parseFloat(this.font.match(/([\d.]+)px/)[1])*.52};},
     save(){},restore(){},translate(){},scale(){},beginPath(){},roundRect(){},closePath(){},fill(){},clip(){},fillRect(){},moveTo(){},lineTo(){},stroke(){},
@@ -587,7 +587,7 @@ test('Ficha exportada ajusta datos y precio juntos, conserva descripción comple
   const measure=vm.runInContext('measureFicha(ctx,buildFichaModel(p))',context);context.measure=measure;
   assert.ok(measure.scale<1);assert.equal(measure.name.size/46,measure.price.size/44);
   assert.equal(measure.attributes.size/33,measure.price.size/44);
-  assert.equal(measure.description.lines.join(' '),p.description.trim());
+  assert.equal(measure.description.lines.length,0);
   vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
   assert.ok(rendered.includes(p.priceText));assert.ok(rendered.some(t=>t.includes('Información')));
   for(const key of ['marketplace','document']){
@@ -613,6 +613,90 @@ test('Información lateral usa los mismos nodos y restaura el orden móvil sin d
 
 
 const compactHeaders=['Descripción integral del producto','Campos y orden de la ficha'];
+const richReaderSource=fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','productos-lectura.js'),'utf8');
+function richNativeCell(text,labels=[],partialLabel=''){
+  const runs=[];let offset=0;
+  for(const line of text.split('\n')){
+    const colon=line.indexOf(':'),label=line.slice(0,colon);
+    if(labels.includes(label))runs.push({startIndex:offset,format:{bold:true}},{startIndex:offset+colon+1,format:{bold:false}});
+    if(label===partialLabel)runs.push({startIndex:offset,format:{bold:true}},{startIndex:offset+2,format:{bold:false}});
+    offset+=line.length+1;
+  }
+  return {userEnteredValue:{stringValue:text},textFormatRuns:runs};
+}
+function nativeRich(cell){
+  const text=cell.userEnteredValue.stringValue;
+  const boldAt=i=>{let bold=cell.userEnteredFormat?.textFormat?.bold===true;for(const r of cell.textFormatRuns||[]){if((r.startIndex||0)>i)break;bold=r.format?.bold===true;}return bold;};
+  return {getText:()=>text,getTextStyle:(a,b)=>({isBold:()=>Array.from({length:b-a},(_,i)=>boldAt(a+i)).every(Boolean)})};
+}
+function sanitizedRichTable(cells){
+  const context=vm.createContext({});vm.runInContext(richReaderSource,context);
+  return {cols:[{id:'A',label:'Informacion del producto'}],rows:cells.map((c,i)=>context.productoPublico_(nativeRich(c),i+2))};
+}
+const richDescription='Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa\nVariedad: Flor de Cereza y Aguacate\nColor: Rojo vivo\nPrecio: 25.000\nSección: Belleza y cuidado\nCategoría: Perfumería\nLínea: Kaiak\nDisponibilidad: A la venta\nCódigo interno: 0042\nCosto: 15.000\nNúmero de serie: PRIVADO-123\nCódigo Natura: PRIVADO-NAT\nReferencia: https://example.com/privado';
+test('Rich Text de una sola A selecciona nombres completos en negrita y excluye datos privados antes de enviarlos',()=>{
+  const table=sanitizedRichTable([richNativeCell(richDescription,['Nombre','Marca','Fragancia','Variedad','Costo','Número de serie','Código Natura'],'Color')]);
+  assert.ok(!JSON.stringify(table).includes('PRIVADO'));assert.ok(!JSON.stringify(table).includes('15.000'));assert.ok(!JSON.stringify(table).includes('example.com/privado'));
+  const env=environment(),result=assess(env,table),p=result.products[0];
+  assert.equal(result.report.pending,0);assert.equal(p.id,'0042');assert.equal(p.price,25000);
+  assert.deepEqual(Array.from(p.fichaFields,f=>f.label),['Nombre','Marca','Fragancia','Variedad']);
+  assert.ok(!p.fullTxtRecord.includes('Color:'));assert.equal(p.description,'');
+  assert.equal(p.facetAttributes['atributo:fragancia'][0].label,'Intensa');
+});
+test('Sin formato comercial el lector Rich Text no publica todos los atributos por defecto',()=>{
+  const p=assess(environment(),sanitizedRichTable([richNativeCell(richDescription)])).products[0];
+  assert.equal(p.fichaSelectionExplicit,true);assert.equal(p.fichaFields.length,0);assert.equal(p.fullTxtRecord,'');
+  assert.ok(!JSON.stringify(p).includes('Flor de Cereza'));assert.ok(!JSON.stringify(p).includes('PRIVADO'));
+});
+test('Opciones de tres palabras preservan valores completos y distinguen opciones con el mismo comienzo',async()=>{
+  const env=environment();await confirmed(env);
+  const cells=['Flor de Cereza y Aguacate','Flor de Cereza y Vainilla'].map((v,i)=>richNativeCell(richDescription.replace('0042','00'+(42+i)).replace('Flor de Cereza y Aguacate',v),['Nombre','Marca','Variedad']));
+  env.sandbox.products=assess(env,sanitizedRichTable(cells)).products;
+  env.run('allLoadedProducts=products;all=filterVisibleProducts(products);setWordSuggestionsVisible(true);renderWordSuggestions()');
+  const buttons=facetButtons(env).filter(b=>b.dataset.facetGroup==='atributo:variedad');
+  assert.equal(buttons.length,2);assert.ok(buttons.every(b=>b.children[0].textContent==='Flor de Cereza'));
+  assert.notEqual(buttons[0].dataset.facetValue,buttons[1].dataset.facetValue);
+  env.run('toggleFacetFilter("atributo:variedad","Flor de Cereza y Aguacate")');assert.deepEqual(facetIds(env),['0042']);
+  assert.equal(env.run('catalogTabLabel("Lanzadores y juegos de agua")'),'Lanzadores y juegos');
+});
+test('La carga de A consulta el lector sanitizado y nunca consulta valores crudos ni B',async()=>{
+  const env=environment();await confirmed(env);const pending=env.run('loadGoogleSheetRows()');
+  env.reply({cols:[{id:'A',label:'Informacion del producto'}],rows:[]});await Promise.resolve();
+  const url=new URL(env.requests.at(-1).src);assert.equal(url.searchParams.get('modo'),'productos');assert.equal(url.searchParams.has('tq'),false);
+  const callback=url.searchParams.get('callback');env.sandbox[callback]({ok:true,version:2,table:sanitizedRichTable([richNativeCell(richDescription,['Nombre','Marca'])])});
+  assert.equal((await pending)[0].code,'0042');
+});
+test('Maestro Rich Text oficial: integridad de todas las fichas, selección y exclusión de campos privados',{skip:!process.env.CATALOG_RICH_TEXT_FIXTURE},()=>{
+  const native=JSON.parse(fs.readFileSync(process.env.CATALOG_RICH_TEXT_FIXTURE,'utf8'));
+  const cells=native.sheets[0].data[0].rowData.slice(1).map(r=>r.values[0]);
+  const table=sanitizedRichTable(cells),env=environment(),result=assess(env,table);
+  assert.equal(result.report.total,363);assert.equal(result.report.pending,0,JSON.stringify(result.report.records.filter(r=>r.status!=='COMPATIBLE')));
+  assert.equal(new Set(result.products.map(p=>p.id)).size,363);
+  for(const p of result.products){assert.equal(p.fichaSelectionExplicit,true);assert.equal(p.description,'');assert.ok(p.fichaFields.every(f=>!env.run('catalogPrivateField('+JSON.stringify(f.label)+')')));}
+});
+test('Pedidos lee el maestro de una sola A y valida precios, estado y códigos sin escribir movimientos',()=>{
+  const text=richDescription,other=text.replace('0042','0043').replace('A la venta','No a la venta');
+  const sheet={getLastRow:()=>3,getLastColumn:()=>1,getMaxRows:()=>3,getMaxColumns:()=>1,getName:()=> 'Productos',getRange(row,col,count){
+    assert.equal(col,1);return {getDisplayValues:()=>row===1?(count===1?[['Informacion del producto']]:[['Informacion del producto'],[text],[other]]):[[text],[other]]};
+  }};
+  const ctx=vm.createContext({SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},INVENTORY_SPREADSHEET_ID:'original',INVENTORY_SHEET_NAME:'Productos',HEADER_SCAN_MAX_ROWS:30,HEADER_SCAN_MAX_COLS:40,safe_:v=>String(v??'').trim(),safeClientCell_:v=>String(v??'')});
+  for(const file of ['pedidos-tablas.js','pedidos-inventario.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'apps-script','pedidos natura',file),'utf8'),ctx);
+  const result=vm.runInContext('resolveInventoryItems_([{codigo:"0042",cantidadSolicitada:2}])',ctx);
+  assert.equal(result[0].nombreProducto,'Perfume de prueba');assert.equal(result[0].valorUnitario,25000);assert.equal(result[0].categoria,'Perfumería');
+  assert.throws(()=>vm.runInContext('resolveInventoryItems_([{codigo:"0043",cantidadSolicitada:1}])',ctx),/no está a la venta/);
+});
+test('La actualización de precio en A conserva la negrita de todos los nombres comerciales',()=>{
+  let text=richDescription,styles=richNativeCell(text,['Nombre','Marca','Precio','Variedad']).textFormatRuns,writes=0;
+  const builder=()=>({setText(t){this.text=t;this.runs=[];return this;},setTextStyle(a,b,style){this.runs.push({a,b,style});return this;},build(){return this;}});
+  const rich=()=>({getText:()=>text,copy:builder,getRuns:()=>styles.map((r,i)=>({getStartIndex:()=>r.startIndex,getEndIndex:()=>styles[i+1]?.startIndex??text.length,getTextStyle:()=>r.format}))});
+  const cell={getFormula:()=>'',getValue:()=>text,getRichTextValue:rich,setRichTextValue(value){writes++;text=value.text;styles=value.runs.flatMap(r=>[{startIndex:r.a,format:r.style}]);},setValue(){throw new Error('No borrar Rich Text');}};
+  const sheet={getLastRow:()=>2,getLastColumn:()=>1,getRange(row,col,count){assert.equal(col,1);return row===1?{getDisplayValues:()=>[['Informacion del producto']]}:count?{getDisplayValues:()=>[[text]]}:cell;}};
+  const ctx=vm.createContext({SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet}),flush(){}},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},INVENTARIO_SPREADSHEET_ID:'original',INVENTARIO_SHEET_NAME:'Productos',INVENTARIO_HEADER_ROW:1});
+  for(const file of ['admin-contextos.js','admin-precios.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura',file),'utf8'),ctx);
+  vm.runInContext('actualizarPrecioWeb("0042","300000","25000")',ctx);assert.equal(writes,1);assert.equal(text,richDescription.replace('25.000','300000'));
+  const env=environment();env.sandbox.cell={v:text,textFormatRuns:styles};
+  assert.equal(env.run('catalogRichTextSelection(cell)'), 'Nombre\nMarca\nVariedad\nPrecio');
+});
 const compactDescription='Código interno del producto: 0042\nNombre comercial del producto: Kit de prueba: champú y crema\nSección del catálogo: Belleza y cuidado\nCategoría del producto: Cabello\nMarca: Natura\nLínea comercial: Lumina\nPúblico destinatario: Femeninos\nEstado comercial del producto: A la venta\nPrecio de venta: 25.000\nBeneficios y funciones del producto: Suaviza el cabello.\nDescripción sensorial y uso recomendado: Texto completo de prueba.\nEnlace de referencia del producto: https://example.com/item:42\nCosto de adquisición: 15000\nNúmero de serie: PRIVADO-123';
 test('Dos columnas recuperan identidad, precio, navegación y filtros desde títulos',()=>{
   const env=environment(),r=assess(env,tableFromValues([compactHeaders,[compactDescription,'']]));
@@ -716,7 +800,7 @@ test('La ficha interactiva usa un único bloque de etiquetas y mantiene el preci
   context.card=card;context.product={id:'0042',name:'Kit',description:'Texto completo'};
   vm.runInContext('renderCatalogFicha(card,product)',context);
   const square=card.children[0],main=square.children[0],facts=main.children[1];
-  assert.equal(square.children[1],nodes['.product-details']);
+  assert.equal(square.children.length,1);assert.equal(nodes['.product-details'].hidden,true);
   const attributes=facts.children[2];
   assert.equal(attributes.className,'ficha-attributes');
   assert.deepEqual(attributes.children.map(item=>item.children[0].textContent),['Código:','Marca:']);
@@ -733,7 +817,7 @@ test('El mismo motor omite completamente el bloque de precio si no existe un imp
   assert.equal(noPrice.priced,false);assert.equal(noPrice.price,null);
   context.measure=noPrice;
   vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
-  assert.equal(ctx.strokes,2,'Solo los separadores de atributos y descripción; sin separador de precio.');
+  assert.equal(ctx.strokes,1,'Solo el separador de atributos; sin precio ni descripción inferior.');
   assert.ok(ctx.printed.includes('Sin fotografía'),'La exportación presenta la misma ausencia de foto de la web.');
   assert.ok(ctx.printed.some(v=>v.includes('Código:')));assert.ok(ctx.printed.some(v=>v.includes('Marca:')));
   context.p.priceText='15.000';
@@ -741,7 +825,7 @@ test('El mismo motor omite completamente el bloque de precio si no existe un imp
   assert.equal(withPrice.priced,true);
   context.measure=withPrice;ctx.strokes=0;
   vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
-  assert.equal(ctx.strokes,3,'El tercer separador pertenece exclusivamente al precio visible.');
+  assert.equal(ctx.strokes,2,'El segundo separador pertenece exclusivamente al precio visible; no hay raya de descripción.');
 });
 test('Orden de la ficha reconoce el nuevo encabezado y rechaza selecciones ambiguas',()=>{
   const env=environment(),headers=['Descripción integral del producto','Orden de la ficha'];
@@ -882,14 +966,14 @@ test('El redondeo de un píxel en la fila de precio no reduce innecesariamente l
   assert.ok(Number(e.properties.get('--ficha-fit'))>.94);
   assert.ok(e.facts.scrollHeight<=e.main.clientHeight+1);
 });
-test('El pie presenta beneficios, ocasión ideal y especificaciones en ese orden en web y Folleto',async()=>{
+test('El Folleto omite el pie descriptivo incluso para registros históricos',async()=>{
   const env=environment();await confirmed(env);vm.runInContext(toolsSource,env.context);
   const raw=compactDescription+'\nEspecificaciones técnicas: Datos técnicos completos.';
   const product=assess(env,tableFromValues([compactHeaders,[raw,'Nombre:\nCódigo:']])).products[0];
   assert.equal(product.description,'Suaviza el cabello.\nTexto completo de prueba.\nDatos técnicos completos.');
   env.sandbox.products=[product];env.run('allLoadedProducts=products;window.CATALOG_INITIAL_LOAD_READY=true');
   const snapshot=env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["0042"]})');
-  assert.equal(snapshot.products[0].description,product.description);
+  assert.equal(snapshot.products[0].description,'');
   const onlyBenefits=assess(env,tableFromValues([compactHeaders,[compactDescription.replace('\nDescripción sensorial y uso recomendado: Texto completo de prueba.',''),'']])).products[0];
   assert.equal(onlyBenefits.description,'Suaviza el cabello.');
 });

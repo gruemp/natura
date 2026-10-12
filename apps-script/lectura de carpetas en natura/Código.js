@@ -45,6 +45,8 @@ const CONFIG = {
 
 // ===================== ENDPOINT PÚBLICO =====================
 function doGet(e) {
+  const parameters=e&&e.parameter||{};
+  if(String(parameters.modo||'').toLowerCase()==='productos')return responderProductosPublicos_(parameters);
   try {
     const result = getCachedImageIndex_();
 
