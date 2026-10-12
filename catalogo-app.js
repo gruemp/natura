@@ -3276,9 +3276,9 @@ function refreshCardUI(card,p){
   const row=card.querySelector(".row");
   const actions=card.querySelector(".actions");
   const meta=card.querySelector(".meta");
-  if(meta) meta.hidden=p.fichaSelectionExplicit||!String(meta.textContent||"").trim();
+  if(meta) meta.hidden=card.classList.contains("catalog-ficha-card")||p.fichaSelectionExplicit||!String(meta.textContent||"").trim();
   const price=card.querySelector(".price");
-  const showPrice=shouldShowProductPrices();
+  const showPrice=shouldShowProductPrices()&&(p.hasPrice!==false||window.CATALOG_ADMIN_MODE_ACTIVE===true);
   const editing=Boolean(card.querySelector(".price-admin-editor"));
   if(price){
     const text=showPrice?(p.hasPrice===false?"Consultar precio":fmtCOP.format(p.price)):"";
