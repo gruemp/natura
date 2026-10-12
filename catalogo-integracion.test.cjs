@@ -733,42 +733,65 @@ test('La consulta descubre Orden de la ficha por encabezado con columnas reorden
   const row=(await promise)[0];assert.deepEqual(Array.from(row.fichaFields,f=>f.key),['tipo','presentacion']);
 });
 
-test('Mostrar precio comparte preferencia entre Folleto y ficha, sin símbolo de moneda',async()=>{
+test('El precio de la ficha pública depende exclusivamente de Mostrar precios, no del Folleto',async()=>{
   const env=environment();await confirmed(env);vm.runInContext(toolsSource,env.context);
-  env.sandbox.products=assess(env,fixture()).products;env.run('allLoadedProducts=products;window.CATALOG_INITIAL_LOAD_READY=true');
-  const price=env.sandbox.products[0].price;
-  assert.equal(env.run('shouldShowFichaPrices()'),false);
-  env.run('setCatalogFichaPriceVisibility(true)');
+  env.sandbox.products=assess(env,fixture()).products;
+  env.run('allLoadedProducts=products;window.CATALOG_INITIAL_LOAD_READY=true');
+  const product=env.sandbox.products[0],price=product.price;
   assert.equal(env.run('shouldShowFichaPrices()'),true);
-  assert.equal(env.sandbox.localStorage.getItem('natura-ficha-mostrar-precio'),'true');
+  assert.equal(env.run('shouldShowFolletoPrices()'),false);
+  // Cambiar la preferencia local del folleto no afecta a visitantes ni a administradores.
+  env.run('setFolletoPriceVisibility(false)');
+  assert.equal(env.run('shouldShowFichaPrices()'),true);
+  env.run('setFolletoPriceVisibility(true)');
+  assert.equal(env.run('shouldShowFichaPrices()'),true);
+  assert.equal(env.sandbox.localStorage.getItem('natura-folleto-mostrar-precio'),'true');
   const snapshot=env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"]})');
-  assert.equal(snapshot.settings.prices,true);assert.ok(!snapshot.products[0].priceText.includes('$'));
+  assert.equal(snapshot.settings.prices,true);
   assert.equal(snapshot.products[0].priceText,new Intl.NumberFormat('es-CO',{maximumFractionDigits:0}).format(price));
-  assert.equal(env.sandbox.products[0].price,price);
-  env.run('setCatalogFichaPriceVisibility(false)');
+  assert.ok(!snapshot.products[0].priceText.includes('$'));
+  env.run('setFolletoPriceVisibility(false)');
+  assert.equal(env.run('shouldShowFichaPrices()'),true);
   assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"]}).products[0].priceText'),'');
-  env.run('setCatalogFichaPriceVisibility(true);window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=false');
+  env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=false;setFolletoPriceVisibility(true)');
   assert.equal(env.run('shouldShowFichaPrices()'),false);
+  assert.equal(env.run('shouldShowFolletoPrices()'),false);
   assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"],prices:true}).settings.prices'),false);
+  assert.equal(env.sandbox.products[0].price,price);
 });
-test('Ficha oculta precio y separador, conserva carrito y editor al cambiar Mostrar precio',()=>{
+test('Ficha pública muestra el precio incluso si Orden de la ficha omite Precio',()=>{
   const env=environment(),classes=new Set(),price={textContent:'',hidden:false};
   const row={hidden:false,classList:{toggle(key,value){value?classes.add(key):classes.delete(key);}}};
   const actions={hidden:false,classList:{toggle(){}}},qty={classList:{toggle(){}}};
   let editing=null;
   const card={dataset:{id:'9997'},querySelector(selector){return ({'.row':row,'.price':price,'.actions':actions,'[data-role="qty"]':qty,'.price-admin-editor':editing})[selector]||null;}};
-  env.sandbox.card=card;env.sandbox.product={id:'9997',price:20000,hasPrice:true,fichaSelectionExplicit:true,fichaFields:[{key:'precio'}]};
-  env.document.querySelectorAll=selector=>selector==='.catalog-ficha-card'?[card]:[];
-  env.run('allLoadedProducts=[product];refreshCardUI(card,product)');
+  env.sandbox.card=card;
+  // La ficha tiene campos definidos, pero la lista de campos no contiene Precio.
+  env.sandbox.product={id:'9997',price:20000,hasPrice:true,fichaSelectionExplicit:true,fichaFields:[{key:'codigo'}]};
+  env.run('refreshCardUI(card,product)');
+  assert.equal(row.hidden,false);
+  assert.equal(price.hidden,false);
+  assert.equal(price.textContent,'20.000');
+  assert.equal(classes.has('ficha-price-suppressed'),false);
+  // El interruptor del folleto, también en modo no administrador, no toca esa ficha.
+  env.run('setFolletoPriceVisibility(false);refreshCardUI(card,product)');
+  assert.equal(price.hidden,false);assert.equal(price.textContent,'20.000');
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true;refreshCardUI(card,product)');
+  assert.equal(price.hidden,false);
+  // El interruptor publicado sí determina la visibilidad, sin ocultar el carrito.
+  env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=false;refreshCardUI(card,product)');
   assert.equal(row.hidden,true);assert.equal(price.hidden,true);assert.equal(classes.has('ficha-price-suppressed'),true);
-  env.run('setCatalogFichaPriceVisibility(true)');
-  assert.equal(row.hidden,false);assert.equal(price.hidden,false);assert.equal(price.textContent,'20.000');assert.equal(actions.hidden,false);
-  env.run('cart["9997"]={qty:2};setCatalogFichaPriceVisibility(false)');
-  assert.equal(row.hidden,false);assert.equal(qty.textContent,'2 en carrito');assert.equal(classes.has('ficha-price-suppressed'),true);
+  env.run('cart["9997"]={qty:2};refreshCardUI(card,product)');
+  assert.equal(row.hidden,false);assert.equal(qty.textContent,'2 en carrito');
   editing={input:{value:'25000',disabled:true},save:{disabled:true}};
   env.run('delete cart["9997"];refreshCardUI(card,product)');
-  assert.equal(row.hidden,false);assert.equal(price.hidden,true);assert.equal(editing.input.value,'25000');assert.equal(editing.save.disabled,true);
+  assert.equal(row.hidden,false);assert.equal(price.hidden,true);
+  assert.equal(editing.input.value,'25000');assert.equal(editing.save.disabled,true);
   editing=null;env.run('refreshCardUI(card,product)');assert.equal(row.hidden,true);
+  env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=true;refreshCardUI(card,product)');
+  assert.equal(price.hidden,false);assert.equal(row.hidden,false);
+  env.sandbox.product.hasPrice=false;
+  env.run('refreshCardUI(card,product)');assert.equal(price.textContent,'Consultar precio');
 });
 test('El Folleto justifica líneas completas sin estirar los finales de párrafo ni agregar espacios verticales',()=>{
   const drawn=[],ctx={measureText:text=>({width:text.length*2}),fillText(text,x,y){drawn.push({text,x,y});}};

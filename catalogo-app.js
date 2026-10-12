@@ -94,22 +94,29 @@
     function shouldShowProductPrices(){
       return !!(window.INTERRUPTORES && window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO !== false);
     }
-    const CATALOG_FICHA_PRICE_STORAGE_KEY="natura-ficha-mostrar-precio";
-    let catalogFichaShowPrices=false;
-    try{catalogFichaShowPrices=localStorage.getItem(CATALOG_FICHA_PRICE_STORAGE_KEY)==="true";}catch(_){}
+    // El catálogo (público y administrativo) obedece únicamente la configuración pública.
     function shouldShowFichaPrices(){
-      return catalogFichaShowPrices&&shouldShowProductPrices();
+      return shouldShowProductPrices();
     }
-    function setCatalogFichaPriceVisibility(value){
-      catalogFichaShowPrices=value===true;
-      try{localStorage.setItem(CATALOG_FICHA_PRICE_STORAGE_KEY,String(catalogFichaShowPrices));}catch(_){}
+    // La inclusión de precios en el folleto es una preferencia independiente del navegador.
+    const FOLLETO_PRICE_STORAGE_KEY="natura-folleto-mostrar-precio";
+    let folletoShowPrices=false;
+    try{
+      const saved=localStorage.getItem(FOLLETO_PRICE_STORAGE_KEY);
+      folletoShowPrices=(saved===null?localStorage.getItem("natura-ficha-mostrar-precio"):saved)==="true";
+    }catch(_){}
+    function shouldShowFolletoPrices(){
+      return folletoShowPrices&&shouldShowProductPrices();
+    }
+    function setFolletoPriceVisibility(value){
+      folletoShowPrices=value===true;
+      try{localStorage.setItem(FOLLETO_PRICE_STORAGE_KEY,String(folletoShowPrices));}catch(_){}
       const form=document.querySelector("#folletoOptions");
-      if(form)form.elements.prices.checked=shouldShowFichaPrices();
-      for(const card of document.querySelectorAll(".catalog-ficha-card")){
-        const p=allLoadedProducts.find(p=>String(p.id)===card.dataset.id);
-        if(p)refreshCardUI(card,p);
-      }
-      if(typeof queueCatalogFichaLayout==="function")queueCatalogFichaLayout();
+      if(form)form.elements.prices.checked=shouldShowFolletoPrices();
+    }
+    // Compatibilidad para consumidores antiguos del control del folleto.
+    function setCatalogFichaPriceVisibility(value){
+      setFolletoPriceVisibility(value);
     }
     function shouldShowProductCodes(){
       return true;
@@ -3267,7 +3274,7 @@ function refreshCardUI(card,p){
   const meta=card.querySelector(".meta");
   if(meta) meta.hidden=p.fichaSelectionExplicit||!String(meta.textContent||"").trim();
   const price=card.querySelector(".price");
-  const showPrice=shouldShowFichaPrices()&&(!p.fichaSelectionExplicit||p.fichaFields?.some(field=>field.key==="precio"));
+  const showPrice=shouldShowProductPrices();
   const editing=Boolean(card.querySelector(".price-admin-editor"));
   if(price){
     const text=showPrice?(p.hasPrice===false?"Consultar precio":fmtCOP.format(p.price)):"";
@@ -3348,7 +3355,7 @@ function makeCard(p){
   const description=String(p?.description||"").trim();
   setSearchHighlightedText(descriptionEl,description);
   descriptionEl.hidden=!description;
-  priceEl.textContent=shouldShowFichaPrices()?(p.hasPrice===false?"Consultar precio":fmtCOP.format(p.price)):"";
+  priceEl.textContent=shouldShowProductPrices()?(p.hasPrice===false?"Consultar precio":fmtCOP.format(p.price)):"";
   if(p?.isGiftGalleryImage){
     card.classList.add("gift-gallery-card");
     const pad=card.querySelector(".pad");
