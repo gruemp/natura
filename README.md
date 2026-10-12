@@ -19,7 +19,7 @@ Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://githu
 - `robots.txt`: directivas para buscadores.
 - `sitemap.xml`: mapa del sitio.
 - `google8559800fc0ba033d.html`: verificación de Google; no renombrar.
-- `logos/`: imágenes y recursos gráficos usados por el catálogo.
+- `recursos-visuales.js`: logo e iconos SVG definidos directamente en código, sin carpetas de imágenes. Los formatos PNG/WebP conservados en la raíz sirven exclusivamente para la compatibilidad de Apple y las vistas previas de redes sociales.
 
 ## Apps Script
 
