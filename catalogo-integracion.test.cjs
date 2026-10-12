@@ -947,7 +947,7 @@ test('Deseleccionar todo quita las marcas visibles y ocultas sin modificar filtr
 });
 
 test('Descripción justificada en ficha web y en exportaciones PNG/PDF sin estirar la última línea',()=>{
-  const webDescriptionRule=fichaCssSource.match(/\\.catalog-ficha-card \\.description\\{([^}]*)\\}/)?.[1];
+  const webDescriptionRule=fichaCssSource.split('.catalog-ficha-card .description{')[1]?.split('}')[0];
   assert.ok(webDescriptionRule,'La descripción de la ficha tiene una regla propia');
   assert.match(webDescriptionRule,/(?:^|;)text-align:justify(?:;|$)/);
   assert.match(webDescriptionRule,/(?:^|;)text-align-last:left(?:;|$)/);
