@@ -359,7 +359,7 @@ function folletoFitText(ctx,text,width,height,ideal,minSize,bold=false,truncate=
 }
 function measureFicha(ctx,ficha){
   // El precio es un bloque opcional; el Código comparte medición con las demás etiquetas.
-  const priced=Boolean(ficha.priceText),hasImage=Boolean(ficha.imageUrl);
+  const priced=Boolean(ficha.priceText),hasImage=Boolean(ficha.imageUrl)||ficha.imageEnabled!==false;
   const textX=hasImage?FICHA_LAYOUT.factX:FICHA_LAYOUT.padding;
   const textWidth=FICHA_SIZE.width-FICHA_LAYOUT.right-textX;
   let lastError;
@@ -492,7 +492,7 @@ function renderFicha(ctx,card,image){
   // La foto conserva su proporción y el producto completo. No se usan logos como suplentes.
   if(product.imageUrl){
     ctx.save();ctx.globalCompositeOperation=FICHA_THEME.blend;
-    folletoDrawImage(ctx,image,32,40,498,measure.mainHeight+28,true);ctx.restore();
+    folletoDrawImage(ctx,image,FICHA_LAYOUT.padding,FICHA_LAYOUT.padding,FICHA_LAYOUT.imageWidth,measure.mainHeight,true);ctx.restore();
   }else if(product.imageEnabled!==false){
     // Misma indicación de ausencia de fotografía que se muestra en la tarjeta web.
     folletoDrawImage(ctx,null,FICHA_LAYOUT.padding,130,440,650,false);

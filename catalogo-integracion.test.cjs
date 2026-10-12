@@ -12,6 +12,7 @@ const adminSource = fs.readFileSync(path.join(__dirname, 'precios-admin.js'), 'u
 const cartSource = fs.readFileSync(path.join(__dirname, 'catalogo-carrito-pedido.js'), 'utf8');
 const htmlSource = fs.readFileSync(path.join(__dirname, 'catalogo.html'), 'utf8');
 const toolsSource = fs.readFileSync(path.join(__dirname, 'catalogo-herramientas.js'), 'utf8');
+const fichaCssSource = fs.readFileSync(path.join(__dirname, 'catalogo.css'), 'utf8');
 const uiSource = fs.readFileSync(path.join(__dirname, 'catalogo-ui.js'), 'utf8');
 
 const headers = ['Código','Sección','Categoría','Subcategoría','Familia olfativa','Condición','Nombre','Precio','Costo','Stock','Referencia externa','Descripción','Código Natura','Línea','Público','Estado comercial','Marketplace','Nombre anterior','Marca','Tipo de producto','Variante','Característica','Presentación','Contenido','Unidad','Cantidad de unidades'];
@@ -441,7 +442,8 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-motor-unico-2026-10-12-2'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-paridad-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=fichas-paridad-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -890,4 +892,25 @@ test('El pie presenta beneficios, ocasión ideal y especificaciones en ese orden
   assert.equal(snapshot.products[0].description,product.description);
   const onlyBenefits=assess(env,tableFromValues([compactHeaders,[compactDescription.replace('\nDescripción sensorial y uso recomendado: Texto completo de prueba.',''),'']])).products[0];
   assert.equal(onlyBenefits.description,'Suaviza el cabello.');
+});
+
+
+test('La ficha web comparte ancho de foto, familia tipográfica y ritmo vertical con Marketplace y PDF',()=>{
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.ficha-main\{[^}]*grid-template-columns:calc\(var\(--ficha-layout-imageWidth,486\)/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.ficha-square\{[^}]*font-family:Calibri,Carlito,Arial,sans-serif/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.name\{[^}]*text-align:left;[^}]*hyphens:none/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.ficha-facts\{[^}]*gap:0/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.ficha-presentation\{[^}]*line-height:1\.24/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.description\{[^}]*line-height:1\.24/);
+  assert.ok(toolsSource.includes('folletoDrawImage(ctx,image,FICHA_LAYOUT.padding,FICHA_LAYOUT.padding,FICHA_LAYOUT.imageWidth,measure.mainHeight,true)'));
+});
+test('Folleto reserva la misma columna para fotografía real y marcador sin fotografía',()=>{
+  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\\d.]+)px/)[1])*.52};}};
+  const context=vm.createContext({ctx});vm.runInContext(toolsSource,context);
+  for(const imageUrl of ['','https://example.org/fotografia.png']){
+    context.p={id:'0042',name:'Colonia',presentation:'120 ml',facts:[{label:'Característica',value:'Floral'}],description:'Beneficios',priceText:'20.000',imageUrl};
+    const measure=vm.runInContext('measureFicha(ctx,buildFichaModel(p))',context);
+    assert.equal(measure.textX,562);
+    assert.equal(measure.textWidth,464);
+  }
 });
