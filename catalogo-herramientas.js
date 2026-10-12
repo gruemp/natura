@@ -50,13 +50,14 @@ function buildFolletoSnapshot(options={}){
   });
   const seen=new Set();
   const products=source.filter(p=>{const id=String(p.id);if(seen.has(id))return false;seen.add(id);return true;}).map(p=>Object.freeze({
-    id:String(p.id),name:settings.prices?catalogFichaName(p):String(p.name||"").trim(),
-    priceText:settings.prices?(p.hasPrice===false?"Consultar precio":fmtCOP.format(p.price)):"",
+    id:String(p.id),name:fichaHeaderFields(p).name,
+    priceText:settings.prices&&p.hasPrice!==false?fmtCOP.format(p.price):"",
     description:settings.descriptions?String(p.description||"").trim():"",
     code:settings.codes?`Código ${p.id}`:"",
     line:String(p.line||"").trim(),
-    presentation:folletoPresentation(p),
+    presentation:fichaHeaderFields(p).presentation,
     attributes:Object.freeze(folletoProductAttributes(p)),
+    facts:Object.freeze(fichaOrderedFacts(p,settings.codes).map(f=>Object.freeze(f))),
     imageUrl:settings.images?String(p.docsImageUrl||"").trim():"",
     route:navigationOrderedLevels().filter(l=>l!=="product").map(l=>String(navigationValueForProduct(p,l)||"").trim()).filter(Boolean).join(" · ")
   }));
@@ -99,12 +100,16 @@ function folletoLines(ctx,text,width){
 }
 // Una sola ficha cuadrada, con precio opcional, para todas las salidas.
 const FICHA_SIZE=Object.freeze({width:1080,height:1080});
+const FICHA_LAYOUT=Object.freeze({
+  padding:54,imageWidth:486,columnGap:22,factX:562,right:54,
+  nameSize:46,presentationSize:36,factSize:33,priceSize:44,
+  descriptionSize:32,lineHeight:1.24,sectionGap:18
+});
 // Shared palette and image blending for exported and interactive fichas.
 const FICHA_THEME=Object.freeze({paper:"#fffaf5",center:"#fff1ed",wash:"#f6d5d7",line:"#bb9151",blend:"multiply"});
 const FOLLETO_COMPANY=Object.freeze({
   name:"IRENISMB STOCK NATURA",subtitle:"Consultores independientes de Natura y AVON",
-  phone:"304 208 8961",location:"Los Almendros, Santa Marta",
-  catalog:"gruemp.github.io/natura/catalogo.html"
+  phone:"304 208 8961",location:"Los Almendros, Santa Marta"
 });
 const FOLLETO_WHATSAPP_PATH="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z";
 
@@ -140,12 +145,38 @@ function folletoProductAttributes(p){
     .filter(([,value])=>String(value||"").trim())
     .map(([label,value])=>Object.freeze({label,value:String(value).trim()}));
 }
+// Composición única de campos para fichas web y exportaciones.
+function fichaOrderedFacts(product,includeCode=true){
+  const p=product||{},ordered=Array.isArray(p.fichaFields)?p.fichaFields:[];
+  if(p.fichaSelectionExplicit){
+    return ordered.filter(f=>f&&f.key!=="nombre"&&f.key!=="presentacion"&&f.key!=="precio"
+      &&(includeCode||f.key!=="codigo")&&String(f.value||"").trim())
+      .map(f=>({label:String(f.label||f.key||"").trim(),value:String(f.value).trim()}));
+  }
+  const facts=folletoProductAttributes(p).map(f=>({label:f.label,value:f.value}));
+  if(includeCode&&p.id)facts.unshift({label:"Código",value:String(p.id)});
+  if(typeof window!=="undefined"&&window.INTERRUPTORES?.MOSTRAR_CANTIDAD_STOCK){
+    facts.push({label:"Stock",value:Number.isInteger(p.stock)&&p.stock>=0?String(p.stock):"Por confirmar"});
+  }
+  return facts;
+}
+function fichaHeaderFields(p){
+  const fields=Array.isArray(p?.fichaFields)?p.fichaFields:[];
+  const selected=key=>fields.find(f=>f?.key===key);
+  return {
+    name:!p?.fichaSelectionExplicit||!!selected("nombre")?catalogFichaName(p):"",
+    presentation:p?.fichaSelectionExplicit?String(selected("presentacion")?.value||"").trim():folletoPresentation(p)
+  };
+}
 function buildFichaModel(product){
   return {
     id:String(product.id),name:String(product.name||""),
     line:String(product.line||""),presentation:String(product.presentation||""),
     code:String(product.code||""),description:String(product.description||""),priceText:String(product.priceText||""),
-    attributes:Array.isArray(product.attributes)?product.attributes:[],imageUrl:String(product.imageUrl||"")
+    facts:Array.isArray(product.facts)?product.facts:(
+      (product.code?[{label:"Código",value:String(product.code).replace(/^C[oó]digo\s*:?\s*/i,"")}]:[])
+       .concat(Array.isArray(product.attributes)?product.attributes:[])
+    ),imageUrl:String(product.imageUrl||"")
   };
 }
 function catalogFichaName(product){
@@ -161,40 +192,31 @@ function catalogFichaName(product){
 }
 // Interactive renderer: same ficha model and visual identity, with native text and controls.
 function renderCatalogFicha(card,p){
-  const model=buildFichaModel({...p,code:stockMetaText(p),
-    presentation:folletoPresentation(p),attributes:folletoProductAttributes(p),imageUrl:p.docsImageUrl});
+  const header=fichaHeaderFields(p);
+  const model=buildFichaModel({
+    ...p,name:header.name,presentation:header.presentation,
+    facts:fichaOrderedFacts(p,true),imageUrl:p.docsImageUrl
+  });
   card.classList.add("catalog-ficha-card");
   const square=document.createElement("div");square.className="ficha-square";
   const main=document.createElement("div");main.className="ficha-main";
   const facts=document.createElement("div");facts.className="ficha-facts";
-  const image=card.querySelector(".img"),pad=card.querySelector(".pad");
-  const details=card.querySelector(".product-details"),description=card.querySelector(".description");
-  const summary=details.querySelector("summary");
+  const image=card.querySelector(".img"),description=card.querySelector(".description");
+  const details=card.querySelector(".product-details"),summary=details.querySelector("summary");
   details.hidden=!model.description;
-  summary.setAttribute("aria-label","Descripción de "+model.name);
-  // Reuse the existing nodes and handlers for image zoom, cart and price editing.
+  summary.setAttribute("aria-label","Descripción de "+(p.name||"producto"));
   const name=card.querySelector(".name"),priceRow=card.querySelector(".row");
-  facts.append(name);
+  name.hidden=!model.name;facts.append(name);
   const presentation=document.createElement("p");presentation.className="ficha-presentation";
   presentation.textContent=model.presentation;presentation.hidden=!model.presentation;facts.append(presentation);
-  const meta=card.querySelector(".meta");facts.append(meta);
+  // Código se dibuja como una fila común, sin su propio separador ni espaciado.
+  const meta=card.querySelector(".meta");meta.hidden=true;
   const attributes=document.createElement("dl");attributes.className="ficha-attributes";
-  for(const {label,value} of model.attributes){
+  for(const {label,value} of model.facts){
     const item=document.createElement("div"),term=document.createElement("dt"),definition=document.createElement("dd");
     term.textContent=label+":";definition.textContent=value;item.append(term,definition);attributes.append(item);
   }
-  attributes.hidden=!model.attributes.length;facts.append(attributes,priceRow);
-  if(p.fichaSelectionExplicit){
-    name.hidden=true;presentation.hidden=true;meta.hidden=true;attributes.hidden=true;
-    for(const field of p.fichaFields||[]){
-      if(field.key==="nombre"){name.hidden=false;facts.append(name);continue;}
-      if(field.key==="precio"){facts.append(priceRow);continue;}
-      if(field.key==="presentacion"){presentation.textContent=field.value;presentation.hidden=false;facts.append(presentation);continue;}
-      const list=document.createElement("dl");list.className="ficha-attributes ficha-ordered-attribute"+(field.key==="codigo"?" ficha-code":"");
-      const item=document.createElement("div"),term=document.createElement("dt"),value=document.createElement("dd");
-      term.textContent=field.label+":";value.textContent=field.value;item.append(term,value);list.append(item);facts.append(list);
-    }
-  }
+  attributes.hidden=!model.facts.length;facts.append(attributes,priceRow);
   card.querySelector(".product-line").hidden=true;
   details.append(description);
   main.append(image,facts);square.append(main,details);
@@ -229,7 +251,7 @@ function fitCatalogFicha(card){
   if(CATALOG_FICHA_LAYOUT_KEYS.get(card)===key)return;
   const expanded=details.open&&!details.classList.contains("ficha-description-inline");
   square.style.setProperty("--ficha-side",width+"px");
-  square.style.setProperty("--ficha-unit",width/420+"px");
+  square.style.setProperty("--ficha-unit",width/FICHA_SIZE.width+"px");
   square.classList.remove("ficha-description-expanded");
   details.classList.remove("ficha-description-inline");details.open=false;
   // Administration keeps its usable editor and original handlers in the controls footer.
@@ -287,6 +309,7 @@ function initCatalogFichas(){
   if(catalogFichasInitialized)return;catalogFichasInitialized=true;
   initCatalogInformationLayout();
   for(const [key,value] of Object.entries(FICHA_THEME))document.documentElement.style.setProperty("--ficha-"+key,value);
+  for(const [key,value] of Object.entries(FICHA_LAYOUT))document.documentElement.style.setProperty("--ficha-layout-"+key,value);
   const grid=document.getElementById("grid");if(!grid)return;
   if(typeof ResizeObserver!=="undefined")new ResizeObserver(queueCatalogFichaLayout).observe(grid);
   new MutationObserver(records=>{
@@ -334,52 +357,39 @@ function folletoFitText(ctx,text,width,height,ideal,minSize,bold=false,truncate=
   return {lines,size:minSize,lineHeight};
 }
 function measureFicha(ctx,ficha){
-  if(ficha.priceText)return measureFichaPriced(ctx,ficha);
-  const hasImage=Boolean(ficha.imageUrl),textX=hasImage?562:54,textWidth=1080-textX-54;
+  // El precio es un bloque opcional; el Código comparte medición con las demás etiquetas.
+  const priced=Boolean(ficha.priceText),hasImage=Boolean(ficha.imageUrl);
+  const textX=hasImage?FICHA_LAYOUT.factX:FICHA_LAYOUT.padding;
+  const textWidth=FICHA_SIZE.width-FICHA_LAYOUT.right-textX;
   let lastError;
-  // Ajustar la distribución completa antes de reducir o recortar información.
-  for(let descriptionSize=32;descriptionSize>=18;descriptionSize--){
-    try{
-      const description=folletoFitText(ctx,ficha.description,972,470,descriptionSize,descriptionSize);
-      const descriptionHeight=description.lines.length?description.lines.length*description.lineHeight+54:0;
-      const mainHeight=972-descriptionHeight;
-      const name=folletoFitText(ctx,ficha.name,textWidth,Math.min(260,mainHeight*.4),46,24,true);
-      const presentation=folletoFitText(ctx,ficha.presentation,textWidth,95,29,22);
-      const code=folletoFitText(ctx,ficha.code,textWidth,50,32,24,true);
-      const used=name.lines.length*name.lineHeight+presentation.lines.length*presentation.lineHeight
-        +code.lines.length*code.lineHeight+68;
-      const attributes=folletoFitAttributes(ctx,ficha.attributes,textWidth,Math.max(30,mainHeight-used),29,18);
-      return {name,presentation,description,code,attributes,mainHeight,textX,textWidth};
-    }catch(error){lastError=error;}
-  }
-  throw lastError;
-}
-function measureFichaPriced(ctx,ficha){
-  const textX=ficha.imageUrl?562:54,textWidth=1026-textX;
-  // The exported image cannot expand: preserve the complete description and scale all facts together.
-  for(let descriptionSize=32;descriptionSize>=1;descriptionSize--){
+  for(let descriptionSize=FICHA_LAYOUT.descriptionSize;descriptionSize>=1;descriptionSize--){
     let description;
-    try{description=folletoFitText(ctx,ficha.description,972,470,descriptionSize,descriptionSize);}catch(_){continue;}
+    try{description=folletoFitText(ctx,ficha.description,972,470,descriptionSize,descriptionSize);}catch(error){lastError=error;continue;}
     const mainHeight=972-(description.lines.length?description.lines.length*description.lineHeight+54:0);
-    function atScale(scale){
-      const fit=(text,size,bold=false)=>folletoFitText(ctx,text,textWidth,mainHeight,size*scale,size*scale,bold);
-      const name=fit(ficha.name,46,true),presentation=fit(ficha.presentation,36),code=fit(ficha.code,33);
-      const attributes=folletoFitAttributes(ctx,ficha.attributes,textWidth,mainHeight,33*scale,33*scale);
-      const price=fit(ficha.priceText,44,true);
-      const used=[name,presentation,code,attributes,price].reduce((total,m)=>total+m.lines.length*m.lineHeight,0)+88*scale+4;
-      if(used>mainHeight)throw new Error("Ajustando datos de la ficha.");
-      return {name,presentation,code,attributes,price,description,mainHeight,textX,textWidth,scale,priced:true};
-    }
-    try{return atScale(1);}catch(_){}
+    const calculate=scale=>{
+      const fit=(value,size,bold=false)=>folletoFitText(ctx,value,textWidth,mainHeight,size*scale,size*scale,bold);
+      const name=fit(ficha.name,FICHA_LAYOUT.nameSize,true);
+      const presentation=fit(ficha.presentation,FICHA_LAYOUT.presentationSize);
+      const attributes=folletoFitAttributes(ctx,ficha.facts,textWidth,mainHeight,FICHA_LAYOUT.factSize*scale,FICHA_LAYOUT.factSize*scale);
+      const price=priced?fit(ficha.priceText,FICHA_LAYOUT.priceSize,true):null;
+      const textHeight=[name,presentation,attributes,price].filter(Boolean)
+        .reduce((total,m)=>total+m.lines.length*m.lineHeight,0);
+      const space=(name.lines.length?16:0)+(presentation.lines.length?18:0)+(attributes.lines.length?FICHA_LAYOUT.sectionGap+12:0)
+        +(priced?45:0);
+      if(textHeight+space*scale>mainHeight)throw new Error("Ajustando datos de la ficha.");
+      return {name,presentation,attributes,price,description,mainHeight,textX,textWidth,scale,priced};
+    };
+    try{return calculate(1);}catch(error){lastError=error;}
     let low=0,high=1,result=null;
     for(let i=0;i<12;i++){
       const scale=(low+high)/2;
-      try{result=atScale(scale);low=scale;}catch(_){high=scale;}
+      try{result=calculate(scale);low=scale;}catch(error){high=scale;lastError=error;}
     }
     if(result)return result;
   }
-  throw new Error("No se pudo acomodar la descripción completa en la ficha.");
+  throw lastError||new Error("No se pudo acomodar el producto sin recortar información.");
 }
+function measureFichaPriced(ctx,ficha){return measureFicha(ctx,ficha);}
 function folletoAttributeLines(ctx,attributes,width,size){
   const lines=[];
   for(const attribute of attributes){
@@ -483,11 +493,10 @@ function renderFicha(ctx,card,image){
   const spacing=measure.scale||1;
   textY=folletoDrawText(ctx,measure.name,measure.textX,textY,measure.textWidth,true,Boolean(measure.priced))+16*spacing;
   if(measure.presentation.lines.length)textY=folletoDrawText(ctx,measure.presentation,measure.textX,textY,measure.textWidth)+18*spacing;
-  if(measure.code.lines.length){
+  if(measure.attributes.lines.length){
     ctx.strokeStyle=FICHA_THEME.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(measure.textX,textY);ctx.lineTo(1026,textY);ctx.stroke();
-    textY=folletoDrawText(ctx,measure.code,measure.textX,textY+18*spacing,measure.textWidth,!measure.priced)+14*spacing;
+    textY=folletoDrawText(ctx,measure.attributes,measure.textX,textY+FICHA_LAYOUT.sectionGap*spacing,measure.textWidth);
   }
-  folletoDrawText(ctx,measure.attributes,measure.textX,textY,measure.textWidth);
   if(measure.price?.lines.length){
     const priceY=54+measure.mainHeight-measure.price.lines.length*measure.price.lineHeight;
     ctx.strokeStyle=FICHA_THEME.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(measure.textX,priceY-18*spacing);ctx.lineTo(1026,priceY-18*spacing);ctx.stroke();
