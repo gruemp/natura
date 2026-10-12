@@ -516,8 +516,8 @@ function readCompactGoogleSheetProductRows(table,indices){
     async function loadGoogleSheetRows(){
       // Descubrir encabezados sin filas; después leer únicamente datos públicos necesarios.
       const schema = await queryGoogleSheetTable();
-      if(Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Informacion del producto"))){
-        catalogHeaderIndices(schema.cols,["Informacion del producto"]);
+      if(Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Informacion del producto para el sistema"))){
+        catalogHeaderIndices(schema.cols,["Informacion del producto para el sistema"]);
         return readGoogleSheetProductRows(await queryPublicRichTextProducts());
       }
       const compact=Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Descripción integral del producto"));
