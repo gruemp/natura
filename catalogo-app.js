@@ -1098,16 +1098,13 @@ function readCompactGoogleSheetProductRows(table,indices){
       { top:"#54d0c5", base:"#26b8ab", tab:"#3cc4b7", shadow:"rgba(21, 134, 126, .28)" },
       { top:"#d6c3a6", base:"#c5ad88", tab:"#ceb796", shadow:"rgba(129, 100, 58, .24)" }
     ];
-    function githubPagesAssetUrl(relativePath){
-      return SITE_BASE + encodeRepoPath(relativePath);
-    }
 
     const ROOT_ICON_IMAGES = {
-      ella: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para ella perfume floral.svg"),
-      el: githubPagesAssetUrl("iconos/2026-09-06_icono categoria para el perfume azul.svg"),
-      unisex: githubPagesAssetUrl("iconos/2026-09-06_icono categoria unisex cuidado botanico neutro.svg"),
-      regalos: githubPagesAssetUrl("iconos/2026-09-06_icono categoria regalos caja lazo rosa.svg"),
-      otros: githubPagesAssetUrl("iconos/2026-09-06_icono categoria otros productos hogar variedad.svg")
+      ella: window.NATURA_RECURSOS.iconUrl("2026-09-06_icono categoria para ella perfume floral.svg"),
+      el: window.NATURA_RECURSOS.iconUrl("2026-09-06_icono categoria para el perfume azul.svg"),
+      unisex: window.NATURA_RECURSOS.iconUrl("2026-09-06_icono categoria unisex cuidado botanico neutro.svg"),
+      regalos: window.NATURA_RECURSOS.iconUrl("2026-09-06_icono categoria regalos caja lazo rosa.svg"),
+      otros: window.NATURA_RECURSOS.iconUrl("2026-09-06_icono categoria otros productos hogar variedad.svg")
     };
 
     const NAV_SECTIONS = [
@@ -1126,21 +1123,21 @@ function readCompactGoogleSheetProductRows(table,indices){
     ];
 
     const SUBCATEGORY_ICON_IMAGES = {
-      "perfumes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria perfumes fragancia floral rosa.svg"),
-      "desodorantes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria desodorantes roll on vegetal.svg"),
-      "maquillaje": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria maquillaje brocha labial rosa.svg"),
-      "cuidado facial": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado facial crema rosa.svg"),
-      "cuidado corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cuidado corporal locion vegetal.svg"),
-      "cabello": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria cabello mechon brillante capilar.svg"),
-      "manos y pies": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria manos pies cuidado suave.svg"),
-      "higiene corporal": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene corporal jabon turquesa.svg"),
-      "higiene intima": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria higiene intima flor rosa.svg"),
-      "proteccion solar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria proteccion solar crema amarilla.svg"),
-      "kits y combos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria kits combos regalo cosmeticos.svg"),
-      "tecnologia y hogar": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria tecnologia hogar asistente inteligente.svg"),
-      "juguetes": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria juguetes oso bloques infantiles.svg"),
-      "papeleria": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria papeleria cuaderno lapiz corazon.svg"),
-      "medicamentos": githubPagesAssetUrl("iconos/2026-09-06_icono subcategoria medicamentos frasco capsulas medicas.svg")
+      "perfumes": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria perfumes fragancia floral rosa.svg"),
+      "desodorantes": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria desodorantes roll on vegetal.svg"),
+      "maquillaje": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria maquillaje brocha labial rosa.svg"),
+      "cuidado facial": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria cuidado facial crema rosa.svg"),
+      "cuidado corporal": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria cuidado corporal locion vegetal.svg"),
+      "cabello": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria cabello mechon brillante capilar.svg"),
+      "manos y pies": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria manos pies cuidado suave.svg"),
+      "higiene corporal": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria higiene corporal jabon turquesa.svg"),
+      "higiene intima": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria higiene intima flor rosa.svg"),
+      "proteccion solar": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria proteccion solar crema amarilla.svg"),
+      "kits y combos": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria kits combos regalo cosmeticos.svg"),
+      "tecnologia y hogar": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria tecnologia hogar asistente inteligente.svg"),
+      "juguetes": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria juguetes oso bloques infantiles.svg"),
+      "papeleria": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria papeleria cuaderno lapiz corazon.svg"),
+      "medicamentos": window.NATURA_RECURSOS.iconUrl("2026-09-06_icono subcategoria medicamentos frasco capsulas medicas.svg")
     };
 
     const CATEGORY_VISUALS = {
