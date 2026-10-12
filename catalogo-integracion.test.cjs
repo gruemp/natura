@@ -905,7 +905,7 @@ test('La ficha web comparte ancho de foto, familia tipográfica y ritmo vertical
   assert.ok(toolsSource.includes('folletoDrawImage(ctx,image,FICHA_LAYOUT.padding,FICHA_LAYOUT.padding,FICHA_LAYOUT.imageWidth,measure.mainHeight,true)'));
 });
 test('Folleto reserva la misma columna para fotografía real y marcador sin fotografía',()=>{
-  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\\d.]+)px/)[1])*.52};}};
+  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\d.]+)px/)[1])*.52};}};
   const context=vm.createContext({ctx});vm.runInContext(toolsSource,context);
   for(const imageUrl of ['','https://example.org/fotografia.png']){
     context.p={id:'0042',name:'Colonia',presentation:'120 ml',facts:[{label:'Característica',value:'Floral'}],description:'Beneficios',priceText:'20.000',imageUrl};
