@@ -91,8 +91,12 @@
     function shouldShowProductImages(){
       return true;
     }
-    function shouldShowProductPrices(){
+    function shouldShowPublicProductPrices(){
       return !!(window.INTERRUPTORES && window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO !== false);
+    }
+    function shouldShowProductPrices(){
+      // En administración los precios nunca dependen del interruptor público.
+      return window.CATALOG_ADMIN_MODE_ACTIVE === true || shouldShowPublicProductPrices();
     }
     // El catálogo (público y administrativo) obedece únicamente la configuración pública.
     function shouldShowFichaPrices(){
@@ -1684,7 +1688,7 @@ function readCompactGoogleSheetProductRows(table,indices){
           if(shouldShowProductImages() && p.docsImageUrl) item.image = [p.docsImageUrl];
           if(p.brand) item.brand = { "@type":"Brand", "name":p.brand };
           if(p.codeNatura) item.mpn = p.codeNatura;
-          if(shouldShowProductPrices() && p.hasPrice !== false && Number(p.price) > 0){
+          if(shouldShowPublicProductPrices() && p.hasPrice !== false && Number(p.price) > 0){
             item.offers = {
               "@type":"Offer",
               "priceCurrency":"COP",

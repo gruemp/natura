@@ -440,9 +440,9 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=precio-publico-configuracion-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=precio-folleto-independiente-2026-10-12-1'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=fichas-precios-unificados-2026-10-10-4'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
@@ -755,9 +755,24 @@ test('El precio de la ficha pública depende exclusivamente de Mostrar precios, 
   assert.equal(env.run('shouldShowFichaPrices()'),true);
   assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"]}).products[0].priceText'),'');
   env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=false;setFolletoPriceVisibility(true)');
+  // El visitante obedece el interruptor publicado incluso si el Folleto tiene precios.
+  assert.equal(env.run('shouldShowPublicProductPrices()'),false);
   assert.equal(env.run('shouldShowFichaPrices()'),false);
   assert.equal(env.run('shouldShowFolletoPrices()'),false);
   assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"],prices:true}).settings.prices'),false);
+  // En administración no se ocultan importes, aun con el interruptor desactivado.
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true');
+  assert.equal(env.run('shouldShowPublicProductPrices()'),false);
+  assert.equal(env.run('shouldShowFichaPrices()'),true);
+  assert.equal(env.run('shouldShowFolletoPrices()'),true);
+  assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"],prices:true}).settings.prices'),true);
+  // La elección del Folleto sigue siendo independiente: no altera la ficha administrativa.
+  env.run('setFolletoPriceVisibility(false)');
+  assert.equal(env.run('shouldShowFichaPrices()'),true);
+  assert.equal(env.run('shouldShowFolletoPrices()'),false);
+  assert.equal(env.run('buildFolletoSnapshot({scope:"selected",selectedIds:["9997"]}).settings.prices'),false);
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=false');
+  assert.equal(env.run('shouldShowFichaPrices()'),false);
   assert.equal(env.sandbox.products[0].price,price);
 });
 test('Ficha pública muestra el precio incluso si Orden de la ficha omite Precio',()=>{
@@ -779,16 +794,24 @@ test('Ficha pública muestra el precio incluso si Orden de la ficha omite Precio
   assert.equal(price.hidden,false);assert.equal(price.textContent,'20.000');
   env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true;refreshCardUI(card,product)');
   assert.equal(price.hidden,false);
-  // El interruptor publicado sí determina la visibilidad, sin ocultar el carrito.
+  // Desactivar "Mostrar precios" no oculta importes al administrador.
   env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=false;refreshCardUI(card,product)');
-  assert.equal(row.hidden,true);assert.equal(price.hidden,true);assert.equal(classes.has('ficha-price-suppressed'),true);
+  assert.equal(row.hidden,false);assert.equal(price.hidden,false);
+  assert.equal(price.textContent,'20.000');
+  assert.equal(classes.has('ficha-price-suppressed'),false);
+  // Al salir de administración se restablece la regla pública.
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=false;refreshCardUI(card,product)');
+  assert.equal(row.hidden,true);assert.equal(price.hidden,true);
+  assert.equal(classes.has('ficha-price-suppressed'),true);
   env.run('cart["9997"]={qty:2};refreshCardUI(card,product)');
   assert.equal(row.hidden,false);assert.equal(qty.textContent,'2 en carrito');
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true;refreshCardUI(card,product)');
+  assert.equal(row.hidden,false);assert.equal(price.hidden,false);assert.equal(price.textContent,'20.000');
   editing={input:{value:'25000',disabled:true},save:{disabled:true}};
   env.run('delete cart["9997"];refreshCardUI(card,product)');
   assert.equal(row.hidden,false);assert.equal(price.hidden,true);
   assert.equal(editing.input.value,'25000');assert.equal(editing.save.disabled,true);
-  editing=null;env.run('refreshCardUI(card,product)');assert.equal(row.hidden,true);
+  editing=null;env.run('refreshCardUI(card,product)');assert.equal(row.hidden,false);assert.equal(price.hidden,false);
   env.run('window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO=true;refreshCardUI(card,product)');
   assert.equal(price.hidden,false);assert.equal(row.hidden,false);
   env.sandbox.product.hasPrice=false;
