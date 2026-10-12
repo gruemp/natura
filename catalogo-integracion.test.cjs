@@ -633,15 +633,55 @@ function sanitizedRichTable(cells){
   const context=vm.createContext({});vm.runInContext(richReaderSource,context);
   return {cols:[{id:'A',label:'Informacion del producto'}],rows:cells.map((c,i)=>context.productoPublico_(nativeRich(c),i+2))};
 }
-test('El servicio consulta solo A con Sheets API y conserva un ámbito de solo lectura',()=>{
-  const calls=[],cell=richNativeCell('Nombre: Prueba\nCódigo interno: 0042\nSección: Belleza y cuidado\nCategoría: Cabello',['Nombre']);
-  const ctx=vm.createContext({Sheets:{Spreadsheets:{get(id,options){calls.push({id,options});return calls.length===1?{sheets:[{properties:{title:'Productos',gridProperties:{rowCount:888}}}]}:{sheets:[{data:[{rowData:[{values:[{userEnteredValue:{stringValue:'Informacion del producto'}}]},{values:[cell]}]}]}]};}}}});
-  vm.runInContext(richReaderSource,ctx);const result=ctx.verificarLectorProductos();assert.equal(result.productos,1);
-  assert.deepEqual(Array.from(calls[1].options.ranges),["'Productos'!A1:A888"]);assert.ok(calls[1].options.fields.includes('textFormatRuns'));
+test('El servicio lee A y B en el servidor, mantiene Sheets readonly y entrega solo campos permitidos',()=>{
+  const calls=[],a=richNativeCell('Nombre: Prueba',['Nombre']);
+  const b=richNativeCell('Nombre: Prueba\nCódigo interno: 0042\nSección: Belleza y cuidado\nCategoría: Cabello\nTipo de producto: Champú\nPrecio: 25.000\nDisponibilidad: A la venta\nCosto de adquisición: 10.000\nNúmero de serie: SECRETO');
+  const ctx=vm.createContext({Sheets:{Spreadsheets:{get(id,options){
+    calls.push({id,options});return calls.length===1
+      ?{sheets:[{properties:{title:'Productos',gridProperties:{rowCount:888,columnCount:2}}}]}
+      :{sheets:[{data:[{rowData:[
+        {values:[{userEnteredValue:{stringValue:'Informacion del producto'}},{userEnteredValue:{stringValue:'Descripción para Marketplace'}}]},
+        {values:[a,b]}
+      ]}]}]};
+  }}}});
+  vm.runInContext(richReaderSource,ctx);
+  const payload=ctx.leerProductosPublicos_();
+  assert.equal(payload.table.rows.length,1);assert.equal(payload.table.rows[0].sourceRow,2);
+  assert.deepEqual(Array.from(calls[1].options.ranges),["'Productos'!A1:B888"]);
+  assert.ok(calls[1].options.fields.includes('textFormatRuns'));
+  assert.ok(!JSON.stringify(payload).includes('SECRETO'));
+  assert.ok(!JSON.stringify(payload).includes('10.000'));
+  assert.ok(payload.table.rows[0].c[0].v.includes('Código: 0042'));
   const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','appsscript.json'),'utf8'));
   assert.deepEqual(manifest.oauthScopes,['https://www.googleapis.com/auth/drive.readonly']);
 });
 const richDescription='Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa\nVariedad: Flor de Cereza y Aguacate\nColor: Rojo vivo\nPrecio: 25.000\nSección: Belleza y cuidado\nCategoría: Perfumería\nLínea: Kaiak\nDisponibilidad: A la venta\nCódigo interno: 0042\nCosto: 15.000\nNúmero de serie: PRIVADO-123\nCódigo Natura: PRIVADO-NAT\nReferencia: https://example.com/privado';
+test('A puede contener solo etiquetas visibles: el código, navegación, precio y estado llegan de B sin filtrar datos internos',()=>{
+  const a=richNativeCell('Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa',['Nombre','Marca','Fragancia']);
+  const b=richNativeCell(richDescription);
+  const context=vm.createContext({});vm.runInContext(richReaderSource,context);
+  const sanitized={cols:[{id:'A',label:'Informacion del producto'}],rows:[context.productoPublico_(nativeRich(a),2,nativeRich(b))]};
+  const serialized=JSON.stringify(sanitized);
+  assert.ok(!serialized.includes('PRIVADO'));
+  assert.ok(!serialized.includes('15.000'));
+  assert.ok(!serialized.includes('example.com/privado'));
+  const env=environment(),result=assess(env,sanitized),p=result.products[0];
+  assert.equal(result.report.pending,0);
+  assert.equal(p.id,'0042');
+  assert.equal(p.price,25000);
+  assert.equal(p.category,'Perfumería');
+  assert.equal(p.commercialStatus,'A la venta');
+  assert.deepEqual(Array.from(p.fichaFields,f=>f.label),['Nombre','Marca','Fragancia']);
+  assert.ok(!p.fullTxtRecord.includes('Costo'));
+});
+test('A y B discordantes en nombre o precio se rechazan en vez de publicar valores ambiguos',()=>{
+  const a=richNativeCell('Nombre: Producto distinto\nPrecio: 12.000',['Nombre','Precio']);
+  const context=vm.createContext({});vm.runInContext(richReaderSource,context);
+  const table={cols:[{id:'A',label:'Informacion del producto'}],rows:[context.productoPublico_(nativeRich(a),2,nativeRich(richNativeCell(richDescription)))]};
+  const result=assess(environment(),table);
+  assert.equal(result.report.pending,1);
+  assert.ok(result.report.records[0].causes.some(x=>/duplicado/i.test(x.reason)));
+});
 test('Rich Text de una sola A selecciona nombres completos en negrita y excluye datos privados antes de enviarlos',()=>{
   const table=sanitizedRichTable([richNativeCell(richDescription,['Nombre','Marca','Fragancia','Variedad','Costo','Número de serie','Código Natura'],'Color')]);
   assert.ok(!JSON.stringify(table).includes('PRIVADO'));assert.ok(!JSON.stringify(table).includes('15.000'));assert.ok(!JSON.stringify(table).includes('example.com/privado'));
