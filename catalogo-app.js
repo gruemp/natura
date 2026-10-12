@@ -58,8 +58,7 @@
 
 	const INTERRUPTORES = {
 	  MOSTRAR_CANTIDAD_STOCK: false,
-	  MOSTRAR_PRECIOS_PRODUCTO: true,
-	  IMAGEN_SUPLENTE_PRODUCTO: "suplente.svg"
+	  MOSTRAR_PRECIOS_PRODUCTO: true
     };
     window.INTERRUPTORES = INTERRUPTORES;
     const NAVIGATION_ORDER_CONFIG_KEY = "ORDEN_NAVEGACION";
@@ -128,16 +127,9 @@
     function shouldShowProductImageInNavigationPanels(){
       return true;
     }
-    const LOGOS_DIR = "logos";
-
     const fmtCOP = new Intl.NumberFormat("es-CO", { maximumFractionDigits:0 });
 
     const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/`;
-
-    const COMPANY_LOGOS = [
-      SITE_BASE + LOGOS_DIR + "/logo_empresa.svg"
-    ];
-    const COMPANY_LOGO = COMPANY_LOGOS[0];
 
     function normalizeText(t){
       return (t || "")
@@ -181,90 +173,6 @@
       const n = parseInt(String(s ?? "").replace(/[^\d]/g,""), 10);
       return Number.isFinite(n) ? n : def;
     }
-    function extOf(filename){
-      const i = String(filename || "").lastIndexOf(".");
-      if(i < 0) return "";
-      return String(filename).slice(i+1).toLowerCase();
-    }
-    function encodePath(p){
-      return String(p || "")
-        .split("/")
-        .map(seg => encodeURIComponent(seg))
-        .join("/");
-    }
-    function sanitizeLogoFilename(input){
-      const raw = String(input || "").trim();
-      if(!raw) return "";
-      const just = raw.split(/[\/\\]/).pop();
-      if(!just || just.includes("..")) return "";
-      return just.replace(/[^\w.\- ]+/g, "").trim();
-    }
-
-    function buildPlaceholderCandidates(){
-      const list = [];
-      const picked = sanitizeLogoFilename(window.INTERRUPTORES?.IMAGEN_SUPLENTE_PRODUCTO);
-
-      if(picked){
-        const e = extOf(picked);
-        if(e){
-          list.push(SITE_BASE + LOGOS_DIR + "/" + encodePath(picked));
-        }else{
-          list.push(SITE_BASE + LOGOS_DIR + "/" + encodePath(picked) + ".webp");
-          list.push(SITE_BASE + LOGOS_DIR + "/" + encodePath(picked) + ".png");
-        }
-      }
-
-      list.push(
-        SITE_BASE + LOGOS_DIR + "/suplente.svg",
-        SITE_BASE + LOGOS_DIR + "/suplente.svg",
-        ...COMPANY_LOGOS
-      );
-
-      return [...new Set(list)];
-    }
-
-    let PRODUCT_PLACEHOLDERS = buildPlaceholderCandidates();
-    let PRODUCT_PLACEHOLDER_IMAGE = (PRODUCT_PLACEHOLDERS[0] || COMPANY_LOGO);
-
-    function productPlaceholderAbsoluteUrl(){
-      return PRODUCT_PLACEHOLDER_IMAGE || COMPANY_LOGO;
-    }
-
-
-    function warmupPlaceholderOnce(){
-      return new Promise((resolve)=>{
-        try{
-          PRODUCT_PLACEHOLDERS = buildPlaceholderCandidates();
-
-          let i = 0;
-          const tryNext = ()=>{
-            if(i >= PRODUCT_PLACEHOLDERS.length){
-              PRODUCT_PLACEHOLDER_IMAGE = COMPANY_LOGO;
-              resolve();
-              return;
-            }
-
-            const url = PRODUCT_PLACEHOLDERS[i++];
-            const test = new Image();
-            test.onload = ()=>{
-              PRODUCT_PLACEHOLDER_IMAGE = url;
-              resolve();
-            };
-            test.onerror = tryNext;
-            test.decoding = "async";
-            test.loading = "eager";
-            test.src = url;
-          };
-
-          tryNext();
-        }catch(_){
-          PRODUCT_PLACEHOLDER_IMAGE = COMPANY_LOGO;
-          resolve();
-        }
-      });
-    }
-
-
     const GOOGLE_SHEET_QUERY_TIMEOUT_MS = 25000;
     const PRODUCT_IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "avif"]);
 
@@ -1124,93 +1032,56 @@ function readCompactGoogleSheetProductRows(table,indices){
     if(imgModalClose) imgModalClose.addEventListener("click", closeImgModal);
     if(imgModalBackdrop) imgModalBackdrop.addEventListener("click", closeImgModal);
 
+
+    // Tratamiento informativo y visual para productos sin fotografía, sin reemplazarla por logos o iconos.
+    function makeNoPhotoPlaceholder(mode="product"){
+      const box = document.createElement("div");
+      box.className = "product-no-photo" + (mode === "cart" ? " product-no-photo--cart" : mode === "album" ? " product-no-photo--album" : "");
+      box.setAttribute("role", "img");
+      box.setAttribute("aria-label", "Sin fotografía disponible");
+      box.innerHTML = '<span class="product-no-photo__ornament" aria-hidden="true"></span><span class="product-no-photo__title">Sin fotografía</span><span class="product-no-photo__caption">Próximamente</span>';
+      return box;
+    }
+
     function makeImgFromFilename(filename, name, docsImageUrl=""){
+      const preferredUrl = String(docsImageUrl || "").trim();
+      if(!shouldShowProductImages() || !preferredUrl) return makeNoPhotoPlaceholder();
+
       const img = document.createElement("img");
       img.alt = name ? ("Foto " + name) : "Foto del producto";
       img.loading = "lazy";
       img.decoding = "async";
-
-      let zoomable = false;
-      function setNonZoom(){
-        zoomable = false;
-        img.style.cursor = "default";
-      }
-
-      const preferredUrl = String(docsImageUrl || "").trim();
-      if(preferredUrl) img.crossOrigin = "anonymous";
-      const allowReal = shouldShowProductImages() && Boolean(preferredUrl);
-
-      if(!allowReal){
-        img.src = productPlaceholderAbsoluteUrl();
-        setNonZoom();
-      }else{
-        zoomable = true;
-        img.src = preferredUrl;
-      }
-
+      img.crossOrigin = "anonymous";
+      img.src = preferredUrl;
       img.onerror = ()=>{
-        if(img.dataset.fallbackTried === "1"){
-          img.onerror = null;
-          img.src = COMPANY_LOGO;
-          setNonZoom();
-          return;
-        }
-        img.dataset.fallbackTried = "1";
-        img.src = productPlaceholderAbsoluteUrl();
-        setNonZoom();
+        img.onerror = null;
+        img.replaceWith(makeNoPhotoPlaceholder());
       };
-
       img.addEventListener("click", ()=>{
-        if(!zoomable) return;
         const src = img.currentSrc || img.src;
-        if(src) openImgModal(src, img.alt);
+        if(src && img.isConnected) openImgModal(src, img.alt);
       });
-
       return img;
     }
 
     function makeCartThumbFromFilename(filename, name, docsImageUrl=""){
+      const preferredUrl = String(docsImageUrl || "").trim();
+      if(!shouldShowProductImages() || !preferredUrl) return makeNoPhotoPlaceholder("cart");
+
       const img = document.createElement("img");
       img.className = "cart-thumb";
       img.alt = name ? ("Foto " + name) : "Foto del producto";
       img.loading = "lazy";
       img.decoding = "async";
-
-      let zoomable = false;
-      function setNonZoom(){
-        zoomable = false;
-        img.style.cursor = "default";
-      }
-
-      const preferredUrl = String(docsImageUrl || "").trim();
-      const allowReal = shouldShowProductImages() && Boolean(preferredUrl);
-
-      if(!allowReal){
-        img.src = productPlaceholderAbsoluteUrl();
-        setNonZoom();
-      }else{
-        zoomable = true;
-        img.src = preferredUrl;
-      }
-
+      img.src = preferredUrl;
       img.onerror = ()=>{
-        if(img.dataset.fallbackTried === "1"){
-          img.onerror = null;
-          img.src = COMPANY_LOGO;
-          setNonZoom();
-          return;
-        }
-        img.dataset.fallbackTried = "1";
-        img.src = productPlaceholderAbsoluteUrl();
-        setNonZoom();
+        img.onerror = null;
+        img.replaceWith(makeNoPhotoPlaceholder("cart"));
       };
-
       img.addEventListener("click", ()=>{
-        if(!zoomable) return;
         const src = img.currentSrc || img.src;
-        if(src) openImgModal(src, img.alt);
+        if(src && img.isConnected) openImgModal(src, img.alt);
       });
-
       return img;
     }
 
@@ -1885,26 +1756,22 @@ function readCompactGoogleSheetProductRows(table,indices){
       img.loading = "lazy";
       img.decoding = "async";
 
-      const sourceList = (Array.isArray(sources) ? sources : [sources])
+      // Solo fotografías reales. Al agotarse las disponibles, informar sin imagen suplente.
+      const candidates = [...new Set((Array.isArray(sources) ? sources : [sources])
         .map(source => String(source || "").trim())
-        .filter(source => /^https:\/\//i.test(source));
-      const candidates = [...new Set([
-        sourceList[0],
-        productPlaceholderAbsoluteUrl(),
-        COMPANY_LOGO
-      ].filter(Boolean))];
-
+        .filter(source => /^https:\/\//i.test(source)))];
       let index = 0;
-      img.src = candidates[index] || COMPANY_LOGO;
       img.onerror = ()=>{
         index++;
         if(index < candidates.length){
           img.src = candidates[index];
-          return;
+        }else{
+          img.onerror = null;
+          img.replaceWith(makeNoPhotoPlaceholder("album"));
         }
-        img.onerror = null;
       };
-
+      if(candidates.length) img.src = candidates[0];
+      else img.addEventListener("load",()=>{}, {once:true});
       return img;
     }
 
@@ -2004,15 +1871,14 @@ function readCompactGoogleSheetProductRows(table,indices){
           img.loading = "eager";
           img.onerror = ()=>{
             img.onerror = null;
-            img.remove();
-            icon.textContent = album.icon || "•";
+            icon.replaceChildren();
           };
           img.src = album.iconImage;
           icon.replaceChildren(img);
         }else if(album.iconSvg){
           icon.innerHTML = album.iconSvg;
         }else{
-          icon.textContent = album.icon || "•";
+          icon.replaceChildren();
         }
       }
       setSearchHighlightedText(label,album.label);
@@ -3108,12 +2974,6 @@ function readCompactGoogleSheetProductRows(table,indices){
       if(!silent){
         window.CATALOG_INITIAL_LOAD_READY = false;
         startCatalogLoadingProgress();
-      }
-
-      try{
-        await warmupPlaceholderOnce();
-      }catch(error){
-        console.warn("No se pudo preparar la imagen suplente. El catálogo continuará.", error);
       }
 
       let catalogSource;
