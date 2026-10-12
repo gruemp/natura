@@ -37,6 +37,19 @@ Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://githu
 - Carpeta vigente de Google Drive: https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los archivos de código conciliados conservan sus IDs. La carpeta de anuncios y el proyecto nativo de lectura se trasladaron conservando sus identificadores y permisos; las hojas comerciales y los despliegues mantienen sus identidades.
 - `.github/archivo/workflows/migrar-natura.yml` conserva el proceso histórico de extracción. Está archivado y no es un workflow operativo.
 
+## Sincronizar solo diferencias con Google Drive
+
+El **origen del código** es GitHub; la carpeta de [fuentes originales en Drive](https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249) recibe únicamente las diferencias que autorice el titular. La última conciliación completa de fuentes activas fue de **68/68 archivos de texto**, comprobados contra el commit `7efbde14e2b63061858bb8080d9b0a7059cea3da` el 2026-10-12; [auditoría verificada](https://github.com/gruemp/natura/actions/runs/38317024151).
+
+**Procedimiento para la próxima sincronización puntual**:
+
+1. Preparar desde la pestaña *Actions* el workflow manual `Preparar cambios Natura para Google Drive`. Compara la rama principal contra `.github/natura-drive-sync-state.json` (o un commit base indicado manualmente), **sin acceder a secretos ni escribir en Drive**. Produce un ZIP con solo los archivos fuente modificados y un `manifest.json` con ruta, tamaño y SHA-256; las eliminaciones se notifican pero **no se ejecutan**.
+2. Cotejar el paquete con los archivos ya existentes en Drive, resolviendo cada ruta desde la carpeta vigente y buscando **por nombre exacto dentro de su carpeta**. Si hay duplicados o rutas ambiguas, detener la operación. Comparar hashes y **no subir contenido idéntico**.
+3. Actualizar con la conexión autorizada de Google Drive únicamente los originales que difieran (misma identidad/ID, ubicación, enlaces, permisos e historial). Crear los nuevos solo si faltan. **No borrar ni reemplazar carpetas completas**.
+4. Releer los archivos tocados y comparar sus bytes/hashes con GitHub; auditar el alcance previsto. Registrar el commit conciliado y actualizar el punto de control **solo después** de verificar todas las escrituras. Si hay un error, dejarlo registrado y conservar el último commit verificado.
+
+`CLASPRC_JSON` **no es necesaria** para la transferencia directa mediante las conexiones de ChatGPT; el workflow manual solo prepara el paquete. Los permisos de despliegue de Apps Script, los documentos comerciales y los archivos binarios/históricos están fuera de esta sincronización. No se activa sincronización automática.
+
 ## Regla de mantenimiento
 
 Conservar los nombres públicos y técnicos estables salvo necesidad real. Dividir archivos solo cuando exista una responsabilidad clara y la separación reduzca riesgo de mantenimiento sin cambiar el comportamiento público.

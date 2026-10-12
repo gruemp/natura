@@ -12,7 +12,7 @@ Esta carpeta reúne las fuentes de los cinco proyectos Apps Script de Natura en 
 
 ## Origen de trabajo y continuidad (2026-10-11)
 
-- Las fuentes se mantienen en este repositorio independiente. Drive se actualiza manualmente, verificando contenido y conservando los IDs de los archivos existentes. No hay sincronización automática GitHub ↔ Drive.
+- Las fuentes se mantienen en este repositorio independiente. Drive se actualiza manualmente **solo cuando cambia el contenido**: cotejo por ruta y nombre dentro de la carpeta, actualización del archivo existente conservando su ID automáticamente y verificación posterior de hashes. Para preparar solo las diferencias se utiliza el workflow manual `Preparar cambios Natura para Google Drive` y el punto de control `.github/natura-drive-sync-state.json`; no hay sincronización automática ni dependencia del secreto `CLASPRC_JSON` para transferir archivos mediante la conexión de Drive.
 - Las publicaciones vigentes de Apps Script utilizan los workflows de `gruemp/natura/.github/workflows/`. Los publicadores anteriores de stock están desactivados. La publicación de Apps Script es distinta de la actualización de archivos en Drive.
 - `CLASPRC_JSON` ya existe como secreto del repositorio y `NATURA_PUBLICACION_HABILITADA=true` habilita las publicaciones. Su renovación segura sigue pendiente; no extraer ni registrar credenciales en archivos o mensajes.
 - Antes de cualquier nueva publicación, verificar `scriptId`, implementación, permisos y relación con el proyecto remoto. No activar dos publicadores ni usar `clasp push --force` con identidades no conciliadas.

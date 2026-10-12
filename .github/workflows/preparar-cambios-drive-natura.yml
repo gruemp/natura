@@ -1,0 +1,98 @@
+name: Preparar cambios Natura para Google Drive
+on:
+  workflow_dispatch:
+    inputs:
+      base_commit:
+        description: "Commit previamente verificado en Drive; dejar vacío para utilizar el punto de control"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Preparar únicamente los archivos de texto cambiados
+        env:
+          BASE_COMMIT_OVERRIDE: ${{ inputs.base_commit }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, re, shutil, subprocess
+
+          base_dir = pathlib.Path.cwd()
+          tracker = json.loads((base_dir / ".github/natura-drive-sync-state.json").read_text(encoding="utf-8"))
+          base = os.environ.get("BASE_COMMIT_OVERRIDE", "").strip() or tracker["last_verified_source_commit"]
+          if not re.fullmatch(r"[0-9a-f]{40}", base):
+              raise SystemExit("El commit base debe ser un SHA-1 Git completo")
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          subprocess.run(["git", "cat-file", "-e", base + "^{commit}"], check=True)
+          if subprocess.run(["git", "merge-base", "--is-ancestor", base, head]).returncode:
+              raise SystemExit("El commit base no es antecesor de main")
+          changed_raw = subprocess.check_output(["git", "diff", "--name-only", "-z", base, head])
+          changed = [p.decode("utf-8") for p in changed_raw.split(b"\0") if p]
+          binary_suffixes = {".png",".webp",".jpg",".jpeg",".gif",".ico",".avif",".zip",".pdf"}
+          ignore_exact = {".github/natura-drive-sync-state.json"}
+          def eligible(path):
+              posix = pathlib.PurePosixPath(path)
+              return (
+                  path not in ignore_exact
+                  and not path.startswith(".github/archivo/")
+                  and not path.startswith("logo_empresa.")
+                  and posix.suffix.lower() not in binary_suffixes
+                  and (path.startswith("apps-script/") or path.startswith(".github/") or "/" not in path)
+              )
+          candidates = [p for p in changed if eligible(p)]
+          target = base_dir / "natura-drive-paquete"
+          target.mkdir()
+          assets, deleted = [], []
+          for path in sorted(candidates):
+              file = base_dir / path
+              if not file.exists():
+                  deleted.append(path)
+                  continue
+              if not file.is_file() or file.is_symlink():
+                  raise SystemExit("Fuente no regular: " + path)
+              content = file.read_bytes()
+              if b"\0" in content:
+                  raise SystemExit("Archivo binario inesperado: " + path)
+              dest = target / "sources" / path
+              dest.parent.mkdir(parents=True, exist_ok=True)
+              shutil.copyfile(file, dest)
+              assets.append({"path": path, "bytes": len(content), "sha256": hashlib.sha256(content).hexdigest()})
+          manifest = {
+              "schema_version": 1,
+              "repository": "gruemp/natura",
+              "base_commit": base,
+              "head_commit": head,
+              "scope": "fuentes activas de texto, excluidos binarios y .github/archivo/",
+              "changed_files": assets,
+              "removed_paths_review_only": deleted,
+              "rules": "No eliminar; resolver ruta y nombre exacto; conservar IDs; verificar bytes; mover el punto de control solo tras verificar"
+          }
+          (target / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print("Base:", base, "HEAD:", head, "Archivos cambiados:", len(assets), "Bajas solo para revisión:", len(deleted))
+          print("No se modificó Google Drive; no se utilizaron credenciales Google")
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as s:
+                  s.write("## Paquete de sincronización manual\n")
+                  s.write(f"Fuentes cambiadas: {len(assets)}. Bajas para revisión: {len(deleted)}.\n")
+                  s.write("No modifica archivos de Google Drive.\n")
+          PY
+
+      - name: Publicar paquete para revisión y transferencia manual
+        uses: actions/upload-artifact@v4
+        with:
+          name: natura-drive-cambios
+          path: natura-drive-paquete/
+          retention-days: 7
+          if-no-files-found: error
