@@ -881,7 +881,7 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .catalog-ficha-card .product-details summary::-webkit-details-marker{display:none}
 .catalog-ficha-card .product-details summary::after{content:"⌄";font-size:22px;line-height:1}
 .catalog-ficha-card .product-details[open] summary::after{transform:rotate(180deg)}
-.catalog-ficha-card .description{font-size:calc(var(--ficha-layout-descriptionSize,32) * var(--ficha-unit,1px));line-height:1.24;margin:0;padding-top:calc(18 * var(--ficha-unit,1px));white-space:pre-line;overflow-wrap:break-word;hyphens:none;text-align:left}
+.catalog-ficha-card .description{font-size:calc(var(--ficha-layout-descriptionSize,32) * var(--ficha-unit,1px));line-height:1.24;margin:0;padding-top:calc(18 * var(--ficha-unit,1px));white-space:pre-line;overflow-wrap:break-word;hyphens:none;text-align:justify;text-align-last:left}
 .catalog-ficha-card .ficha-description-inline summary{display:none}
 .catalog-ficha-card .ficha-description-expanded{height:auto;aspect-ratio:auto;min-height:var(--ficha-side)}
 .catalog-ficha-card .ficha-description-expanded .ficha-main{flex:none;height:var(--ficha-main-height)}

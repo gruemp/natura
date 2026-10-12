@@ -443,7 +443,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=seleccion-folleto-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=seleccion-folleto-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=descripcion-justificada-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -944,4 +944,14 @@ test('Deseleccionar todo quita las marcas visibles y ocultas sin modificar filtr
   assert.ok(htmlSource.includes('id="folletoClearSelectionBtn"'));
   assert.ok(toolsSource.includes('id="folletoDialogClearSelectionBtn"'));
   assert.ok(toolsSource.includes('syncFolletoSelectionControls();if(dialog.open&&!busy)refresh()'));
+});
+
+test('Descripción justificada en ficha web y en exportaciones PNG/PDF sin estirar la última línea',()=>{
+  const webDescriptionRule=fichaCssSource.match(/\\.catalog-ficha-card \\.description\\{([^}]*)\\}/)?.[1];
+  assert.ok(webDescriptionRule,'La descripción de la ficha tiene una regla propia');
+  assert.match(webDescriptionRule,/(?:^|;)text-align:justify(?:;|$)/);
+  assert.match(webDescriptionRule,/(?:^|;)text-align-last:left(?:;|$)/);
+  assert.match(webDescriptionRule,/white-space:pre-line/,'Mantiene los saltos de párrafo originales');
+  assert.ok(toolsSource.includes('folletoDrawText(ctx,measure.description,54,descriptionY+18,972,false,true);'),
+    'El mismo renderizador del Folleto justifica la descripción en PNG y PDF');
 });
