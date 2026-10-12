@@ -67,6 +67,9 @@ function obtenerContextoInventario_() {
     .getRange(INVENTARIO_HEADER_ROW, 1, 1, ultimaColumna)
     .getDisplayValues()[0];
 
+  if(encabezados.some(h=>normalizarEncabezado_(h)==="descripcion completa del producto")){
+    return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,textoRico:true,columnas:{descripcion:buscarEncabezadoUnico_(encabezados,"Descripción completa del producto")}};
+  }
   if(encabezados.some(h=>normalizarEncabezado_(h)==="informacion del producto")){
     return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,textoRico:true,columnas:{descripcion:buscarEncabezadoUnico_(encabezados,"Informacion del producto")}};
   }
