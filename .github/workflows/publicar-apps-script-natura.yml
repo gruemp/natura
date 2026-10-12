@@ -9,6 +9,7 @@ on:
       - "apps-script/pedidos natura/**"
       - "apps-script/lectura de carpetas en natura/**"
       - "apps-script/coordenadas de visitantes natura/**"
+      - "!apps-script/**/*.md"
       - ".github/triggers/publicar-apps-script-natura-auto.txt"
 
 permissions:
@@ -65,6 +66,7 @@ jobs:
 
           : > "$RUNNER_TEMP/selected.tsv"
           changed="$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" 2>/dev/null || true)"
+          changed="$(printf '%s\n' "$changed" | grep -Ev '^apps-script/.*[.]md$' || true)"
 
           if printf '%s\n' "$changed" | grep -Fqx ".github/triggers/publicar-apps-script-natura-auto.txt"; then
             cp "$RUNNER_TEMP/projects.tsv" "$RUNNER_TEMP/selected.tsv"
