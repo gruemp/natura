@@ -722,7 +722,7 @@ test('La ficha interactiva usa un único bloque de etiquetas y mantiene el preci
   assert.equal(nodes['.meta'].hidden,true);
 });
 test('El mismo motor omite completamente el bloque de precio si no existe un importe',()=>{
-  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\\d.]+)px/)[1])*.52};},
+  const ctx={font:'400 32px Arial',measureText(t){return {width:String(t).length*parseFloat(this.font.match(/([\d.]+)px/)[1])*.52};},
     save(){},restore(){},translate(){},scale(){},beginPath(){},roundRect(){},closePath(){},fill(){},clip(){},fillRect(){},moveTo(){},lineTo(){},stroke(){this.strokes=(this.strokes||0)+1;},
     createLinearGradient(){return {addColorStop(){}};},createRadialGradient(){return {addColorStop(){}};},fillText(t){(this.printed||(this.printed=[])).push(t);}};
   const context=vm.createContext({ctx});vm.runInContext(toolsSource,context);
