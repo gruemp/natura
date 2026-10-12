@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "last_verified_source_commit": "dee85e8b798bb7c5380d50357c852fa6da9aa4a2",
-  "last_verified_at": "2026-10-12T17:45:30-05:00",
+  "last_verified_source_commit": "ef8e89733e07216d5bf661ef68537e667391625f",
+  "last_verified_at": "2026-10-12T18:06:27-05:00",
   "verified_active_text_sources": 69,
   "verification_run_url": "https://github.com/gruemp/natura/actions/runs/38317024151",
   "drive_folder_url": "https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249",
   "description": "Punto de control de la ultima conciliacion de fuentes activas de texto GitHub → Drive; actualizar solo tras comparar y verificar bytes. No incluye las herramientas auxiliares ni el propio punto de control.",
-  "last_verification_details": "La auditoría original confirmó 68/68. Los dos README actualizados y el workflow manual nuevo se releyeron desde Drive y coincidieron exactamente por bytes con GitHub; el número vigente de fuentes de texto activas es 69 (excluye este punto de control, binarios y .github/archivo)."
+  "last_verification_details": "69 archivos de texto activos conciliados: los 68 auditados por MD5, los README y workflow manual previamente cotejados, y sitemap.xml actualizado a lastmod 2026-10-12. Sitemap original Drive con ID 18fMH1e24vIq5nkSGrM2Fwl2N28bxR2c1 conservado, contenido exacto de 222 bytes cotejado con GitHub; respuesta publica 200 con lastmod actualizado, verificacion https://github.com/gruemp/natura/actions/runs/38320113170. Las herramientas temporales del diagnostico se archivaron. No demuestra indexacion en Search Console."
 }
