@@ -575,7 +575,7 @@ test('Precio de Folleto es opcional, conserva los importes reales y distingue pr
   assert.notEqual(env.run('folletoPreparationKey(a,"marketplace")'),env.run('folletoPreparationKey(b,"marketplace")'));
   assert.equal(env.sandbox.products[0].price,original);
 });
-test('Ficha exportada ajusta datos y precio juntos, conserva descripción completa y los tres formatos',()=>{
+test('Ficha exportada ajusta datos y precio juntos, conserva descripción completa y los formatos disponibles',()=>{
   const rendered=[];
   const ctx={font:'400 32px Arial',measureText(text){return {width:String(text).length*parseFloat(this.font.match(/([\d.]+)px/)[1])*.52};},
     save(){},restore(){},translate(){},scale(){},beginPath(){},roundRect(){},closePath(){},fill(){},clip(){},fillRect(){},moveTo(){},lineTo(){},stroke(){},
@@ -588,7 +588,7 @@ test('Ficha exportada ajusta datos y precio juntos, conserva descripción comple
   assert.equal(measure.description.lines.join(' '),p.description.trim());
   vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
   assert.ok(rendered.includes(p.priceText));assert.ok(rendered.some(t=>t.includes('Información')));
-  for(const key of ['instagram','marketplace','document']){
+  for(const key of ['marketplace','document']){
     context.key=key;const plan=vm.runInContext('layoutFolleto({products:[p]},key,ctx)',context);
     assert.equal(plan.pages.length,1);assert.equal(plan.pages[0].cards[0].width,plan.pages[0].cards[0].height);
     assert.equal(plan.pages[0].cards[0].product.priceText,p.priceText);

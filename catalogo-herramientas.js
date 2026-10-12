@@ -1,7 +1,6 @@
 // Folleto: una fuente, un snapshot, un layout y un renderer para todas las salidas.
 const FOLLETO_SELECTION=new Set();
 const FOLLETO_FORMATS=Object.freeze({
-  instagram:{width:1080,height:1350,label:"Instagram",extension:"png"},
   marketplace:{width:1200,height:1200,label:"Marketplace",extension:"png"},
   document:{width:1191,height:1684,label:"Documento",extension:"pdf"}
 });
@@ -543,8 +542,6 @@ function renderFolletoPDFHeader(ctx,width,assets){
   folletoDrawText(ctx,phone,contactX+50,y+37,contactWidth-50,true);
   const location=folletoFitText(ctx,FOLLETO_COMPANY.location,contactWidth,55,21,18);
   folletoDrawText(ctx,location,contactX,y+89,contactWidth);
-  const url=folletoFitText(ctx,FOLLETO_COMPANY.catalog,w-190,35,20,18);
-  folletoDrawText(ctx,url,companyX,y+153,w-190);
   ctx.strokeStyle=FICHA_THEME.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y+h);ctx.lineTo(x+w,y+h);ctx.stroke();
   ctx.restore();
 }
@@ -581,7 +578,7 @@ function layoutCollage(snapshot,formatKey,ctx){
   return {formatKey,pages,productCount:snapshot.products.length};
 }
 function paginateFichasPDF(snapshot,ctx){return layoutCollage(snapshot,"document",ctx);}
-function layoutFolleto(snapshot,formatKey="instagram",ctx){
+function layoutFolleto(snapshot,formatKey="marketplace",ctx){
   return formatKey==="document"?paginateFichasPDF(snapshot,ctx):layoutCollage(snapshot,formatKey,ctx);
 }
 // Solo en series de dos o más PNG: indicar la continuación excepto en la última.
@@ -811,8 +808,7 @@ function initFolleto(){
       </form>
       <section class="folleto-design" aria-label="Diseño y vista previa">
         <fieldset class="folleto-formats"><legend><span>3</span> Formato de salida</legend><div class="folleto-format-grid">
-          <label class="folleto-format"><input type="radio" name="format" value="instagram" checked><span class="folleto-format-icon">${icon("M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4M8 12a4 4 0 1 0 8 0 4 4 0 0 0-8 0M17 7h.01")}</span><strong>Instagram</strong><small>1080 × 1350</small><span class="folleto-format-note">Publicaciones en PNG</span></label>
-          <label class="folleto-format"><input type="radio" name="format" value="marketplace"><span class="folleto-format-icon">${icon("M3 9l2-6h14l2 6M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v9h14v-9M9 21v-7h6v7")}</span><strong>Marketplace</strong><small>1200 × 1200</small><span class="folleto-format-note">Imágenes para ventas</span></label>
+          <label class="folleto-format"><input type="radio" name="format" value="marketplace" checked><span class="folleto-format-icon">${icon("M3 9l2-6h14l2 6M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v9h14v-9M9 21v-7h6v7")}</span><strong>Marketplace</strong><small>1200 × 1200</small><span class="folleto-format-note">Imágenes para ventas</span></label>
           <label class="folleto-format"><input type="radio" name="format" value="document"><span class="folleto-format-icon">${booklet}</span><strong>Documento</strong><small>Varias páginas</small><span class="folleto-format-note">Catálogo en PDF</span></label>
         </div></fieldset>
         <div class="folleto-preview-heading"><h3><span>4</span> Vista previa</h3><span id="folletoSummary" class="folleto-page-count" aria-live="polite"></span></div>
@@ -821,7 +817,7 @@ function initFolleto(){
         <div id="folletoDownloadCurrentWrap" class="folleto-preview-hint" hidden><a id="folletoDownloadCurrent" class="btn-ghost" style="display:inline-flex;align-items:center;justify-content:center" download>Descargar esta imagen</a></div>
         <p class="folleto-preview-hint" id="folletoDesignHint">Un producto destacado, varios en una composición o un catálogo de varias páginas.</p>
       </section>
-      <aside class="folleto-summary" aria-label="Resumen del folleto"><h3>Resumen</h3><dl id="folletoSummaryDetails"></dl><div class="folleto-summary-bottom"><p id="folletoStatus" role="status" aria-live="polite"></p><button type="button" id="folletoGenerate" class="folleto-generate">${icon("m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3M20 15v6M17 18h6")}<span>Generar folleto</span></button><p class="folleto-output-hint">PNG: descarga completa o individual.<br>Documento: descargar PDF.</p><div class="folleto-quick-actions" aria-label="Descarga directa"><button type="button" data-folleto-export="instagram">Instagram</button><button type="button" data-folleto-export="marketplace">Marketplace</button></div></div></aside>
+      <aside class="folleto-summary" aria-label="Resumen del folleto"><h3>Resumen</h3><dl id="folletoSummaryDetails"></dl><div class="folleto-summary-bottom"><p id="folletoStatus" role="status" aria-live="polite"></p><button type="button" id="folletoGenerate" class="folleto-generate">${icon("m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3M20 15v6M17 18h6")}<span>Generar folleto</span></button><p class="folleto-output-hint">PNG: descarga completa o individual.<br>Documento: descargar PDF.</p><div class="folleto-quick-actions" aria-label="Descarga directa"><button type="button" data-folleto-export="marketplace">Marketplace</button></div></div></aside>
     </div>`;
   document.body.appendChild(dialog);
   const form=dialog.querySelector("#folletoOptions"),status=dialog.querySelector("#folletoStatus"),
