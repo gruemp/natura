@@ -441,7 +441,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=precio-folleto-independiente-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=folleto-sin-instagram-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
