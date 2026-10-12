@@ -505,7 +505,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         const finish=(error,table)=>{if(settled)return;settled=true;cleanup();error?reject(error):resolve(table);};
         const timer=window.setTimeout(()=>finish(new Error("No se pudo leer la selección comercial del maestro.")),GOOGLE_SHEET_QUERY_TIMEOUT_MS);
         window[callback]=payload=>{
-          if(payload?.ok!==true||payload?.version!==2||!Array.isArray(payload?.table?.rows))return finish(new Error("El lector Rich Text no confirmó los datos públicos."));
+          if(payload?.ok!==true||payload?.version!==2||!Array.isArray(payload?.table?.rows))return finish(new Error("No se pudieron cargar los productos. Vuelve a intentarlo más tarde."));
           finish(null,payload.table);
         };
         script.onerror=()=>finish(new Error("No se pudo conectar con el lector Rich Text."));

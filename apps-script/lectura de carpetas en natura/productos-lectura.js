@@ -76,3 +76,9 @@ function responderProductosPublicos_(parameters){
   const text=JSON.stringify(payload);
   return ContentService.createTextOutput(callback?callback+'('+text+');':text).setMimeType(callback?ContentService.MimeType.JAVASCRIPT:ContentService.MimeType.JSON);
 }
+// Entrada manual para autorizar y comprobar el lector, sin mostrar datos de productos.
+function verificarLectorProductos(){
+  const payload=leerProductosPublicos_();
+  const result={ok:payload.ok,version:payload.version,productos:payload.table.rows.length};
+  console.log(JSON.stringify(result));return result;
+}
