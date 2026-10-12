@@ -1,0 +1,52 @@
+name: Diagnosticar permisos Google Drive Natura (una vez)
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diagnosticar-permisos-drive-20261012.yml"
+permissions:
+  contents: read
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Diagnosticar los permisos sin modificar Drive
+        shell: bash
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.parse,urllib.request,urllib.error
+          auth=json.loads(os.environ['CLASPRC_JSON'])
+          c=((auth.get('tokens') or {}).get('default') or auth.get('token') or auth)
+          client_id=c.get('client_id') or auth.get('client_id') or auth.get('clientId')
+          client_secret=c.get('client_secret') or auth.get('client_secret') or auth.get('clientSecret')
+          refresh=c.get('refresh_token') or auth.get('refresh_token')
+          if not all((client_id,client_secret,refresh)):raise SystemExit("Falta autorización Google renovable")
+          payload=urllib.parse.urlencode(dict(client_id=client_id,client_secret=client_secret,refresh_token=refresh,grant_type="refresh_token")).encode()
+          req=urllib.request.Request("https://oauth2.googleapis.com/token",data=payload)
+          try:
+              with urllib.request.urlopen(req,timeout=20) as res:tok=json.load(res)['access_token']
+          except urllib.error.HTTPError as e:
+              print("Renovación OAuth HTTP",e.code);raise SystemExit(1)
+          # No revelar ni imprimir el token, el client_id, nombres personales o correos.
+          try:
+              with urllib.request.urlopen("https://oauth2.googleapis.com/tokeninfo?access_token="+urllib.parse.quote(tok),timeout=20) as res:
+                  scope=set(json.load(res).get("scope","").split())
+          except Exception:
+              scope=set()
+          root="https://www.googleapis.com/auth/"
+          print("Ámbitos autorizados:")
+          for s in ("drive","drive.file","drive.readonly","drive.metadata.readonly","drive.metadata","script.projects"):
+              print("  "+s+": "+("SI" if root+s in scope else "NO"))
+          fid="1Dl_C0yk-gXy46Ee7jXmqrB-yLwVwh_vf"
+          url="https://www.googleapis.com/drive/v3/files/"+fid+"?fields=id,name,mimeType,capabilities(canEdit,canModifyContent),md5Checksum,parents"
+          req=urllib.request.Request(url,headers={"Authorization":"Bearer "+tok})
+          try:
+              with urllib.request.urlopen(req,timeout=20) as res:obj=json.load(res)
+              print("Archivo original encontrado:",obj.get("name")=="README.md","canEdit:",obj.get("capabilities",{}).get("canEdit"),"canModifyContent:",obj.get("capabilities",{}).get("canModifyContent"))
+          except urllib.error.HTTPError as e:
+              print("Consulta permiso archivo HTTP",e.code)
+          print("Diagnóstico sin modificaciones realizado")
+          PY
