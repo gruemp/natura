@@ -1,9 +1,10 @@
 {
   "version": 1,
-  "last_verified_source_commit": "7efbde14e2b63061858bb8080d9b0a7059cea3da",
-  "last_verified_at": "2026-10-12T17:30:57-05:00",
-  "verified_active_text_sources": 68,
+  "last_verified_source_commit": "dee85e8b798bb7c5380d50357c852fa6da9aa4a2",
+  "last_verified_at": "2026-10-12T17:45:30-05:00",
+  "verified_active_text_sources": 69,
   "verification_run_url": "https://github.com/gruemp/natura/actions/runs/38317024151",
   "drive_folder_url": "https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249",
-  "description": "Punto de control de la ultima conciliacion de fuentes activas de texto GitHub → Drive; actualizar solo tras comparar y verificar bytes. No incluye las herramientas auxiliares ni el propio punto de control."
+  "description": "Punto de control de la ultima conciliacion de fuentes activas de texto GitHub → Drive; actualizar solo tras comparar y verificar bytes. No incluye las herramientas auxiliares ni el propio punto de control.",
+  "last_verification_details": "La auditoría original confirmó 68/68. Los dos README actualizados y el workflow manual nuevo se releyeron desde Drive y coincidieron exactamente por bytes con GitHub; el número vigente de fuentes de texto activas es 69 (excluye este punto de control, binarios y .github/archivo)."
 }
