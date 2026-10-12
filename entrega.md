@@ -33,4 +33,6 @@ Validación técnica: https://github.com/gruemp/natura/actions/runs/38121936301 
 
 ## Pendientes
 
-Definir y autorizar la conciliación y sincronización de fuentes con Google Drive. Drive no se sincronizó durante esta etapa. El sitio anterior de stock se conserva; cualquier retirada o redirección debe coordinarse con sus enlaces y los restantes proyectos del repositorio.
+La carpeta vigente de Natura es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Las fuentes fueron conciliadas y los cambios posteriores se actualizan manualmente, conservando los IDs; no hay sincronización automática con GitHub. Los recursos retirados están en `.github/archivo/` y sus workflows en `.github/archivo/workflows/`.
+
+Siguen pendientes la revisión de Search Console (nat-003) y la renovación segura de la autorización de publicación Google (nat-010). Los enlaces de stock anteriores documentan la extracción histórica y no identifican la fuente actual. El sitio anterior se conserva; cualquier retirada o redirección debe coordinarse con sus enlaces y restantes proyectos.

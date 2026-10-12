@@ -19,7 +19,7 @@ Las funciones públicas llamadas desde los HTML conservan exactamente sus nombre
 - la implementación se ejecuta como el usuario que accede;
 - Google exige iniciar sesión y autorizar el script; el catálogo reutiliza esa sesión mediante un iframe invisible;
 - la cuenta debe tener permiso de edición sobre el inventario oficial;
-- el puente solo entrega el canal de administración al origen oficial `https://irenismb.github.io`;
+- el puente solo entrega el canal de administración al origen oficial `https://gruemp.github.io`; admite también los orígenes locales de desarrollo definidos en `Puente.html`;
 - los campos se localizan por el texto de los encabezados, no por letras ni posiciones;
 - el código del producto debe tener una coincidencia única;
 - `LockService` evita escrituras simultáneas;

@@ -1,6 +1,6 @@
 # Apps Script de Natura
 
-Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura. Durante la preparación del repositorio independiente, los cambios de código se trabajan exclusivamente en GitHub. Los proyectos de Google Apps Script siguen siendo destinos de ejecución y despliegue; no se modifica Google Drive ni se activa ninguna publicación nueva por preparar el repositorio.
+Esta carpeta reúne las fuentes de los cinco proyectos Apps Script de Natura en https://github.com/gruemp/natura . La carpeta vigente del proyecto en Drive es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los proyectos remotos son destinos de ejecución y despliegue. Los cambios de fuentes no autorizan por sí solos modificar datos comerciales.
 
 ## Proyectos oficiales
 
@@ -12,18 +12,17 @@ Esta carpeta reúne en GitHub las fuentes de los proyectos Apps Script de Natura
 
 ## Origen de trabajo y continuidad (2026-10-11)
 
-- Se trabaja temporalmente el código en GitHub, en `gruemp/natura/apps-script/`. El cambio definitivo de fuente principal no está aprobado ni desplegado.
-- No ejecutar sincronización GitHub → Google Drive ni Drive → GitHub durante esta preparación. La dirección final, la conciliación de versiones y los permisos deberán decidirse y validarse expresamente.
-- Las publicaciones vigentes de Apps Script proceden de los workflows operativos situados en `stock/.github/workflows/`; los flujos de `natura/.github/workflows/` ya están en la raíz del repositorio independiente, pero sus publicaciones siguen deshabilitadas.
-- Antes de publicar desde el repositorio individual, verificar `scriptId`, implementación, secreto, permisos y relación con cada proyecto remoto. No activar dos publicadores ni usar `clasp push --force` con identidades no conciliadas.
-- El lector depende de las propiedades de visibilidad y configuración del administrador. La hoja antigua solo se importa una vez: un proyecto nuevo no debe utilizar esa hoja como si reflejara el estado actual.
-- El lector nuevo es el proyecto independiente `1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX`. Su código y manifiesto ya están guardados en Google.
-- Consulta solo tres propiedades públicas mediante `AdminNatura.leerEstadoPublicoNatura()` en la biblioteca privada del administrador, versión inmutable 35. No importa hojas antiguas, escribe propiedades ni contiene métodos administrativos.
-- La biblioteca 35 quedó creada sin modificar las implementaciones web existentes ni compartir el proyecto administrativo. El titular completó la autorización Google y se publicó la versión 1 del lector el 2026-10-11.
-- `deployment.json` registra el despliegue independiente versión 1. Se verificaron las respuestas de configuración y visibilidad contra el lector anterior: coinciden, incluida la revisión de configuración 2026-10-07T23:00:14.772Z. El catálogo usa el endpoint nuevo https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec . El workflow publica exclusivamente este proyecto; se eliminó la sobrescritura y restauración temporal del administrador.
-- Falta reconectar `CLASPRC_JSON` por un canal seguro en gruemp/natura antes de habilitar publicación automática. Las credenciales existentes en stock no son exportables desde GitHub. Los publicadores de stock se conservan hasta comprobar el reemplazo automático; no hay dos publicadores habilitados.
-- `google-projects.json` registra los cinco proyectos actuales. No autoriza ninguna sincronización con Drive.
-- Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización independiente.
+- Las fuentes se mantienen en este repositorio independiente. Drive se actualiza manualmente, verificando contenido y conservando los IDs de los archivos existentes. No hay sincronización automática GitHub ↔ Drive.
+- Las publicaciones vigentes de Apps Script utilizan los workflows de `gruemp/natura/.github/workflows/`. Los publicadores anteriores de stock están desactivados. La publicación de Apps Script es distinta de la actualización de archivos en Drive.
+- `CLASPRC_JSON` ya existe como secreto del repositorio y `NATURA_PUBLICACION_HABILITADA=true` habilita las publicaciones. Su renovación segura sigue pendiente; no extraer ni registrar credenciales en archivos o mensajes.
+- Antes de cualquier nueva publicación, verificar `scriptId`, implementación, permisos y relación con el proyecto remoto. No activar dos publicadores ni usar `clasp push --force` con identidades no conciliadas.
+- El lector depende de las propiedades vigentes del administrador. La hoja antigua solo se importó una vez y no representa el estado actual.
+- El lector independiente es `1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX`. Consulta tres propiedades públicas mediante `AdminNatura.leerEstadoPublicoNatura()`, utilizando la biblioteca privada del administrador fijada en la versión 35.
+- Su publicación conserva `Código.gs` y el manifiesto, sin sobrescribir el administrador. El despliegue inicial fue la versión 1; la publicación posterior de la versión 2 consta en `entrega.md`. El campo `version` de `deployment.json` registra la verificación inicial, no una consulta actual del despliegue remoto.
+- Endpoint vigente: https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec .
+- La carpeta de anuncios y el proyecto nativo de lectura se trasladaron a la carpeta vigente conservando IDs y permisos. Las hojas comerciales y los despliegues mantienen sus identidades.
+- `google-projects.json` registra los cinco proyectos y no habilita sincronización con Drive. Los auxiliares históricos están en `.github/archivo/` y sus referencias no deben utilizarse como fuentes actuales.
+- Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización correspondiente.
 
 ## Pedidos Natura
 

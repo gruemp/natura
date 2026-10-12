@@ -1,6 +1,6 @@
 # Natura — mapa de archivos
 
-Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el código de Natura se realiza exclusivamente en GitHub, en el repositorio independiente `gruemp/natura`. Google Drive no se modifica. El cambio definitivo de fuente principal y la futura sincronización GitHub → Drive permanecen pendientes de decisión y validación; no se presupone que todos los archivos ya estén conciliados.
+Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://github.com/gruemp/natura . La única carpeta vigente del proyecto en Google Drive es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Las actualizaciones entre ambos se realizan manualmente, con verificación de contenido e identificadores; no hay sincronización automática.
 
 ## Sitio público
 
@@ -23,7 +23,7 @@ Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el có
 
 ## Apps Script
 
-- `apps-script/`: fuentes de los proyectos de Apps Script conservadas en GitHub para preparar el repositorio independiente. Los proyectos y despliegues de Google siguen siendo sistemas externos; ninguna actualización del código autoriza por sí sola publicar, sobrescribir el Apps Script remoto ni cambiar sus datos.
+- `apps-script/`: fuentes de los proyectos de Apps Script mantenidas en el repositorio independiente. Los proyectos y despliegues de Google siguen siendo sistemas externos; ninguna actualización del código autoriza por sí sola publicar, sobrescribir el Apps Script remoto ni cambiar sus datos.
 - `lectura de carpetas en natura`: proyecto Apps Script real visible en Drive; es destino de ejecución, no fuente normal de edición.
 
 ## Repositorio independiente
@@ -34,8 +34,8 @@ Estado de preparación (2026-10-11): durante esta etapa, el trabajo sobre el có
 - La credencial `CLASPRC_JSON` está guardada como secreto del repositorio y `NATURA_PUBLICACION_HABILITADA=true` habilita sus publicaciones. Los cinco proyectos y despliegues oficiales de Google fueron consultados y publicados correctamente el 2026-10-11; los publicadores anteriores de Apps Script en stock están desactivados.
 - Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
 - El lector público utiliza un proyecto independiente y consulta tres propiedades públicas vigentes mediante la biblioteca privada del administrador, fijada en la versión 35. Su publicación conserva el archivo original Código.gs y no modifica el administrador.
-- Google Drive no está sincronizado. La dirección definitiva de sincronización queda pendiente.
-- `migrar-natura.yml` conserva el proceso de extracción utilizado y rechaza una nueva ejecución sobre un repositorio ya poblado.
+- Carpeta vigente de Google Drive: https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los archivos de código conciliados conservan sus IDs. La carpeta de anuncios y el proyecto nativo de lectura se trasladaron conservando sus identificadores y permisos; las hojas comerciales y los despliegues mantienen sus identidades.
+- `.github/archivo/workflows/migrar-natura.yml` conserva el proceso histórico de extracción. Está archivado y no es un workflow operativo.
 
 ## Regla de mantenimiento
 
@@ -43,4 +43,4 @@ Conservar los nombres públicos y técnicos estables salvo necesidad real. Divid
 
 ## Archivo
 
-Los recursos retirados de producción se conservan fuera de la carpeta activa, en la carpeta de archivo definida para el proyecto.
+Los recursos históricos se conservan en `.github/archivo/`, con guía en `.github/archivo/leeme.md`. Los workflows retirados están en `.github/archivo/workflows/`; los operativos permanecen en `.github/workflows/`. Los IDs de recursos archivados son evidencia histórica, no referencias vigentes. No ejecutar auxiliares archivados sin revisar referencias, permisos y autorización.
