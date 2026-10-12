@@ -441,7 +441,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-motor-unico-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-motor-unico-2026-10-12-2'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -732,6 +732,7 @@ test('El mismo motor omite completamente el bloque de precio si no existe un imp
   context.measure=noPrice;
   vm.runInContext('renderFicha(ctx,{x:0,y:0,width:1080,height:1080,product:buildFichaModel(p),measure},null)',context);
   assert.equal(ctx.strokes,2,'Solo los separadores de atributos y descripción; sin separador de precio.');
+  assert.ok(ctx.printed.includes('Sin fotografía'),'La exportación presenta la misma ausencia de foto de la web.');
   assert.ok(ctx.printed.some(v=>v.includes('Código:')));assert.ok(ctx.printed.some(v=>v.includes('Marca:')));
   context.p.priceText='15.000';
   const withPrice=vm.runInContext('measureFicha(ctx,buildFichaModel(p))',context);
