@@ -639,7 +639,7 @@ test('El servicio consulta solo A con Sheets API y conserva un ámbito de solo l
   vm.runInContext(richReaderSource,ctx);const result=ctx.verificarLectorProductos();assert.equal(result.productos,1);
   assert.deepEqual(Array.from(calls[1].options.ranges),["'Productos'!A1:A888"]);assert.ok(calls[1].options.fields.includes('textFormatRuns'));
   const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','appsscript.json'),'utf8'));
-  assert.ok(manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets.readonly'));assert.ok(!manifest.oauthScopes.includes('https://www.googleapis.com/auth/spreadsheets'));
+  assert.deepEqual(manifest.oauthScopes,['https://www.googleapis.com/auth/drive.readonly']);
 });
 const richDescription='Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa\nVariedad: Flor de Cereza y Aguacate\nColor: Rojo vivo\nPrecio: 25.000\nSección: Belleza y cuidado\nCategoría: Perfumería\nLínea: Kaiak\nDisponibilidad: A la venta\nCódigo interno: 0042\nCosto: 15.000\nNúmero de serie: PRIVADO-123\nCódigo Natura: PRIVADO-NAT\nReferencia: https://example.com/privado';
 test('Rich Text de una sola A selecciona nombres completos en negrita y excluye datos privados antes de enviarlos',()=>{
