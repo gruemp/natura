@@ -61,12 +61,21 @@ function productoPublico_(rich,row){
   return {sourceRow:row,c:[{v:lines.join('\n'),textFormatRuns:textFormatRuns}]};
 }
 function leerProductosPublicos_(){
-  const book=SpreadsheetApp.openById('1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs');
-  const sheet=book.getSheetByName('Productos');
-  if(!sheet||productoClave_(sheet.getRange(1,1).getDisplayValue())!=='informacion del producto')throw new Error('Fuente de productos no confirmada.');
-  const count=sheet.getLastRow()-1;
-  const rows=count>0?sheet.getRange(2,1,count,1).getRichTextValues().map((r,i)=>productoPublico_(r[0],i+2)).filter(r=>r.c[0].v):[];
+  const id='1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs';
+  // The built-in SpreadsheetApp reader demands a write-capable scope. Sheets API accepts readonly.
+  const metadata=Sheets.Spreadsheets.get(id,{fields:'sheets(properties(title,gridProperties(rowCount)))'});
+  const sheet=(metadata.sheets||[]).find(s=>s.properties.title==='Productos');
+  if(!sheet)throw new Error('Fuente de productos no confirmada.');
+  const data=Sheets.Spreadsheets.get(id,{ranges:["'Productos'!A1:A"+sheet.properties.gridProperties.rowCount],includeGridData:true,fields:'sheets(data(rowData(values(userEnteredValue,textFormatRuns,userEnteredFormat(textFormat(bold))))))'});
+  const cells=data.sheets[0].data[0].rowData||[];
+  if(productoClave_(cells[0]?.values?.[0]?.userEnteredValue?.stringValue)!=='informacion del producto')throw new Error('Fuente de productos no confirmada.');
+  const rows=cells.slice(1).map((r,i)=>productoPublico_(productoRichText_(r.values?.[0]||{}),i+2)).filter(r=>r.c[0].v);
   return {ok:true,version:2,actualizadoEn:new Date().toISOString(),table:{cols:[{id:'A',label:'Informacion del producto'}],rows:rows}};
+}
+function productoRichText_(cell){
+  const text=cell.userEnteredValue?.stringValue||'',runs=cell.textFormatRuns||[],base=cell.userEnteredFormat?.textFormat?.bold===true;
+  const boldAt=i=>{let bold=base;for(const r of runs){if((r.startIndex||0)>i)break;bold=typeof r.format?.bold==='boolean'?r.format.bold:base;}return bold;};
+  return {getText:()=>text,getTextStyle:(start,end)=>({isBold:()=>{for(let i=start;i<end;i++)if(!boldAt(i))return false;return end>start;}})};
 }
 function responderProductosPublicos_(parameters){
   const callback=String(parameters.callback||'').trim();
