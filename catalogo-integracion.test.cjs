@@ -664,6 +664,7 @@ test('Opciones de tres palabras preservan valores completos y distinguen opcione
   const buttons=facetButtons(env).filter(b=>b.dataset.facetGroup==='atributo:variedad');
   assert.equal(buttons.length,2);assert.ok(buttons.every(b=>b.children[0].textContent==='Flor de Cereza'));
   assert.notEqual(buttons[0].dataset.facetValue,buttons[1].dataset.facetValue);
+  for(const group of env.sandbox.document.getElementById('wordChips').children){assert.ok(!/\s/.test(group.children[0].id));assert.equal(group.attributes['aria-labelledby'],group.children[0].id);}
   env.run('toggleFacetFilter("atributo:variedad","Flor de Cereza y Aguacate")');assert.deepEqual(facetIds(env),['0042']);
   assert.equal(env.run('catalogTabLabel("Lanzadores y juegos de agua")'),'Lanzadores y juegos');
 });

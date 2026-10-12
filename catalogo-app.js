@@ -3290,9 +3290,10 @@ function renderWordSuggestions(){
   let restoreFocus=null;
   for(const group of groups){
     const section=document.createElement("div");section.className="word-filter-group";
-    section.setAttribute("role","group");section.setAttribute("aria-labelledby",`facet-heading-${group.id}`);
+    const headingId=`facet-heading-${encodeURIComponent(group.id)}`;
+    section.setAttribute("role","group");section.setAttribute("aria-labelledby",headingId);
     const heading=document.createElement("div");heading.className="word-filter-heading";
-    heading.id=`facet-heading-${group.id}`;heading.textContent=catalogTabLabel(group.label);
+    heading.id=headingId;heading.textContent=catalogTabLabel(group.label);
     const options=document.createElement("div");options.className="word-filter-options";
     for(const option of group.options){
       const btn=document.createElement("button");btn.type="button";
