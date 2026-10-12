@@ -59,6 +59,7 @@ function buildFolletoSnapshot(options={}){
     attributes:Object.freeze(folletoProductAttributes(p)),
     facts:Object.freeze(fichaOrderedFacts(p,settings.codes).map(f=>Object.freeze(f))),
     imageUrl:settings.images?String(p.docsImageUrl||"").trim():"",
+    imageEnabled:settings.images,
     route:navigationOrderedLevels().filter(l=>l!=="product").map(l=>String(navigationValueForProduct(p,l)||"").trim()).filter(Boolean).join(" · ")
   }));
   const title=scope==="selected"?"Selección de productos":navigationOrderedLevels().filter(l=>l!=="product").map(l=>String(selectedNavigationValue(l)||"").trim()).filter(Boolean).join(" › ")||"Productos";
@@ -176,7 +177,7 @@ function buildFichaModel(product){
     facts:Array.isArray(product.facts)?product.facts:(
       (product.code?[{label:"Código",value:String(product.code).replace(/^C[oó]digo\s*:?\s*/i,"")}]:[])
        .concat(Array.isArray(product.attributes)?product.attributes:[])
-    ),imageUrl:String(product.imageUrl||"")
+    ),imageUrl:String(product.imageUrl||""),imageEnabled:product.imageEnabled!==false
   };
 }
 function catalogFichaName(product){
@@ -467,9 +468,13 @@ function folletoDrawImage(ctx,image,x,y,w,h,trimMargins=false){
     const iw=frame.width*ratio,ih=frame.height*ratio;
     ctx.drawImage(image,frame.x,frame.y,frame.width,frame.height,x+(w-iw)/2,y+(h-ih)/2,iw,ih);
   }else{
-    ctx.fillStyle="#f5e9e3";folletoRoundRect(ctx,x,y,w,h,14);ctx.fill();
-    folletoFont(ctx,21);ctx.fillStyle="#000";ctx.textAlign="center";
-    ctx.fillText("Imagen no disponible",x+w/2,y+h/2,w-20);ctx.textAlign="left";
+    const gradient=ctx.createLinearGradient(x,y,x+w,y+h);
+    gradient.addColorStop(0,"#fffaf4");gradient.addColorStop(.6,"#f7eae5");gradient.addColorStop(1,"#f4f0e8");
+    ctx.fillStyle=gradient;folletoRoundRect(ctx,x,y,w,h,14);ctx.fill();
+    ctx.fillStyle="#76514e";ctx.textAlign="center";
+    folletoFont(ctx,26,true);ctx.fillText("Sin fotografía",x+w/2,y+h/2-12,w-20);
+    ctx.fillStyle="#987a71";folletoFont(ctx,18);
+    ctx.fillText("Próximamente",x+w/2,y+h/2+30,w-20);ctx.textAlign="left";
   }
 }
 function renderFicha(ctx,card,image){
@@ -488,6 +493,9 @@ function renderFicha(ctx,card,image){
   if(product.imageUrl){
     ctx.save();ctx.globalCompositeOperation=FICHA_THEME.blend;
     folletoDrawImage(ctx,image,32,40,498,measure.mainHeight+28,true);ctx.restore();
+  }else if(product.imageEnabled!==false){
+    // Misma indicación de ausencia de fotografía que se muestra en la tarjeta web.
+    folletoDrawImage(ctx,null,FICHA_LAYOUT.padding,130,440,650,false);
   }
   let textY=54;
   const spacing=measure.scale||1;
