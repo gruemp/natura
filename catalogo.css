@@ -857,6 +857,11 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
   .catalog-layout{grid-template-columns:clamp(150px,17vw,170px) minmax(0,1fr) clamp(185px,22vw,215px)}
   .catalog-contact{grid-column:3;grid-template-columns:minmax(0,1fr)}
   .grid.album-grid-mode{grid-template-columns:repeat(2,minmax(0,1fr))}
+  /* Mantener legible el contacto social en el carril estrecho de tabletas. */
+  .catalog-navigation .social-contact-card{padding:15px 12px}
+  .catalog-navigation .social-contact-card h2{font-size:clamp(18px,2.2vw,21px);line-height:1.22}
+  .catalog-navigation .social-contact-intro{font-size:12px;line-height:1.45}
+  .catalog-navigation .social-icons a,.catalog-navigation .social-icons button{gap:9px}
 }
 
 #grid:has(>.catalog-ficha-card){grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));align-items:start;gap:22px}
