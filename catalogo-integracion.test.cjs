@@ -443,7 +443,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=diez-composicion-2026-10-13-6'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=folleto-interfaz-2026-10-13-7'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1148,4 +1148,17 @@ test('Descripción justificada en ficha web y en exportaciones PNG/PDF sin estir
   assert.match(webDescriptionRule,/white-space:pre-line/,'Mantiene los saltos de párrafo originales');
   assert.ok(toolsSource.includes('folletoDrawText(ctx,measure.description,54,descriptionY+18,972,false,true);'),
     'El mismo renderizador del Folleto justifica la descripción en PNG y PDF');
+});
+
+test('La capa exterior del diálogo Folleto no toca fichas ni el lienzo de vista previa',()=>{
+  const marker="/* Folleto: renovación de los controles del diálogo; nunca altera la vista previa ni las fichas. */";
+  assert.equal(fichaCssSource.split(marker).length,2);
+  const layer=fichaCssSource.split(marker)[1];
+  assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|#grid|\.folleto-preview(?:\s*[\\{>]| img)|\.folleto-body\s*\\{|\.card\s*\\{/);
+  for(const line of layer.split('\n')){
+    const candidate=line.trim();
+    if(candidate.includes('{')&&!candidate.startsWith('/*')&&!candidate.startsWith('}')){
+      assert.ok(candidate.startsWith('.folleto-dialog')||candidate.startsWith('@media'),candidate);
+    }
+  }
 });

@@ -1256,3 +1256,73 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 @media(min-width:600px) and (max-width:760px){.site-footer .footer-products-card .footer-product-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}}
 @media(max-width:599px){.site-footer .footer-products-card .footer-product-benefits{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}}
 .site-footer .footer-products-card .footer-product-benefits>li{min-width:0;text-align:left;overflow-wrap:anywhere}
+
+/* Folleto: renovación de los controles del diálogo; nunca altera la vista previa ni las fichas. */
+/* 1. Cabecera reconocible, en contraste con el contenido. */
+.folleto-dialog>.folleto-heading{background:linear-gradient(115deg,#fff6f8 0%,#ffffff 68%);border-bottom:3px solid #ead0da;box-shadow:inset 0 5px 0 #92556e}
+.folleto-dialog .folleto-heading h2{font:700 clamp(24px,2.3vw,32px)/1.14 Georgia,'Times New Roman',serif;color:#593249;letter-spacing:-.018em}
+.folleto-dialog .folleto-heading p{max-width:57ch;color:#664f5c;line-height:1.48}
+/* 2. Emblema del folleto, separado del título por tamaño y contraste. */
+.folleto-dialog .folleto-title-icon{width:62px;height:62px;border:1px solid #dab4c3;border-radius:18px;background:#f1dce5;color:#64384d;box-shadow:0 4px 12px #6b354212}
+.folleto-dialog .folleto-title-icon .ui-icon{width:34px;height:34px}
+/* 3. Cierre visible y consistente, sin depender del cursor. */
+.folleto-dialog .folleto-close{width:44px;height:44px;border:1px solid #dbbdc8;border-radius:12px;background:#fff;color:#65394d;box-shadow:0 2px 8px #65394d12;font-size:28px}
+/* 4. Pasos con números visibles y títulos legibles. */
+.folleto-dialog .folleto-options legend,.folleto-dialog .folleto-formats legend{display:flex;align-items:center;gap:9px;font-size:17px;line-height:1.3;color:#543147;letter-spacing:-.01em}
+.folleto-dialog .folleto-options legend>span,.folleto-dialog .folleto-formats legend>span{display:inline-grid;place-items:center;width:31px;height:31px;margin:0;border-radius:9px;background:#72435b;color:#fff;font:700 14px/1 Calibri,Arial,sans-serif;flex:none}
+/* 5. Alcance: tres tarjetas claramente separadas y uniformes. */
+.folleto-dialog .folleto-scope>.folleto-choice{min-height:90px;gap:13px;align-items:center;padding:14px 15px;margin-bottom:10px;border:1px solid #e6d6dd;border-left:4px solid #e6d6dd;border-radius:14px;background:#fff;box-shadow:0 2px 8px #62415208}
+.folleto-dialog .folleto-scope>.folleto-choice>span{min-width:0}
+.folleto-dialog .folleto-scope>.folleto-choice strong{font-size:15px;color:#47323e}
+.folleto-dialog .folleto-scope>.folleto-choice small{margin-top:6px;color:#655760;line-height:1.44}
+.folleto-dialog .folleto-scope>.folleto-choice:has(input:checked){border-color:#bb8da4;border-left-color:#75465e;background:#fbf0f5;box-shadow:0 3px 12px #76415613}
+/* 6. Contenido: comprobaciones individuales, no una lista compacta. */
+.folleto-dialog .folleto-content>.folleto-checkboxes{display:grid;grid-template-columns:1fr;gap:9px;padding:0;border:0;background:transparent}
+.folleto-dialog .folleto-content>.folleto-checkboxes>label{min-height:47px;gap:12px;padding:10px 13px;border:1px solid #e6d6de;border-radius:11px;background:#fff;color:#51384a;font-weight:600}
+.folleto-dialog .folleto-content>.folleto-checkboxes>label:has(input:checked){border-color:#c69baf;background:#fcf2f6}
+/* 7. Formatos: dos opciones como módulos principales equilibrados. */
+.folleto-dialog .folleto-format-grid{gap:12px}
+.folleto-dialog .folleto-format{min-height:164px;gap:7px;padding:17px 10px 14px;border:2px solid #e8d8df;border-radius:16px;background:#fff;box-shadow:0 3px 11px #643b4e0a}
+.folleto-dialog .folleto-format:has(input:checked){border-color:#82506a;background:linear-gradient(160deg,#f6e4ec,#fffbfd);box-shadow:inset 0 4px #82506a,0 5px 14px #76415617}
+.folleto-dialog .folleto-format strong{font-size:16px;line-height:1.2;color:#59364d}
+/* 8. Símbolos y descripciones del formato con jerarquía clara. */
+.folleto-dialog .folleto-format-icon{display:grid;place-items:center;width:53px;height:53px;border-radius:14px;background:#f5e7ed;color:#71445d}
+.folleto-dialog .folleto-format-icon .ui-icon{width:32px;height:32px;margin:0}
+.folleto-dialog .folleto-format small{font-weight:700;color:#6e465d}
+.folleto-dialog .folleto-format-note{font-size:12px;color:#62525c}
+/* 9. Encabezado de vista previa: contenido contextual separado del lienzo inalterado. */
+.folleto-dialog .folleto-preview-heading{min-height:42px;margin-bottom:13px;padding:0 0 10px;border-bottom:2px solid #ead8e0;gap:10px}
+.folleto-dialog .folleto-preview-heading h3{display:flex;align-items:center;gap:8px;font-size:17px;color:#56374b}
+.folleto-dialog .folleto-preview-heading h3>span{width:30px;height:30px;margin:0;border-radius:9px;background:#72435b;color:#fff;font-size:14px}
+.folleto-dialog .folleto-page-count:not(:empty){padding:7px 10px;border:1px solid #e2ccd6;border-radius:10px;background:#fff7fa;color:#683e55;font-weight:700}
+/* 10. Resumen: información agrupada en una superficie con renglones definidos. */
+.folleto-dialog .folleto-summary{background:linear-gradient(155deg,#f4e1e9 0%,#f9eff2 100%);border:1px solid #e4c9d4;box-shadow:inset 0 4px #8b5670}
+.folleto-dialog .folleto-summary>h3{margin:0 0 14px;padding-bottom:12px;border-bottom:1px solid #d8b4c4;color:#573348;font:700 21px/1.2 Georgia,'Times New Roman',serif}
+.folleto-dialog .folleto-summary dl{grid-template-columns:minmax(0,1fr) auto;gap:0;background:#fff;border:1px solid #ead6df;border-radius:12px;padding:3px 11px}
+.folleto-dialog .folleto-summary dt,.folleto-dialog .folleto-summary dd{padding:8px 0;border-bottom:1px solid #f0e5ea;line-height:1.35;min-width:0}
+.folleto-dialog .folleto-summary dt:nth-last-of-type(1),.folleto-dialog .folleto-summary dd:nth-last-of-type(1){border-bottom:0}
+.folleto-dialog .folleto-summary dt{color:#685363}
+.folleto-dialog .folleto-summary dd{color:#493342;font-weight:700}
+/* 11. Generación: acción primaria inequívoca y legible. */
+.folleto-dialog .folleto-generate{min-height:54px;border:1px solid #70405b;border-radius:13px;background:#72435b;color:#fff;font-size:16px;box-shadow:0 5px 14px #5d294c25}
+.folleto-dialog .folleto-generate .ui-icon{color:#fff}
+/* 12. Descarga secundaria: botón diferenciado del texto de ayuda. */
+.folleto-dialog .folleto-output-hint{margin:13px 0 0;padding:10px 9px;border-top:1px solid #e1c9d3;color:#675263;line-height:1.48}
+.folleto-dialog .folleto-quick-actions{margin-top:10px}
+.folleto-dialog .folleto-quick-actions button{width:100%;min-height:41px;padding:10px 12px;border:1px solid #cfacbb;border-radius:11px;background:#fff;color:#60394e;font-size:13px;font-weight:700;text-decoration:none}
+/* Móvil: adaptar únicamente controles del cuadro, sin modificar la imagen ni su contenedor. */
+@media(max-width:760px){
+  .folleto-dialog>.folleto-heading{padding:18px 16px}
+  .folleto-dialog .folleto-title-icon{width:44px;height:44px;border-radius:12px}
+  .folleto-dialog .folleto-title-icon .ui-icon{width:26px;height:26px}
+  .folleto-dialog .folleto-heading h2{font-size:23px}
+  .folleto-dialog .folleto-heading p{font-size:12px}
+  .folleto-dialog .folleto-close{width:40px;height:40px;flex:none}
+  .folleto-dialog .folleto-scope>.folleto-choice{min-height:82px;padding:11px 12px}
+  .folleto-dialog .folleto-format{min-height:152px;padding:15px 6px 12px}
+  .folleto-dialog .folleto-format strong{font-size:14px}
+  .folleto-dialog .folleto-format-icon{width:43px;height:43px}
+  .folleto-dialog .folleto-format-icon .ui-icon{width:27px;height:27px}
+  .folleto-dialog .folleto-content>.folleto-checkboxes{grid-template-columns:1fr}
+  .folleto-dialog .folleto-summary dl{grid-template-columns:minmax(0,1fr) auto;gap:0 9px}
+}
