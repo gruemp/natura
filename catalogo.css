@@ -856,6 +856,7 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 @media (min-width:761px) and (max-width:980px){
   .catalog-layout{grid-template-columns:clamp(150px,17vw,170px) minmax(0,1fr) clamp(185px,22vw,215px)}
   .catalog-contact{grid-column:3;grid-template-columns:minmax(0,1fr)}
+  .grid.album-grid-mode{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 
 #grid:has(>.catalog-ficha-card){grid-template-columns:repeat(auto-fill,minmax(min(100%,350px),1fr));align-items:start;gap:22px}
