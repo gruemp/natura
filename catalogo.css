@@ -945,3 +945,27 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .word-filter-status .word-clear{flex:0 0 auto}
 .word-filter-status:has(.filter-summary[hidden]){margin-bottom:0}
 @media(max-width:480px){.word-panel{padding:12px}.word-filter-options{gap:5px}.word-filter-options .term-chip{font-size:12px;padding:7px 9px}}
+
+/* Mejora 1: ancho mínimo legible para tarjetas de productos en tabletas. */
+@media (min-width:761px) and (max-width:980px){
+  .grid:not(.album-grid-mode){grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+}
+/* Mejoras 2-4: áreas táctiles de acciones, descripción y ruta de categorías. */
+@media (max-width:760px){
+  .card .actions button{min-height:44px}
+  .actions.has-items,.card.catalog-ficha-card .actions.has-items{grid-template-columns:44px minmax(0,1fr)}
+  .card:not(.catalog-ficha-card) .product-details summary{display:flex;align-items:center;min-height:44px;padding-block:10px}
+  .album-path .breadcrumb-link{display:inline-flex;align-items:center;min-width:44px;min-height:44px;max-width:100%;padding:9px 7px;overflow-wrap:anywhere;white-space:normal}
+}
+/* Mejora 5: título y contador separados cuando no caben en el mismo renglón. */
+@media (max-width:420px){
+  .products-heading{flex-wrap:wrap;align-items:flex-start;gap:5px 12px}
+  .products-heading .count-slot{flex:1 1 100%}
+  .products-heading .count{text-align:left}
+  .products-heading h2{font-size:clamp(24px,7vw,29px);overflow-wrap:anywhere}
+}
+/* Mejora 6: opciones de folleto legibles en los móviles más estrechos. */
+@media (max-width:400px){
+  .folleto-checkboxes{grid-template-columns:minmax(0,1fr)}
+  .folleto-checkboxes label{min-height:44px;font-size:13px}
+}
