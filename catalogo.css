@@ -1224,3 +1224,35 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 /* 10. Pie: más espacio al contacto y beneficios con altura uniforme. */
 @media(min-width:761px){.site-footer .footer-visit-card{grid-template-columns:minmax(0,1.7fr) minmax(155px,.3fr);min-height:250px}}
 .site-footer .footer-products-card .footer-product-benefits>li{min-height:59px;align-items:center;padding:11px 12px}
+
+/* Diez mejoras de lectura inmediata, solo estructura visual exterior. */
+/* 1. Cabecera de escritorio: marca, búsqueda y acciones con anchuras equilibradas. */
+@media(min-width:1260px){.site-header-inner{grid-template-columns:minmax(350px,1.2fr) minmax(270px,.95fr) auto;column-gap:26px}}
+/* 2. Identidad: bloque de marca compacto sin alterar el texto comercial. */
+.site-header .brand>div{display:flex;flex-direction:column;gap:7px;justify-content:center}
+.site-header .brand h1{margin:0;max-width:23ch}
+.site-header .brand .tagline{margin:0;max-width:37ch}
+/* 3. Búsqueda: icono en superficie contrastada y alineado al campo. */
+.site-header .search-wrap>.ui-icon{left:9px;width:34px;height:34px;padding:8px;border-radius:10px;background:#f4e3eb;color:#714157}
+.site-header .search-wrap #q{padding-left:54px}
+/* 4. Cabecera móvil: folleto centrado y ancho uniforme, carrito independiente. */
+@media(max-width:760px){.site-header .header-actions>#folletoBtn{min-width:0;width:100%;min-height:48px;font-size:14px;justify-content:center}}
+/* 5. Navegación móvil: dos pestañas simétricas con iconos y rótulos apilados. */
+@media(max-width:760px){.catalog-navigation>nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.catalog-navigation>nav>.nav-button{flex-direction:column;gap:5px;min-height:74px;padding:10px 6px;text-align:center}.catalog-navigation>nav>.nav-button>.ui-icon{width:31px;height:31px}}
+/* 6. Productos: etiqueta editorial estática sobre el título de la sección. */
+.catalog-main>.products-heading h2::before{content:"CATÁLOGO";display:block;margin-bottom:4px;color:#98667b;font:800 11px/1.1 Arial,sans-serif;letter-spacing:.12em}
+.catalog-main>.products-heading{align-items:center}
+/* 7. Controles: jerarquía de botón secundario de ordenación sin hover. */
+.catalog-main>.bar>#productOrderBtn{background:#f4ecef;border:1px solid #d4bdc8;color:#614057}
+.catalog-main>.bar>#bulkAddBtn{background:#fff;border:1px solid #ddc4cf}
+/* 8. Atención: experiencia destacada como primer dato de confianza. */
+.catalog-contact>.service-card .service-list>li:first-child{padding:16px 9px;background:#f9eef1;border-radius:12px;border-bottom:0;margin-bottom:7px}
+.catalog-contact>.service-card .service-list>li:first-child>span{font-weight:700;color:#5e384d}
+/* 9. Redes: mayor consistencia entre título y matriz de enlaces. */
+.social-contact-region>.social-contact-card h2{max-width:28ch;margin-inline:auto;text-align:center;line-height:1.2}
+.social-contact-region>.social-contact-card .social-icons{margin-top:15px}
+@media(max-width:760px){.social-contact-region>.social-contact-card .social-icons{column-gap:7px;row-gap:9px}}
+/* 10. Pie: módulos de beneficios simétricos en tamaños intermedios y lectura cómoda en móviles. */
+@media(min-width:600px) and (max-width:760px){.site-footer .footer-products-card .footer-product-benefits{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}}
+@media(max-width:599px){.site-footer .footer-products-card .footer-product-benefits{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}}
+.site-footer .footer-products-card .footer-product-benefits>li{min-width:0;text-align:left;overflow-wrap:anywhere}
