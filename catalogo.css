@@ -1191,3 +1191,36 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .site-footer .footer-visit-card,.site-footer .footer-products-card{border-radius:18px;box-shadow:0 8px 20px #65455611}
 .site-footer .footer-products-card .footer-product-benefits>li{border-color:#ead7df;background:#fff}
 .site-footer .footer-products-card .footer-product-benefits .ui-icon{background:#f1e2e8}
+
+/* Diez mejoras estáticas de proporción y contraste en áreas exteriores; fichas intactas. */
+/* 1. Logotipo: marco simplificado y circular, sin doble contorno pesado. */
+.site-header .brand>img{padding:2px;border:2px solid #b9879a;box-shadow:0 0 0 3px #fff,0 3px 13px #6944551c}
+/* 2. Identidad: título y descripción con jerarquía más legible. */
+.site-header .brand h1{font-size:clamp(21px,2.15vw,29px);line-height:1.14}
+.site-header .brand .tagline{font-size:14px;line-height:1.42;color:#594652;font-weight:500}
+@media(max-width:760px){.site-header .brand h1{font-size:clamp(19px,5.4vw,22px)}}
+/* 3. Búsqueda: icono alineado y campo limpio de tamaño generoso. */
+.site-header .search-wrap #q{height:56px;border-radius:12px;border-color:#b9879a;background:#fffdfd;box-shadow:0 3px 12px #67445810}
+.site-header .search-wrap>.ui-icon{color:#794759;width:22px;height:22px}
+/* 4. Acciones de cabecera: Folleto y Carrito con alturas equiparadas. */
+@media(min-width:761px){.site-header .header-actions>#folletoBtn,.site-header .header-actions>#btn-cart{min-height:54px;font-size:15px}}
+/* 5. Navegación: marco exterior ligero y accesos alineados. */
+.catalog-navigation>nav{border-radius:13px;background:#fff;padding:10px;gap:8px;border-color:#e5d5dc}
+.catalog-navigation>nav>.nav-button{min-height:54px;background:#fdf9fb;padding:10px 11px;font-size:15px}
+@media(max-width:760px){.catalog-navigation>nav>.nav-button{padding:10px 6px}}
+/* 6. Productos: un título con mejor escala y contador más discreto. */
+.catalog-main>.products-heading h2{font-size:clamp(28px,2.8vw,36px);line-height:1.15}
+.catalog-main>.products-heading .count-slot .count{border-radius:9px;background:#fff8f9;padding:7px 10px}
+/* 7. Barra: tres acciones con texto igualmente visible y ritmo consistente. */
+.catalog-main>.bar>button:not([hidden]){font-size:14px;font-weight:700;line-height:1.3}
+.catalog-main>.bar>#bulkAddBtn{border-color:#d6b3c1;background:#fff6f9;color:#633b4d}
+/* 8. Atención cercana: tipografía y textos mejor distribuidos. */
+.catalog-contact>.service-card>h2{font-size:23px;line-height:1.2;margin-bottom:10px}
+.catalog-contact>.service-card .service-list>li>span{font-size:14px;line-height:1.5;color:#463640}
+/* 9. Redes: panel de enlaces con etiquetas y tamaños consistentes. */
+.social-contact-region>.social-contact-card .social-icons a:not(#waTopLink),.social-contact-region>.social-contact-card .social-icons button{min-height:86px;padding:10px 4px;border-radius:13px}
+.social-contact-region>.social-contact-card .social-icons .social-label{font-size:12px;line-height:1.3}
+@media(min-width:761px){.catalog-navigation .social-icons a:not(#waTopLink),.catalog-navigation .social-icons button{min-height:45px}}
+/* 10. Pie: más espacio al contacto y beneficios con altura uniforme. */
+@media(min-width:761px){.site-footer .footer-visit-card{grid-template-columns:minmax(0,1.7fr) minmax(155px,.3fr);min-height:250px}}
+.site-footer .footer-products-card .footer-product-benefits>li{min-height:59px;align-items:center;padding:11px 12px}
