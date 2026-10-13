@@ -1044,3 +1044,20 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 /* 5. Beneficios del pie ordenados en módulos de lectura uniforme. */
 .site-footer .footer-product-benefits li{min-width:0;padding:9px 11px;border:1px solid #e9d4da;border-radius:12px;background:#fffaf8}
 @media(max-width:760px){.site-footer .footer-product-benefits{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}}
+
+/* Cinco mejoras de composición visibles sin interacción; solo elementos externos. */
+/* 1. Folleto: acción principal bien contrastada y proporcionada al carrito. */
+.site-header .header-actions #folletoBtn{border:1px solid #d2a0b2;border-radius:13px;background:#efd4dc;box-shadow:0 3px 10px #85516b18;font-weight:700}
+@media(min-width:761px){.site-header .header-actions #folletoBtn,.site-header .header-actions #btn-cart{min-height:48px;padding:10px 17px;border-radius:13px}}
+/* 2. Explorar: rótulo destacado y separado de la navegación lateral. */
+.catalog-navigation>.aside-label{color:#68394d;font-size:12px;letter-spacing:.12em;font-weight:800;padding-bottom:10px;border-bottom:2px solid #ddb0bf;margin-bottom:12px}
+/* 3. Barra: botones equilibrados en anchura para escritorio y tableta. */
+@media(min-width:981px){.catalog-main>.bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.catalog-main>.bar>#folletoClearSelectionBtn:not([hidden]){grid-column:1/-1}.catalog-main>.bar>button:not([hidden]){width:100%;min-height:44px}}
+@media(min-width:761px) and (max-width:980px){.catalog-main>.bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.catalog-main>.bar>#bulkAddBtn,.catalog-main>.bar>#folletoClearSelectionBtn:not([hidden]){grid-column:1/-1}.catalog-main>.bar>button:not([hidden]){width:100%;min-height:44px}}
+/* 4. Atención cercana: iconos de dimensión constante sobre fondo suave. */
+.catalog-contact>.service-card .service-list li{gap:10px;align-items:flex-start;padding-block:14px}
+.catalog-contact>.service-card .service-list li>.ui-icon{flex:none;width:31px;height:31px;margin-top:0;padding:6px;border-radius:10px;background:#f6e4e9}
+/* 5. Información de contacto: filas separadas y legibles. */
+.footer-visit-card .footer-contact-line{padding:10px 0;margin-bottom:10px;border-bottom:1px solid #ecdcd8}
+.footer-visit-card .footer-contact-line:last-child{border-bottom:0;margin-bottom:0}
+.footer-visit-card .footer-contact-line p{line-height:1.55}
