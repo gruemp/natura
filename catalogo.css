@@ -979,3 +979,13 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .word-filter-status .filter-summary-chip{display:inline-flex;align-items:center;min-height:40px}
 @media (max-width:760px){.word-filter-status .filter-summary-chip{min-height:44px}}
 .site-footer .footer-phone{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
+
+/* Cinco ajustes independientes en controles EXTERNOS: nunca en fichas web o del folleto. */
+/* 2. El menú de ordenación distingue la opción bajo el puntero. */
+#productOrderMenu button:hover:not([aria-pressed="true"]){border-color:#d6a5b5;background:#fff5f7}
+/* 3. La zona desplazable de filtros muestra un carril estable y reconocible. */
+.word-panel .word-chips{scrollbar-width:thin;scrollbar-color:#bf8798 #fff6f4;scrollbar-gutter:stable}
+/* 4. Limpiar filtros se identifica y pulsa fácilmente en móviles estrechos. */
+@media(max-width:480px){.word-filter-status #clearTermsBtn{min-height:44px;flex:1 1 100%}}
+/* 5. La llamada a la acción de anuncios ofrece un objetivo táctil de 44 px. */
+.catalog-contact #catalogPromotion .catalog-promotion-cta{min-height:44px}
