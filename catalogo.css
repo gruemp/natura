@@ -1155,3 +1155,39 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .site-footer .footer-products-card .footer-products-copy h2{line-height:1.18;margin-bottom:10px}
 .site-footer .footer-products-card .footer-product-benefits>li{display:flex;align-items:center;justify-content:flex-start;gap:10px;line-height:1.3}
 @media(min-width:1100px){.site-footer .footer-products-card .footer-product-benefits>li{justify-content:center}}
+
+/* Diez ajustes de diseño estático EXCLUSIVAMENTE fuera de las fichas. */
+/* 1. Cabecera: fondo uniforme y separación vertical equilibrada. */
+.site-header{background:linear-gradient(180deg,#fff9f8 0%,#fff 100%);box-shadow:0 6px 18px #6443540d}
+.site-header-inner{column-gap:18px}
+/* 2. Identidad: logotipo y rótulos sin ornamentos redundantes. */
+.site-header .brand>img{border:1px solid #bf869c;box-shadow:0 0 0 3px #fff,0 4px 14px #6e46591c}
+.site-header .brand h1{letter-spacing:0;color:#582e46}
+.site-header .brand .tagline{border-left:0;padding-left:0;max-width:38ch;color:#634c59;font-weight:600}
+/* 3. Buscador: mayor claridad visual, sin doble contenedor. */
+.site-header .search-wrap #q{height:54px;border-color:#b78298;background:#fff;box-shadow:0 5px 16px #5d334912}
+/* 4. Acciones: Folleto y Carrito con proporciones equivalentes en escritorio. */
+@media(min-width:761px){.site-header .header-actions>#folletoBtn,.site-header .header-actions>#btn-cart{min-width:128px}}
+.site-header .header-actions #btn-cart{background:#fff;border:2px solid #b17b90;color:#693e53}
+/* 5. Navegación: superficie única, sin marcos anidados excesivos. */
+.catalog-navigation>nav{border-color:#eee1e7;background:#fff;box-shadow:none}
+.catalog-navigation>nav>.nav-button{border:0;background:#faf4f6;box-shadow:none}
+/* 6. Encabezado de productos: línea editorial sin recuadro duplicado. */
+.catalog-main>.products-heading{padding:6px 2px 14px;border:0;border-bottom:2px solid #d5aabd;border-radius:0;background:transparent}
+.catalog-main>.products-heading h2{color:#61384f}
+/* 7. Barra de controles: jerarquía de tamaños y ritmo uniforme. */
+.catalog-main>.bar{padding:14px;border-color:#e6d5dc;background:#fff;box-shadow:0 5px 16px #6545560d}
+.catalog-main>.bar>button:not([hidden]){min-height:46px;border-radius:10px}
+@media(max-width:760px){.catalog-main>.bar{padding:12px}}
+/* 8. Atención cercana: lectura por filas claras en lugar de recuadros superpuestos. */
+.catalog-contact>.service-card{padding:20px 17px;background:linear-gradient(150deg,#fff,#fffaf8);border-color:#e2c7d3;box-shadow:none}
+.catalog-contact>.service-card .service-list>li{margin:0;padding:15px 0;border:0;border-bottom:1px solid #eadde1;border-radius:0;background:transparent;box-shadow:none}
+.catalog-contact>.service-card .service-list>li:last-child{padding-bottom:0;border-bottom:0}
+/* 9. Redes: panel centrado, enlaces uniformes y más espacio para sus rótulos. */
+.social-contact-region>.social-contact-card{max-width:820px;padding:20px 20px 18px;border-color:#e6d3dc;background:#fff}
+.social-contact-region>.social-contact-card h2{font-size:clamp(20px,2.2vw,25px);margin-bottom:12px}
+.social-contact-region>.social-contact-card .social-icons a:not(#waTopLink),.social-contact-region>.social-contact-card .social-icons button{border-color:#f1e4ea;background:#fbf5f7}
+/* 10. Pie de página: módulos coordinados y beneficios con la misma identidad. */
+.site-footer .footer-visit-card,.site-footer .footer-products-card{border-radius:18px;box-shadow:0 8px 20px #65455611}
+.site-footer .footer-products-card .footer-product-benefits>li{border-color:#ead7df;background:#fff}
+.site-footer .footer-products-card .footer-product-benefits .ui-icon{background:#f1e2e8}
