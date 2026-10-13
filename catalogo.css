@@ -899,6 +899,13 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .catalog-ficha-card .price-admin-editor{flex-basis:100%}
 @media(max-width:760px){#grid:has(>.catalog-ficha-card){grid-template-columns:minmax(0,1fr);gap:18px}}
 
+/* Navegación y filtros táctiles legibles en pantallas pequeñas. */
+@media (max-width:760px){
+  .catalog-navigation .nav-button,.catalog-categories button,.bar button,.word-filter-options .term-chip{min-height:44px}
+  .catalog-categories button{display:inline-flex;align-items:center;justify-content:center;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center}
+}
+@media (max-width:480px){.catalog-categories button,.bar button{font-size:13px}}
+
 /* Atributos agrupados dentro del panel Filtrar existente. */
 .word-chips{display:flex;flex-direction:column;flex-wrap:nowrap;gap:12px;max-height:55vh;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:3px}
 .word-filter-group{flex:0 0 auto;min-width:0;width:100%}
