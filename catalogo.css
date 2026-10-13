@@ -1090,3 +1090,30 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .site-footer .footer-products-card{border-color:#e0bdca;background:linear-gradient(130deg,#fff 0%,#fff7f8 100%)}
 .site-footer .footer-products-card .footer-products-icon{background:#efdee5;color:#733d52}
 .site-footer .footer-products-card h2{color:#64384e}
+
+/* Diez mejoras estáticas en zonas exteriores. Ningún selector de fichas. */
+/* 1. Jerarquía del nombre comercial en pantallas grandes. */
+@media(min-width:761px){.site-header .brand h1{font-size:clamp(24px,2.25vw,30px);line-height:1.12;letter-spacing:-.02em}}
+/* 2. Campo de búsqueda con marco propio, centrado y proporcionado. */
+.site-header .search-wrap{padding:5px;border:1px solid #edcbd7;border-radius:19px;background:#f8e9ee}
+.site-header .search-wrap #q{height:50px;border-color:#d8adbd;box-shadow:0 2px 9px #68425613}
+.site-header .search-wrap>.ui-icon{left:23px}
+/* 3. Acción Folleto reconocible como botón principal. */
+.site-header .header-actions #folletoBtn{background:#784b63;color:#fff;border-color:#784b63;font-weight:750}
+/* 4. Título Explorar presente también en móvil, con jerarquía visual. */
+@media(max-width:760px){.catalog-navigation>.aside-label{display:block;margin:0 5px 9px;padding:0 0 7px;border-bottom:1px solid #dcafbe;font-size:11px}}
+/* 5. Encabezado de sección Productos como bloque de lectura. */
+.catalog-main>.products-heading{padding:12px 16px;border:1px solid #ead0d9;border-left:5px solid #98627d;border-radius:13px;background:#fffbfa}
+/* 6. Ordenar con una apariencia específica, distinta de Filtrar y Agregar. */
+.catalog-main>.bar>#productOrderBtn{background:#f0e6ed;border-color:#caa7b7;color:#633a51;font-weight:750}
+/* 7. Asesoría: bloques informativos claros con acento lateral uniforme. */
+.catalog-contact>.service-card .service-list>li{background:#fff;border-color:#ecd9df;box-shadow:inset 3px 0 #ddb0bf}
+/* 8. Redes: explicación visible antes de los enlaces en móvil. */
+@media(max-width:760px){.social-contact-region>.social-contact-card .social-contact-intro{display:block;max-width:42ch;margin:0 auto 14px;text-align:center;color:#624b58;font-size:13px;line-height:1.45}}
+/* 9. Contacto: teléfono en una superficie legible a simple vista. */
+.site-footer .footer-visit-card .footer-phone{display:block;width:fit-content;max-width:100%;padding:7px 12px;border-radius:11px;background:#f2e1e8;color:#64364b;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+/* 10. Beneficios: módulos simétricos en el pie de escritorio. */
+@media(min-width:1200px){
+ .site-footer .footer-products-card .footer-product-benefits{display:grid;grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 0 0;border-left:0;border-top:1px solid #ead4dc}
+ .site-footer .footer-products-card .footer-product-benefits>li{justify-content:center;gap:10px;min-width:0}
+}
