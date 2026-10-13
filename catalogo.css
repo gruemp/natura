@@ -1002,3 +1002,25 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .bar #toggleWordPanelBtn[aria-expanded="true"]{background:#f1dce2;border-color:#cb9aaa;box-shadow:inset 0 -2px #a65c74}
 /* 5. Divisiones entre grupos dentro del panel de filtros. */
 .word-panel .word-filter-group+.word-filter-group{border-top:1px solid #ecdad8;padding-top:12px}
+
+/* Cinco mejoras de composición percibidas al cargar; solo elementos exteriores. */
+/* 1. Cabecera más equilibrada y jerarquía de identidad definida. */
+.site-header{background:linear-gradient(110deg,#fff6f4 0%,#fff 60%,#fff8f8 100%);border-top-color:#c792a4;border-bottom-color:#e8cdd5}
+.site-header .brand h1{color:#5b3043}
+.site-header .brand .tagline{color:#66535e}
+/* 2. Buscador visualmente delimitado sobre la cabecera. */
+.site-header .search-wrap #q{border:2px solid #d4a6b6;background:#fff;box-shadow:0 4px 15px #66465b12}
+/* 3. Navegación agrupada con márgenes simétricos. */
+.catalog-navigation>nav{padding:9px;border:1px solid #e9d1d5;border-radius:15px;background:#fff8f6;box-shadow:0 6px 18px #6544560d}
+/* 4. Separación editorial del título de catálogo. */
+.catalog-main>.products-heading{padding-bottom:12px;border-bottom:2px solid #dfb6c3}
+.catalog-main>.products-heading h2{color:#61364a}
+/* 5. Barra de opciones organizada y simétrica en móvil. */
+.catalog-main>.bar{padding:12px;border:1px solid #e9cfd4;border-radius:14px;background:#fff8f7;margin-bottom:17px}
+.catalog-main>.bar>button:not([hidden]){background:#fff;border-color:#e0bdc8}
+@media(max-width:760px){
+  .catalog-navigation>nav{padding:7px}
+  .catalog-main>.bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px}
+  .catalog-main>.bar>#bulkAddBtn,.catalog-main>.bar>#folletoClearSelectionBtn:not([hidden]){grid-column:1/-1}
+  .catalog-main>.bar>button:not([hidden]){width:100%;margin:0}
+}
