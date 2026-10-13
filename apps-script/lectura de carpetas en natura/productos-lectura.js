@@ -1,29 +1,29 @@
-// Fuente pública de solo lectura: selección Rich Text del maestro original Productos!A.
+// Fuente pública de solo lectura: datos operativos de A y ficha literal de B.
 // La respuesta nunca contiene celdas originales, notas, costos ni identificadores privados.
 function productoClave_(value){
   return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
 }
 function productoPrivado_(label){
-  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion|p\/n|numero de parte|identificadores?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo interno|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(productoClave_(label));
+  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion|p\/n|numero de parte|identificador(?:es)?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo interno|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(productoClave_(label));
 }
 function productoCampos_(rich){
   if(!rich||typeof rich.getText!=='function')return [];
-  const text=rich.getText(),fields=[];let offset=0;
+  const text=rich.getText(),fields=[];let offset=0,current=null;
   for(const line of text.split('\n')){
     const colon=line.indexOf(':');
     if(colon>0){
       const label=line.slice(0,colon).trim(),value=line.slice(colon+1).trim();
       // A mixed or absent style fails closed: every letter of the label must be bold.
       const selected=label.length>0&&rich.getTextStyle(offset,offset+colon).isBold()===true;
-      fields.push({label:label,value:value,selected:selected});
-    }
+      current={label:label,value:value,selected:selected};fields.push(current);
+    }else if(current&&line.trim())current.value+='\n'+line.trim();
     offset+=line.length+1;
   }
   return fields;
 }
-// A define las etiquetas que verá el comprador; B guarda el registro integral.
-// B se procesa solo en Apps Script. Nunca se entrega íntegro al navegador.
+// La salida heredada de una sola columna se conserva únicamente para compatibilidad.
 function productoPublico_(rich,row,richFicha){
+  if(richFicha)return productoDosColumnas_(rich,row,richFicha);
   const complete=productoCampos_(rich);
   const selected=productoCampos_(richFicha||rich).filter(f=>f.selected&&!productoPrivado_(f.label));
   const aliases={'codigo interno':'Código','codigo':'Código','nombre':'Nombre',
@@ -58,6 +58,18 @@ function productoPublico_(rich,row,richFicha){
   }
   return {sourceRow:row,c:[{v:lines.join('\n'),textFormatRuns}]};
 }
+// A es la fuente operativa; B contiene texto público literal en el orden de la ficha.
+// La negrita es una ayuda visual del maestro, nunca un requisito de lectura de A/B.
+function productoDosColumnas_(rich,row,richFicha){
+  const operationalLabels=new Set(('codigo|codigo interno|codigo interno del producto|nombre|nombre comercial del producto|nombre completo para publicar|seccion|seccion del catalogo|categoria|categoria del producto|subcategoria|subcategoria del producto|tipo|tipo de producto|marca|linea|linea comercial|publico|publico destinatario|contenido|cantidad de contenido|unidad|unidad de medida del contenido|cantidad de unidades|stock|familia olfativa|perfil aromatico|variante|variante del producto|caracteristica|caracteristica distintiva|precio|precio de venta|disponibilidad|estado comercial|estado comercial del producto|condicion|condicion del producto|presentacion|tipo de presentacion|formato de presentacion|textura y acabado|duracion del efecto|conectividad|compatibilidad|edad recomendada|numero de jugadores|jugadores|materiales').split('|'));
+  const ficha=productoCampos_(richFicha).filter(f=>!productoPrivado_(f.label)&&f.value);
+  const fichaLabels=new Set(ficha.map(f=>productoClave_(f.label)));
+  const operations=productoCampos_(rich).filter(f=>operationalLabels.has(productoClave_(f.label))
+    ||(!productoPrivado_(f.label)&&fichaLabels.has(productoClave_(f.label)))
+    ||/^(?:nombre del componente|cantidad de contenido del componente|unidad de medida del contenido del componente|componente) [1-4]$/.test(productoClave_(f.label)));
+  const text=fields=>fields.map(f=>f.label+': '+f.value).join('\n');
+  return {sourceRow:row,c:[{v:text(operations)},{v:text(ficha)}]};
+}
 function leerProductosPublicos_(){
   const id='1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs';
   const metadata=Sheets.Spreadsheets.get(id,{fields:'sheets(properties(title,gridProperties(rowCount,columnCount)))'});
@@ -65,16 +77,17 @@ function leerProductosPublicos_(){
   if(!sheet||sheet.properties.gridProperties.columnCount<2)throw new Error('Se requieren A y B de Productos.');
   const data=Sheets.Spreadsheets.get(id,{ranges:["'Productos'!A1:B"+sheet.properties.gridProperties.rowCount],includeGridData:true,fields:'sheets(data(rowData(values(userEnteredValue,textFormatRuns,userEnteredFormat(textFormat(bold))))))'});
   const cells=data.sheets[0].data[0].rowData||[];
-  if(productoClave_(cells[0]?.values?.[0]?.userEnteredValue?.stringValue)!=='descripcion completa del producto'
-     ||productoClave_(cells[0]?.values?.[1]?.userEnteredValue?.stringValue)!=='informacion del producto para el sistema')
+  const headers=(cells[0]?.values||[]).map(c=>productoClave_(c.userEnteredValue?.stringValue));
+  const aTitles=['etiquetas: obligatorias (negrita) - no obligatorias (sin negrita)','descripcion completa del producto','descripcion integral del producto'];
+  const bTitles=['etiquetas para fichas','informacion del producto para el sistema'];
+  if(headers.length!==2||!aTitles.includes(headers[0])||!bTitles.includes(headers[1]))
     throw new Error('Encabezados de Productos no confirmados.');
   const rows=cells.slice(1).map((r,i)=>{
     const a=r.values?.[0]||{},b=r.values?.[1]||{};
     if(!a.userEnteredValue?.stringValue&&!b.userEnteredValue?.stringValue)return null;
-    if(!a.userEnteredValue?.stringValue||!b.userEnteredValue?.stringValue)throw new Error('Producto incompleto.');
     return productoPublico_(productoRichText_(a),i+2,productoRichText_(b));
-  }).filter(r=>r&&r.c[0].v);
-  return {ok:true,version:2,actualizadoEn:new Date().toISOString(),table:{cols:[{id:'A',label:'Informacion del producto'}],rows}};
+  }).filter(r=>r&&r.c.some(c=>c.v));
+  return {ok:true,version:3,actualizadoEn:new Date().toISOString(),table:{cols:[{id:'A',label:'Datos operativos del producto'},{id:'B',label:'Etiquetas para fichas'}],rows}};
 }
 function productoRichText_(cell){
   const text=cell.userEnteredValue?.stringValue||'',runs=cell.textFormatRuns||[],base=cell.userEnteredFormat?.textFormat?.bold===true;

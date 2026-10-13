@@ -84,6 +84,8 @@ function resolveInventoryContext_() {
   const book=SpreadsheetApp.openById(INVENTORY_SPREADSHEET_ID),sheet=book.getSheetByName(INVENTORY_SHEET_NAME);
   if(!sheet)throw new Error("No existe la pestaña Productos.");
   const header=sheet.getRange(1,1,1,Math.max(1,sheet.getLastColumn())).getDisplayValues()[0];
+  const actual="Etiquetas: obligatorias (negrita) - No obligatorias (sin negrita)";
+  if(header.some(value=>normalizeHeader_(value)===normalizeHeader_(actual)))return resolveTableContext_(book,[actual,"Etiquetas para fichas"],INVENTORY_SHEET_NAME);
   if(header.some(value=>normalizeHeader_(value)==="descripcion completa del producto"))return resolveTableContext_(book,["Descripción completa del producto"],INVENTORY_SHEET_NAME);
   if(header.some(value=>normalizeHeader_(value)==="informacion del producto"))return resolveTableContext_(book,["Informacion del producto"],INVENTORY_SHEET_NAME);
   return resolveTableContext_(

@@ -251,7 +251,7 @@ function catalogFieldKey(label){
   return key;
 }
 function catalogPrivateField(label){
-  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion mac|p\/n|numero de parte|identificadores?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(catalogFieldKey(label));
+  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion mac|p\/n|numero de parte|identificador(?:es)?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(catalogFieldKey(label));
 }
 function catalogDescriptionRecord(text){
   const fields=[],byKey=new Map(),duplicates=new Set();let current=null;
@@ -303,9 +303,10 @@ function catalogRichTextSelection(cell){
   return labels.join("\n");
 }
 function readCompactGoogleSheetProductRows(table,indices){
+  const paired=indices.has(catalogHeaderKey("Datos operativos del producto"));
   const rich=indices.has(catalogHeaderKey("Informacion del producto"));
-  const descriptionIndex=rich?indices.get(catalogHeaderKey("Informacion del producto")):indices.get(catalogHeaderKey("Descripción integral del producto"));
-  const selectionIndex=rich?null:catalogFichaOrderIndex(indices);
+  const descriptionIndex=paired?indices.get(catalogHeaderKey("Datos operativos del producto")):rich?indices.get(catalogHeaderKey("Informacion del producto")):indices.get(catalogHeaderKey("Descripción integral del producto"));
+  const selectionIndex=paired?indices.get(catalogHeaderKey("Etiquetas para fichas")):rich?null:catalogFichaOrderIndex(indices);
   const codeIndex=indices.get(catalogHeaderKey("Código interno del producto"));
   const mapping={
     code:"Código",name:"Nombre",section:"Sección",category:"Categoría",subcategory:"Subcategoría",
@@ -320,11 +321,11 @@ function readCompactGoogleSheetProductRows(table,indices){
   if(!Array.isArray(table?.rows))throw new Error("Productos no contiene filas legibles.");
   return table.rows.flatMap((source,index)=>{
     const text=catalogCellText(source?.c?.[descriptionIndex]);
-    if(!text)return [];
+    if(!text&&!paired)return [];
     const record=catalogDescriptionRecord(text),get=label=>record.byKey.get(catalogFieldKey(label))?.value||"";
     const selection=rich?catalogRichTextSelection(source.c[descriptionIndex]):catalogCellText(source.c[selectionIndex]);
-    const row={sourceRow:index+2,technicalIssues:[],compact:true,
-      fichaFields:[],fichaSelectionExplicit:rich||Boolean(selection.trim()),richTextSource:rich};
+    const row={sourceRow:source.sourceRow||index+2,technicalIssues:[],compact:true,
+      fichaFields:[],fichaSelectionExplicit:paired||rich||Boolean(selection.trim()),richTextSource:paired||rich,twoColumnSource:paired};
     for(const [field,label] of Object.entries(mapping))row[field]=get(label);
     row.code=/^\d{1,4}$/.test(row.code)?row.code.padStart(4,"0"):"";
     if(!row.name)row.name=get("Nombre completo");
@@ -343,7 +344,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     for(const [field,label] of [["stockValue","Stock"],["contentValue","Contenido"],["unitsValue","Cantidad de unidades"]])
       row[field]=catalogCompactNumber(get(label)).value;
     row.costValue=null;row.costText="";
-    row.componentNames=Array.from({length:4},(_,i)=>get("Nombre del componente "+(i+1))).filter(Boolean);
+    row.componentNames=Array.from({length:4},(_,i)=>get("Nombre del componente "+(i+1))||get("Componente "+(i+1))).filter(Boolean);
     const components=Array.from({length:4},(_,i)=>{
       const n=i+1,amount=get("Cantidad de contenido del componente "+n),unit=get("Unidad de medida del contenido del componente "+n);
       return amount?[get("Nombre del componente "+n),amount,unit].filter(Boolean).join(" "):"";
@@ -353,15 +354,25 @@ function readCompactGoogleSheetProductRows(table,indices){
     const presentation=rich?row.presentation:[row.presentation,[row.content,row.unit].filter(Boolean).join(" "),row.units?row.units+" unidades":""].filter(Boolean).join(" · ");
     const fichaRecord={...record,byKey:new Map(record.byKey)};
     if(presentation)fichaRecord.byKey.set("presentacion",{key:"presentacion",label:"Presentación",value:presentation});
-    row.fichaFields=catalogOrderedFields(fichaRecord,selection);
-    row.description=rich?"": ["Beneficios","Descripción","Especificaciones técnicas"].map(get).filter(Boolean).join("\n");
-    row.fullTxtRecord=(rich?row.fichaFields:record.fields.filter(f=>!catalogPrivateField(f.key))).map(f=>f.label+": "+f.value).join("\n");
+    if(paired){
+      const ficha=catalogDescriptionRecord(selection);
+      row.fichaFields=ficha.fields.filter(f=>!catalogPrivateField(f.key)&&!ficha.duplicates.has(f.key)&&f.value);
+      row.operationalFields=record.fields.filter(f=>!catalogPrivateField(f.key));
+      for(const key of ficha.duplicates)if(!catalogPrivateField(key))
+        row.technicalIssues.push({reason:"Etiqueta duplicada en B: "+key,change:"Conservar un único atributo en la ficha."});
+    }else row.fichaFields=catalogOrderedFields(fichaRecord,selection);
+    row.description=rich||paired?"": ["Beneficios","Descripción","Especificaciones técnicas"].map(get).filter(Boolean).join("\n");
+    row.fullTxtRecord=(rich||paired?row.fichaFields:record.fields.filter(f=>!catalogPrivateField(f.key))).map(f=>f.label+": "+f.value).join("\n");
     return [row];
   });
 }
 
     function readGoogleSheetProductRows(table){
       const compactIndices=catalogHeaderIndices(table?.cols,[]);
+      if(compactIndices.has(catalogHeaderKey("Datos operativos del producto"))){
+        catalogHeaderIndices(table?.cols,["Datos operativos del producto","Etiquetas para fichas"]);
+        return readCompactGoogleSheetProductRows(table,compactIndices);
+      }
       if(compactIndices.has(catalogHeaderKey("Informacion del producto"))){
         catalogHeaderIndices(table?.cols,["Informacion del producto"]);
         return readCompactGoogleSheetProductRows(table,compactIndices);
@@ -505,7 +516,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         const finish=(error,table)=>{if(settled)return;settled=true;cleanup();error?reject(error):resolve(table);};
         const timer=window.setTimeout(()=>finish(new Error("No se pudo leer la selección comercial del maestro.")),GOOGLE_SHEET_QUERY_TIMEOUT_MS);
         window[callback]=payload=>{
-          if(payload?.ok!==true||payload?.version!==2||!Array.isArray(payload?.table?.rows))return finish(new Error("No se pudieron cargar los productos. Vuelve a intentarlo más tarde."));
+          if(payload?.ok!==true||![2,3].includes(payload?.version)||!Array.isArray(payload?.table?.rows))return finish(new Error("No se pudieron cargar los productos. Vuelve a intentarlo más tarde."));
           finish(null,payload.table);
         };
         script.onerror=()=>finish(new Error("No se pudo conectar con el lector Rich Text."));
@@ -516,8 +527,10 @@ function readCompactGoogleSheetProductRows(table,indices){
     async function loadGoogleSheetRows(){
       // Descubrir encabezados sin filas; después leer únicamente datos públicos necesarios.
       const schema = await queryGoogleSheetTable();
-      if(Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Informacion del producto para el sistema"))){
-        catalogHeaderIndices(schema.cols,["Informacion del producto para el sistema"]);
+      if(Array.isArray(schema.cols)&&schema.cols.some(c=>["Etiquetas para fichas","Informacion del producto para el sistema"].some(label=>catalogHeaderKey(c.label)===catalogHeaderKey(label)))){
+        const titles=schema.cols.filter(c=>["Etiquetas para fichas","Informacion del producto para el sistema"].some(label=>catalogHeaderKey(c.label)===catalogHeaderKey(label)));
+        if(titles.length!==1)throw new Error("Encabezado de ficha ambiguo.");
+        catalogHeaderIndices(schema.cols,[titles[0].label]);
         return readGoogleSheetProductRows(await queryPublicRichTextProducts());
       }
       const compact=Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Descripción integral del producto"));
@@ -935,6 +948,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         fichaFields: row.fichaFields,
         fichaSelectionExplicit: row.fichaSelectionExplicit === true,
         richTextSource:row.richTextSource===true,
+        twoColumnSource:row.twoColumnSource===true,
         price: row.priceValue ?? 0,
         priceText,
         hasPrice: row.priceValue !== null && row.priceValue !== undefined,
@@ -2043,7 +2057,7 @@ function readCompactGoogleSheetProductRows(table,indices){
 
     function catalogTabLabel(value){return String(value||"").trim().split(/\s+/).slice(0,3).join(" ");}
     function registerRichTextFacets(row){
-      for(const field of row.fichaFields||[]){
+      for(const field of (row.twoColumnSource?row.operationalFields:row.fichaFields)||[]){
         if(["nombre","precio","codigo","presentacion","descripcion","stock"].includes(field.key)||catalogPrivateField(field.key))continue;
         if(CATALOG_FACET_GROUPS.some(g=>(g.columns||[]).some(label=>catalogFieldKey(label)===field.key)))continue;
         const id="atributo:"+field.key;
@@ -2064,8 +2078,9 @@ function readCompactGoogleSheetProductRows(table,indices){
         let values;
         if(row.richTextSource){
           // Navigation uses its operational metadata; all other facets require selected labels.
-          const fields=(row.fichaFields||[]).filter(f=>group.richKey?f.key===group.richKey:(group.columns||[]).some(label=>catalogFieldKey(label)===f.key));
+          const fields=((row.twoColumnSource?row.operationalFields:row.fichaFields)||[]).filter(f=>group.richKey?f.key===group.richKey:(group.columns||[]).some(label=>catalogFieldKey(label)===f.key));
           values=fields.flatMap(f=>String(f.value).split(group.multiple?/[;\r\n]+/:/\r?\n/));
+          if(row.twoColumnSource&&group.id==="components")values=row.componentNames||[];
           if(group.level&&!values.length)values=[row[group.field]||""];
         }else if(group.id==="content"){
           const amount=row.contentValue;

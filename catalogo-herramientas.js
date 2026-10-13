@@ -186,7 +186,7 @@ function fichaHeaderFields(p){
   const fields=Array.isArray(p?.fichaFields)?p.fichaFields:[];
   const selected=key=>fields.find(f=>f?.key===key);
   return {
-    name:!p?.fichaSelectionExplicit||!!selected("nombre")?catalogFichaName(p):"",
+    name:p?.twoColumnSource?String(selected("nombre")?.value||p.name||""):!p?.fichaSelectionExplicit||!!selected("nombre")?catalogFichaName(p):"",
     presentation:p?.richTextSource?"":p?.fichaSelectionExplicit?String(selected("presentacion")?.value||"").trim():folletoPresentation(p)
   };
 }

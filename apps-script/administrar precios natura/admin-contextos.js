@@ -67,6 +67,12 @@ function obtenerContextoInventario_() {
     .getRange(INVENTARIO_HEADER_ROW, 1, 1, ultimaColumna)
     .getDisplayValues()[0];
 
+  const actual="Etiquetas: obligatorias (negrita) - No obligatorias (sin negrita)";
+  if(encabezados.some(h=>normalizarEncabezado_(h)===normalizarEncabezado_(actual))){
+    buscarEncabezadoUnico_(encabezados,"Etiquetas para fichas");
+    return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,textoRico:true,columnas:{descripcion:buscarEncabezadoUnico_(encabezados,actual)}};
+  }
+
   if(encabezados.some(h=>normalizarEncabezado_(h)==="descripcion completa del producto")){
     return {hoja:hoja,ultimaColumna:ultimaColumna,compacto:true,textoRico:true,columnas:{descripcion:buscarEncabezadoUnico_(encabezados,"Descripción completa del producto")}};
   }

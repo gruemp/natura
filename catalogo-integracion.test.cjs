@@ -441,8 +441,8 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=ficha-b-resumida-2026-10-12-1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=fichas-sin-descripcion-2026-10-12-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=descripcion-justificada-2026-10-12-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
@@ -651,17 +651,74 @@ test('Lector utiliza A como datos completos y B como selección, sin revelar inf
   assert.ok(calls[1].options.fields.includes('textFormatRuns'));
   assert.ok(!JSON.stringify(payload).includes('SECRETO'));
   assert.ok(!JSON.stringify(payload).includes('10.000'));
-  assert.ok(payload.table.rows[0].c[0].v.includes('Código: 0042'));
+  assert.equal(payload.version,3);
+  assert.ok(payload.table.rows[0].c[0].v.includes('Código interno: 0042'));
   assert.ok(payload.table.rows[0].c[0].v.includes('Precio: 25.000'));
   const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','appsscript.json'),'utf8'));
   assert.deepEqual(manifest.oauthScopes,['https://www.googleapis.com/auth/drive.readonly']);
 });
 const richDescription='Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa\nVariedad: Flor de Cereza y Aguacate\nColor: Rojo vivo\nPrecio: 25.000\nSección: Belleza y cuidado\nCategoría: Perfumería\nLínea: Kaiak\nDisponibilidad: A la venta\nCódigo interno: 0042\nCosto: 15.000\nNúmero de serie: PRIVADO-123\nCódigo Natura: PRIVADO-NAT\nReferencia: https://example.com/privado';
+function pairedTable(values){
+  const ctx=vm.createContext({});vm.runInContext(richReaderSource,ctx);
+  return {cols:[{id:'A',label:'Datos operativos del producto'},{id:'B',label:'Etiquetas para fichas'}],rows:values.map((r,i)=>ctx.productoDosColumnas_(nativeRich(richNativeCell(r[0]||'')),i+2,nativeRich(richNativeCell(r[1]||''))))};
+}
+test('Dos columnas leen B sin negrita, conservan valores resumidos, orden y filtros operativos de A',()=>{
+  const a=richDescription+'\nCompatibilidad: Android; iOS\nNombre del componente 1: Champú';
+  const b='Nombre: Perfume breve\nComponentes: Champú y crema\nMarca: Marca resumida\nFragancia: Intensa, fresca; duradera\nCosto: SECRETO\nIdentificador técnico CMIIT: SECRETO';
+  const table=pairedTable([[a,b]]),env=environment(),result=assess(env,table),p=result.products[0];
+  assert.equal(result.report.pending,0);assert.ok(!JSON.stringify(table).includes('SECRETO'));
+  assert.deepEqual(Array.from(p.fichaFields,f=>f.label),['Nombre','Componentes','Marca','Fragancia']);
+  assert.equal(p.fichaFields[3].value,'Intensa, fresca; duradera');
+  assert.equal(p.facetAttributes.brand[0].label,'Natura');
+  assert.equal(p.facetAttributes.compatibility.length,2);
+  assert.equal(p.price,25000);assert.equal(p.name,'Perfume de prueba');
+  vm.runInContext(toolsSource,env.context);env.sandbox.product=p;assert.equal(env.run('fichaHeaderFields(product).name'),'Perfume breve');
+});
+test('B vacía no publica automáticamente atributos de A; A inválida aísla su producto',()=>{
+  const result=assess(environment(),pairedTable([[richDescription,''],['','Nombre: Sin identidad']]));
+  assert.equal(result.report.compatible,1);assert.equal(result.report.pending,1);
+  assert.equal(result.products[0].fichaSelectionExplicit,true);assert.equal(result.products[0].fichaFields.length,0);
+});
+test('La carga reconoce encabezados actuales y exige respuesta pública saneada',async()=>{
+  const env=environment();await confirmed(env);const pending=env.run('loadGoogleSheetRows()');
+  env.reply({cols:[{id:'A',label:'Etiquetas: obligatorias (negrita) - No obligatorias (sin negrita)'},{id:'B',label:'Etiquetas para fichas'}],rows:[]});await Promise.resolve();
+  const url=new URL(env.requests.at(-1).src);assert.equal(url.searchParams.get('modo'),'productos');
+  env.sandbox[url.searchParams.get('callback')]({ok:true,version:3,table:pairedTable([[richDescription,'Nombre: Breve\nMarca: Natura']])});
+  assert.equal((await pending)[0].code,'0042');
+});
+test('Pedidos usa precio e identidad de A con los encabezados actuales, sin escribir pedidos',()=>{
+  const data=[['Etiquetas: obligatorias (negrita) - No obligatorias (sin negrita)','Etiquetas para fichas'],[richDescription,'Nombre: Breve\nPrecio: 1']];
+  const sheet={getLastRow:()=>2,getLastColumn:()=>2,getMaxRows:()=>2,getMaxColumns:()=>2,getName:()=> 'Productos',getRange(row,col,count=1,width=1){
+    return {getDisplayValues:()=>data.slice(row-1,row-1+count).map(r=>r.slice(col-1,col-1+width))};
+  }};
+  const ctx=vm.createContext({SpreadsheetApp:{openById:()=>({getSheetByName:()=>sheet})},INVENTORY_SPREADSHEET_ID:'original',INVENTORY_SHEET_NAME:'Productos',HEADER_SCAN_MAX_ROWS:30,HEADER_SCAN_MAX_COLS:40,safe_:v=>String(v??'').trim(),safeClientCell_:v=>String(v??'')});
+  for(const name of ['pedidos-tablas.js','pedidos-inventario.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'apps-script','pedidos natura',name),'utf8'),ctx);
+  const items=ctx.resolveInventoryItems_([{codigo:'0042',cantidadSolicitada:1}]);
+  assert.equal(items[0].valorUnitario,25000);assert.equal(items[0].nombreProducto,'Perfume de prueba');
+});
+test('Administración reconoce A actual y conserva B fuera de la edición de precios',()=>{
+  const env=compactPriceBackend(richDescription,{headers:['Etiquetas: obligatorias (negrita) - No obligatorias (sin negrita)','Etiquetas para fichas']});
+  assert.equal(env.run('obtenerProductosPrecios().productos[0].codigo'),'0042');
+  assert.equal(env.run('obtenerContextoInventario_().columnas.descripcion'),0);
+  assert.equal(env.writes(),0);
+});
+test('Maestro original de dos columnas: cada ficha conserva B y los datos operativos de A',{skip:!process.env.CATALOG_PAIRED_FIXTURE},()=>{
+  const values=JSON.parse(fs.readFileSync(process.env.CATALOG_PAIRED_FIXTURE,'utf8')),env=environment(),table=pairedTable(values.slice(1));
+  const result=assess(env,table);assert.equal(result.report.total,363);assert.equal(result.report.pending,0,JSON.stringify(result.report.records.filter(r=>r.status==='PENDIENTE')));
+  assert.equal(new Set(result.products.map(p=>p.id)).size,363);
+  result.products.forEach((p,i)=>{
+    const a=env.run('catalogDescriptionRecord('+JSON.stringify(values[i+1][0])+')'),b=env.run('catalogDescriptionRecord('+JSON.stringify(values[i+1][1]||'')+')');
+    assert.equal(p.id,a.byKey.get('codigo').value.padStart(4,'0'));
+    assert.equal(p.name,a.byKey.get('nombre').value);assert.equal(p.category,a.byKey.get('categoria').value);
+    assert.deepEqual(Array.from(p.fichaFields,f=>[f.label,f.value]),Array.from(b.fields).filter(f=>!env.run('catalogPrivateField('+JSON.stringify(f.key)+')')&&f.value).map(f=>[f.label,f.value]));
+    assert.equal(p.price,env.run('catalogCompactNumber('+JSON.stringify(a.byKey.get('precio')?.value||'')+').value')??0);
+  });
+});
 test('B contiene solo etiquetas visibles breves, A conserva código, precio y navegación',()=>{
   const completo=richNativeCell(richDescription);
   const resumen=richNativeCell('Nombre: Perfume de prueba\nMarca: Natura\nFragancia: Intensa',['Nombre','Marca','Fragancia']);
   const context=vm.createContext({});vm.runInContext(richReaderSource,context);
-  const sanitized={cols:[{id:'A',label:'Informacion del producto'}],rows:[context.productoPublico_(nativeRich(completo),2,nativeRich(resumen))]};
+  const sanitized={cols:[{id:'A',label:'Datos operativos del producto'},{id:'B',label:'Etiquetas para fichas'}],rows:[context.productoPublico_(nativeRich(completo),2,nativeRich(resumen))]};
   const serialized=JSON.stringify(sanitized);
   assert.ok(!serialized.includes('PRIVADO'));
   assert.ok(!serialized.includes('15.000'));
@@ -673,13 +730,18 @@ test('B contiene solo etiquetas visibles breves, A conserva código, precio y na
   assert.equal(p.commercialStatus,'A la venta');
   assert.deepEqual(Array.from(p.fichaFields,f=>f.label),['Nombre','Marca','Fragancia']);
 });
-test('Discordancia entre A completa y B breve en identidad o precio impide la ficha',()=>{
+test('A conserva identidad y precio operativos mientras B puede resumir el nombre',()=>{
   const resumen=richNativeCell('Nombre: Producto distinto\nPrecio: 12.000',['Nombre','Precio']);
   const context=vm.createContext({});vm.runInContext(richReaderSource,context);
-  const table={cols:[{id:'A',label:'Informacion del producto'}],rows:[context.productoPublico_(nativeRich(richNativeCell(richDescription)),2,nativeRich(resumen))]};
+  const table={cols:[{id:'A',label:'Datos operativos del producto'},{id:'B',label:'Etiquetas para fichas'}],rows:[context.productoPublico_(nativeRich(richNativeCell(richDescription)),2,nativeRich(resumen))]};
   const result=assess(environment(),table);
-  assert.equal(result.report.pending,1);
-  assert.ok(result.report.records[0].causes.some(x=>/duplicado/i.test(x.reason)));
+  assert.equal(result.report.pending,0);
+  const p=result.products[0];
+  assert.equal(p.name,'Perfume de prueba');assert.equal(p.price,25000);
+  assert.equal(p.fichaFields[0].value,'Producto distinto');
+  const env=environment();env.sandbox.product=p;
+  vm.runInContext(toolsSource,env.context);
+  assert.equal(env.run('fichaHeaderFields(product).name'),'Producto distinto');
 });
 test('Rich Text de una sola A selecciona nombres completos en negrita y excluye datos privados antes de enviarlos',()=>{
   const table=sanitizedRichTable([richNativeCell(richDescription,['Nombre','Marca','Fragancia','Variedad','Costo','Número de serie','Código Natura'],'Color')]);
