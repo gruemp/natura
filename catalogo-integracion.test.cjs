@@ -443,7 +443,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=fichas-editoriales-2026-10-13-8'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=carrito-editorial-2026-10-13-9'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1177,4 +1177,21 @@ test('Fichas editoriales comparten tipografía y paleta en web, PNG y PDF, sin a
   assert.ok(fichaCssSource.includes("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */"));
   const layer=fichaCssSource.split("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */")[1];
   assert.ok(layer.split('\n').filter(line=>line.includes('{')).every(line=>/^\.(?:card\.catalog-ficha-card|catalog-ficha-card )/.test(line.trim())));
+});
+
+test('El estilo editorial del carrito no altera fichas ni lógica de productos y pedidos',()=>{
+  const marker="/* Carrito: presentación editorial cálida y reversible, aislada de fichas y pedidos. */";
+  assert.ok(fichaCssSource.includes(marker));
+  const layer=fichaCssSource.split(marker)[1];
+  assert.ok(layer.includes('#cartModal .cart-item')&&layer.includes('#cartModal .cart-summary')&&layer.includes('#cartModal #cartBuyBtn'));
+  assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|#grid|\.folleto-|\.card\s*\{|\.form-modal|\.site-header|\.cart-modal[^-]/);
+  for(const row of layer.split('\n')){
+    const rule=row.trim();
+    if(rule.includes('{')&&!rule.startsWith('/*')&&!rule.startsWith('}'))
+      assert.ok(rule.startsWith('#cartModal')||rule.startsWith('@media'),rule);
+  }
+  for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
+    assert.ok(htmlSource.includes('id="'+id+'"'));
+  }
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=carrito-editorial-2026-10-13-9'));
 });

@@ -1335,3 +1335,69 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .catalog-ficha-card .ficha-attributes{color:var(--ficha-muted,#66554c)}
 .catalog-ficha-card .ficha-attributes dt{color:var(--ficha-ink,#382922)}
 .catalog-ficha-card .price{font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var(--ficha-ink,#382922)}
+
+/* Carrito: presentación editorial cálida y reversible, aislada de fichas y pedidos. */
+/* Marco y encabezado: sustituir la apariencia oscura por una superficie editorial clara. */
+#cartModal .cart-modal-backdrop{background:rgba(42,31,36,.58)!important}
+#cartModal .cart-modal-content{width:min(1080px,96vw)!important;max-height:min(90dvh,900px)!important;border:1px solid #ddc9c2!important;border-radius:23px!important;background:#fffdfa!important;color:#382922!important;box-shadow:0 25px 75px #30202738!important}
+#cartModal .cart-modal-header{padding:20px 24px!important;border-bottom:2px solid #e9d9d1;background:linear-gradient(110deg,#fff7f3 0%,#fffcfa 72%)!important;box-shadow:inset 0 4px 0 #c9a99e}
+#cartModal .cart-modal-title{color:#4e362f!important;font:700 clamp(23px,2.3vw,30px)/1.2 Georgia,"Times New Roman",serif!important;letter-spacing:-.02em}
+#cartModal .cart-modal-close{width:44px!important;height:44px!important;border:1px solid #dfc6c3!important;border-radius:13px!important;background:#fff!important;color:#6c424b!important;box-shadow:0 2px 9px #6c424b12}
+/* Composición: columna de artículos más amplia y panel de cobro visualmente independiente. */
+#cartModal .cart-modal-layout{grid-template-columns:minmax(0,1.2fr) minmax(330px,.8fr);gap:0}
+#cartModal .cart-modal-layout>.cart-modal-body{padding:23px 21px!important;background:#fffdfb!important}
+#cartModal .cart-modal-layout>.cart-modal-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;align-items:start;gap:14px;padding:23px 22px!important;border-left:1px solid #e9dcd4!important;border-top:0!important;background:#faf4f0!important}
+/* Artículos: tarjetas claras con bordes suaves y separación constante. */
+#cartModal .cart-item{grid-template-columns:minmax(0,1fr) auto minmax(98px,auto)!important;gap:14px!important;padding:15px!important;margin-bottom:12px;border:1px solid #e9dcd4!important;border-radius:16px;background:#fff!important;box-shadow:0 4px 13px #60453d0b}
+#cartModal .cart-item-left{gap:13px;min-width:0}
+#cartModal .cart-thumb{width:70px;height:70px;flex:none;border:1px solid #e9ddd3;border-radius:13px;background:#fffaf6;object-fit:contain}
+#cartModal .cart-item-name{font:700 16px/1.32 Calibri,Carlito,Arial,sans-serif;color:#3d2b25!important;margin:0 0 7px;overflow-wrap:anywhere}
+#cartModal .cart-item-sub{font:400 13px/1.4 Calibri,Carlito,Arial,sans-serif;color:#705a51!important}
+/* Cantidad: control táctil equilibrado y suficientemente contrastado. */
+#cartModal .cart-controls{gap:6px;padding:5px;border:1px solid #e3d2c9;border-radius:999px;background:#f9f1eb}
+#cartModal .cart-qty-btn{width:38px;height:38px;border:1px solid #dcc9c1;border-radius:50%;background:#fff;color:#684c46;font-size:19px;box-shadow:none}
+#cartModal .cart-qty{min-width:26px;font-size:15px;color:#392a26!important;font-weight:700;font-variant-numeric:tabular-nums}
+/* Subtotal por artículo: importe distinguible del resto de metadatos. */
+#cartModal .cart-subtotal{display:flex!important;align-items:flex-end!important;gap:4px!important;min-width:92px;color:#79645a!important;font-size:12px}
+#cartModal .cart-subtotal strong{color:#533b32!important;font:700 16px/1.25 Georgia,"Times New Roman",serif;white-space:normal;text-align:right}
+/* Envío y forma de pago: dos campos paralelos con etiquetas sobre los controles. */
+#cartModal .cart-shipping{display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;grid-template-columns:none!important;min-width:0;padding:13px;border:1px solid #eadcd5;border-radius:13px;background:#fff}
+#cartModal .cart-shipping label{color:#655047!important;font-size:12px;font-weight:700;line-height:1.35;letter-spacing:0;text-transform:none;white-space:normal;text-shadow:none}
+#cartModal #shippingCop,#cartModal #invoicePaymentMethod{display:block;width:100%;min-width:0;min-height:44px;padding:10px 11px;border:1px solid #ddccc4!important;border-radius:9px;background:#fffdfb!important;color:#302722!important;font:600 14px/1.35 Calibri,Carlito,Arial,sans-serif}
+#cartModal #shippingCop{text-align:left}
+#cartModal .cart-shipping-hint{display:block;grid-column:auto;color:#7c665c;font-size:11px;line-height:1.35}
+/* Resumen: importes en renglones legibles, total final destacado. */
+#cartModal .cart-modal-footer>.cart-summary{grid-column:1/-1;display:grid;gap:0;padding:13px 15px;border:1px solid #dfc8bf;border-radius:15px;background:linear-gradient(145deg,#fffdfb,#f5e9e3);box-shadow:inset 0 3px #c8a49b}
+#cartModal .cart-summary-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e8d9d1;color:#665249;font-size:14px}
+#cartModal .cart-summary-row strong{color:#44332b;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+#cartModal .cart-total{margin:4px 0 0;padding:15px 0 4px;border:0;color:#513a32!important;font:700 clamp(18px,2vw,24px)/1.25 Georgia,"Times New Roman",serif!important;text-align:right;overflow-wrap:anywhere}
+/* Acciones: jerarquía fuerte de WhatsApp, secundarias uniformes y vaciado discreto. */
+#cartModal .cart-modal-footer>#cartImageStatus,#cartModal .cart-modal-footer>.cart-footer-actions{grid-column:1/-1}
+#cartModal .cart-footer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%}
+#cartModal .cart-footer-actions>button{width:100%;min-width:0;min-height:45px;padding:11px 10px;border:1px solid #ddc9c1;border-radius:11px;background:#fff;color:#654c45;font-size:13px;font-weight:700;line-height:1.3;text-align:center;overflow-wrap:anywhere}
+#cartModal .cart-footer-actions>#cartClearBtn{background:#fffaf8;color:#865a56;border-color:#e9d8d2}
+#cartModal .cart-footer-actions>#cartBuyBtn{grid-column:1/-1!important;justify-self:stretch;max-width:none;min-height:54px;border:1px solid #775365;border-radius:13px;background:#735467;color:#fff;font-size:15px;font-weight:700;box-shadow:0 5px 14px #69495928}
+/* Estado vacío: comunicar la ausencia de artículos sin generar operaciones. */
+#cartModal .cart-empty{padding:34px 20px;border:1px dashed #d6b9b1;border-radius:16px;background:#fff7f3;color:#715f55;line-height:1.55;font-weight:600}
+#cartModal #cartItems:empty::before{content:"Tu carrito está vacío. Agrega productos para verlos aquí.";display:block;padding:38px 18px;border:1px dashed #dfc9c0;border-radius:16px;background:#fff8f4;color:#765e54;text-align:center;line-height:1.55}
+/* Móvil: conservar visibilidad de importes y objetivos táctiles sin desbordamientos. */
+@media(max-width:760px){
+#cartModal .cart-modal-content{width:min(720px,96vw)!important;max-height:94dvh!important;border-radius:19px!important}
+#cartModal .cart-modal-header{padding:15px 18px!important}
+#cartModal .cart-modal-layout{display:block;overflow:auto}
+#cartModal .cart-modal-layout>.cart-modal-body{padding:17px 14px!important}
+#cartModal .cart-modal-layout>.cart-modal-footer{padding:18px 14px!important;border-left:0!important;border-top:1px solid #e9dcd4!important}
+#cartModal .cart-item{grid-template-columns:minmax(0,1fr) auto!important;gap:12px!important;padding:12px!important}
+#cartModal .cart-thumb{width:61px;height:61px}
+#cartModal .cart-subtotal{grid-column:1/-1;align-items:flex-end!important;padding-top:7px;border-top:1px solid #f0e6e0}
+#cartModal .cart-footer-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+#cartModal .cart-footer-actions>#cartBuyBtn{grid-column:1/-1!important}
+}
+@media(max-width:520px){
+#cartModal .cart-modal-footer{grid-template-columns:1fr!important}
+#cartModal .cart-modal-footer>.cart-shipping,#cartModal .cart-modal-footer>.cart-summary,#cartModal .cart-modal-footer>#cartImageStatus,#cartModal .cart-modal-footer>.cart-footer-actions{grid-column:1/-1}
+#cartModal .cart-item-name{font-size:15px}
+#cartModal .cart-controls{gap:3px;padding:3px}
+#cartModal .cart-qty-btn{width:37px;height:37px}
+#cartModal .cart-footer-actions{gap:8px}
+}
