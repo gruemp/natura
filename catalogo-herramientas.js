@@ -24,6 +24,7 @@ const FOLLETO_FORMATS=Object.freeze({
   document:{width:1191,height:1684,label:"Documento",extension:"pdf"}
 });
 const FOLLETO_FONT="Calibri, Carlito, Arial, sans-serif";
+const FICHA_EDITORIAL_FONT='Georgia,"Times New Roman",serif';
 
 
 
@@ -100,7 +101,7 @@ function buildFolletoSnapshot(options={}){
 
 
 
-function folletoFont(ctx,size,bold=false){ctx.font=`${bold?700:400} ${size}px ${FOLLETO_FONT}`;}
+function folletoFont(ctx,size,bold=false,family=FOLLETO_FONT){ctx.font=`${bold?700:400} ${size}px ${family}`;}
 function folletoLines(ctx,text,width){
   const result=[],paragraphEnds=[];
   for(const paragraph of String(text||"").replace(/\r/g,"").split("\n")){
@@ -126,7 +127,7 @@ const FICHA_LAYOUT=Object.freeze({
   descriptionSize:32,lineHeight:1.24,sectionGap:18
 });
 // Shared palette and image blending for exported and interactive fichas.
-const FICHA_THEME=Object.freeze({paper:"#fffaf5",center:"#fff1ed",wash:"#f6d5d7",line:"#bb9151",blend:"multiply"});
+const FICHA_THEME=Object.freeze({paper:"#fffdf9",center:"#f9f2ed",wash:"#f5e6df",line:"#c9ada2",ink:"#382922",muted:"#66554c",blend:"multiply"});
 const FOLLETO_COMPANY=Object.freeze({
   name:"IRENISMB STOCK NATURA",subtitle:"Consultores independientes de Natura y AVON",
   phone:"304 208 8961",location:"Los Almendros, Santa Marta"
@@ -337,15 +338,15 @@ function initCatalogInformationLayout(){
   desktop.addEventListener("change",arrange);arrange();
 }
 
-function folletoFitText(ctx,text,width,height,ideal,minSize,bold=false,truncate=false){
+function folletoFitText(ctx,text,width,height,ideal,minSize,bold=false,truncate=false,family=FOLLETO_FONT){
   const content=String(text||"").trim();
   if(!content)return {lines:[],size:ideal,lineHeight:ideal*1.24};
   for(let size=ideal;size>=minSize;size-=1){
-    folletoFont(ctx,size,bold);
+    folletoFont(ctx,size,bold,family);
     const lines=folletoLines(ctx,content,width),lineHeight=size*1.24;
     if(lines.length*lineHeight<=height)return {lines,size,lineHeight};
   }
-  folletoFont(ctx,minSize,bold);
+  folletoFont(ctx,minSize,bold,family);
   const lines=folletoLines(ctx,content,width),lineHeight=minSize*1.24;
   if(!truncate)throw new Error("La ficha del producto "+(text||"").slice(0,65)+" necesita menos texto para caber completa.");
   const maxLines=Math.max(1,Math.floor(height/lineHeight));
@@ -368,11 +369,11 @@ function measureFicha(ctx,ficha){
     try{description=folletoFitText(ctx,ficha.description,972,470,descriptionSize,descriptionSize);}catch(error){lastError=error;continue;}
     const mainHeight=972-(description.lines.length?description.lines.length*description.lineHeight+54:0);
     const calculate=scale=>{
-      const fit=(value,size,bold=false)=>folletoFitText(ctx,value,textWidth,mainHeight,size*scale,size*scale,bold);
-      const name=fit(ficha.name,FICHA_LAYOUT.nameSize,true);
+      const fit=(value,size,bold=false,family=FOLLETO_FONT)=>folletoFitText(ctx,value,textWidth,mainHeight,size*scale,size*scale,bold,false,family);
+      const name=fit(ficha.name,FICHA_LAYOUT.nameSize,true,FICHA_EDITORIAL_FONT);
       const presentation=fit(ficha.presentation,FICHA_LAYOUT.presentationSize);
       const attributes=folletoFitAttributes(ctx,ficha.facts,textWidth,mainHeight,FICHA_LAYOUT.factSize*scale,FICHA_LAYOUT.factSize*scale);
-      const price=priced?fit(ficha.priceText,FICHA_LAYOUT.priceSize,true):null;
+      const price=priced?fit(ficha.priceText,FICHA_LAYOUT.priceSize,true,FICHA_EDITORIAL_FONT):null;
       const textHeight=[name,presentation,attributes,price].filter(Boolean)
         .reduce((total,m)=>total+m.lines.length*m.lineHeight,0);
       const space=(name.lines.length?16:0)+(presentation.lines.length?18:0)+(attributes.lines.length?FICHA_LAYOUT.sectionGap+12:0)
@@ -499,16 +500,16 @@ function renderFicha(ctx,card,image){
   }
   let textY=54;
   const spacing=measure.scale||1;
-  textY=folletoDrawText(ctx,measure.name,measure.textX,textY,measure.textWidth,true,Boolean(measure.priced))+16*spacing;
-  if(measure.presentation.lines.length)textY=folletoDrawText(ctx,measure.presentation,measure.textX,textY,measure.textWidth)+18*spacing;
+  textY=folletoDrawText(ctx,measure.name,measure.textX,textY,measure.textWidth,true,false,FICHA_EDITORIAL_FONT,FICHA_THEME.ink)+16*spacing;
+  if(measure.presentation.lines.length)textY=folletoDrawText(ctx,measure.presentation,measure.textX,textY,measure.textWidth,false,false,FOLLETO_FONT,FICHA_THEME.muted)+18*spacing;
   if(measure.attributes.lines.length){
     ctx.strokeStyle=FICHA_THEME.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(measure.textX,textY);ctx.lineTo(1026,textY);ctx.stroke();
-    textY=folletoDrawText(ctx,measure.attributes,measure.textX,textY+FICHA_LAYOUT.sectionGap*spacing,measure.textWidth);
+    textY=folletoDrawText(ctx,measure.attributes,measure.textX,textY+FICHA_LAYOUT.sectionGap*spacing,measure.textWidth,false,false,FOLLETO_FONT,FICHA_THEME.muted);
   }
   if(measure.price?.lines.length){
     const priceY=54+measure.mainHeight-measure.price.lines.length*measure.price.lineHeight;
     ctx.strokeStyle=FICHA_THEME.line;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(measure.textX,priceY-18*spacing);ctx.lineTo(1026,priceY-18*spacing);ctx.stroke();
-    folletoDrawText(ctx,measure.price,measure.textX,priceY,measure.textWidth,true);
+    folletoDrawText(ctx,measure.price,measure.textX,priceY,measure.textWidth,true,false,FICHA_EDITORIAL_FONT,FICHA_THEME.ink);
   }
   if(measure.description.lines.length){
     const descriptionY=54+measure.mainHeight+20;
@@ -517,13 +518,13 @@ function renderFicha(ctx,card,image){
   }
   ctx.restore();
 }
-function folletoDrawText(ctx,measure,x,y,width,bold=false,justify=false){
-  folletoFont(ctx,measure.size,bold);ctx.fillStyle="#000";ctx.textAlign="left";
+function folletoDrawText(ctx,measure,x,y,width,bold=false,justify=false,family=FOLLETO_FONT,color="#000"){
+  folletoFont(ctx,measure.size,bold,family);ctx.fillStyle=color;ctx.textAlign="left";
   if(measure.richLines){
     for(const line of measure.richLines){
       let left=x;
       for(const segment of line.segments){
-        folletoFont(ctx,measure.size,segment.bold);ctx.fillText(segment.text,left,y);left+=ctx.measureText(segment.text).width;
+        folletoFont(ctx,measure.size,segment.bold,family);ctx.fillText(segment.text,left,y);left+=ctx.measureText(segment.text).width;
       }
       y+=measure.lineHeight;
     }

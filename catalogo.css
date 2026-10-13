@@ -1326,3 +1326,12 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
   .folleto-dialog .folleto-content>.folleto-checkboxes{grid-template-columns:1fr}
   .folleto-dialog .folleto-summary dl{grid-template-columns:minmax(0,1fr) auto;gap:0 9px}
 }
+
+/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */
+.card.catalog-ficha-card{border-color:#eaded6;box-shadow:0 5px 16px #513a2f0b}
+.catalog-ficha-card .ficha-square{color:var(--ficha-ink,#382922)}
+.catalog-ficha-card .name{font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var(--ficha-ink,#382922)}
+.catalog-ficha-card .ficha-presentation{color:var(--ficha-muted,#66554c)}
+.catalog-ficha-card .ficha-attributes{color:var(--ficha-muted,#66554c)}
+.catalog-ficha-card .ficha-attributes dt{color:var(--ficha-ink,#382922)}
+.catalog-ficha-card .price{font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var(--ficha-ink,#382922)}

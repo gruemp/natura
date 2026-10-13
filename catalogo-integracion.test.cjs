@@ -443,7 +443,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=folleto-interfaz-2026-10-13-7'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=fichas-editoriales-2026-10-13-8'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1161,4 +1161,20 @@ test('La capa exterior del diálogo Folleto no toca fichas ni el lienzo de vista
       assert.ok(candidate.startsWith('.folleto-dialog')||candidate.startsWith('@media'),candidate);
     }
   }
+});
+
+test('Fichas editoriales comparten tipografía y paleta en web, PNG y PDF, sin alterar medidas ni productos',()=>{
+  assert.match(toolsSource,/const FICHA_EDITORIAL_FONT='Georgia,"Times New Roman",serif'/);
+  assert.match(toolsSource,/const FICHA_THEME=Object.freeze\(\{paper:"#fffdf9",center:"#f9f2ed",wash:"#f5e6df",line:"#c9ada2",ink:"#382922",muted:"#66554c",blend:"multiply"\}\)/);
+  assert.match(toolsSource,/const name=fit\(ficha.name,FICHA_LAYOUT.nameSize,true,FICHA_EDITORIAL_FONT\)/);
+  assert.match(toolsSource,/const price=priced\?fit\(ficha.priceText,FICHA_LAYOUT.priceSize,true,FICHA_EDITORIAL_FONT\):null/);
+  assert.match(toolsSource,/folletoDrawText\(ctx,measure.name,measure.textX,textY,measure.textWidth,true,false,FICHA_EDITORIAL_FONT,FICHA_THEME.ink\)/);
+  assert.match(toolsSource,/folletoDrawText\(ctx,measure.price,measure.textX,priceY,measure.textWidth,true,false,FICHA_EDITORIAL_FONT,FICHA_THEME.ink\)/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.name\{font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var\(--ficha-ink/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.price\{font-family:Georgia,"Times New Roman",serif;font-weight:700;color:var\(--ficha-ink/);
+  assert.match(toolsSource,/const FICHA_SIZE=Object.freeze\(\{width:1080,height:1080\}\)/);
+  assert.match(toolsSource,/padding:54,imageWidth:486,columnGap:22,factX:562,right:54/);
+  assert.ok(fichaCssSource.includes("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */"));
+  const layer=fichaCssSource.split("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */")[1];
+  assert.ok(layer.split('\n').filter(line=>line.includes('{')).every(line=>/^\.(?:card\.catalog-ficha-card|catalog-ficha-card )/.test(line.trim())));
 });
