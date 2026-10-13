@@ -1175,7 +1175,7 @@ test('Fichas editoriales comparten tipografía y paleta en web, PNG y PDF, sin a
   assert.match(toolsSource,/const FICHA_SIZE=Object.freeze\(\{width:1080,height:1080\}\)/);
   assert.match(toolsSource,/padding:54,imageWidth:486,columnGap:22,factX:562,right:54/);
   assert.ok(fichaCssSource.includes("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */"));
-  const layer=fichaCssSource.split("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */")[1];
+  const layer=fichaCssSource.split("/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */")[1].split("/* Carrito: presentación editorial cálida y reversible, aislada de fichas y pedidos. */")[0];
   assert.ok(layer.split('\n').filter(line=>line.includes('{')).every(line=>/^\.(?:card\.catalog-ficha-card|catalog-ficha-card )/.test(line.trim())));
 });
 
@@ -1183,7 +1183,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   const marker="/* Carrito: presentación editorial cálida y reversible, aislada de fichas y pedidos. */";
   assert.ok(fichaCssSource.includes(marker));
   const layer=fichaCssSource.split(marker)[1];
-  assert.ok(layer.includes('#cartModal .cart-item')&&layer.includes('#cartModal .cart-summary')&&layer.includes('#cartModal #cartBuyBtn'));
+  assert.ok(layer.includes('#cartModal .cart-item')&&layer.includes('#cartModal .cart-summary')&&layer.includes('#cartModal .cart-footer-actions>#cartBuyBtn'));
   assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|#grid|\.folleto-|\.card\s*\{|\.form-modal|\.site-header|\.cart-modal[^-]/);
   for(const row of layer.split('\n')){
     const rule=row.trim();
