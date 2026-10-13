@@ -905,6 +905,13 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .catalog-ficha-card .price-admin-editor{flex-basis:100%}
 @media(max-width:760px){#grid:has(>.catalog-ficha-card){grid-template-columns:minmax(0,1fr);gap:18px}}
 
+/* Controles de fichas accesibles al tacto sin alterar su comportamiento. */
+@media (max-width:760px){
+  .catalog-ficha-card .product-selection{width:44px;height:44px}
+  .catalog-ficha-card .product-selection input{width:20px;height:20px;min-width:20px}
+  .catalog-ficha-card .product-details summary{min-height:44px}
+}
+
 /* Navegación y filtros táctiles legibles en pantallas pequeñas. */
 @media (max-width:760px){
   .catalog-navigation .nav-button,.catalog-categories button,.bar button,.word-filter-options .term-chip{min-height:44px}
