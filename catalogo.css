@@ -1024,3 +1024,23 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
   .catalog-main>.bar>#bulkAddBtn,.catalog-main>.bar>#folletoClearSelectionBtn:not([hidden]){grid-column:1/-1}
   .catalog-main>.bar>button:not([hidden]){width:100%;margin:0}
 }
+
+/* Cinco ajustes de composición estática en áreas externas. */
+/* 1. El logotipo conserva un marco circular reconocible y equilibrado. */
+.site-header .brand>img{padding:4px;border:2px solid #c790a4;background:#fffdfb;box-shadow:0 0 0 5px #f5e4e9}
+@media(max-width:350px){.site-header .brand>img{padding:3px;box-shadow:0 0 0 3px #f5e4e9}}
+/* 2. Cada acceso de navegación tiene superficie y separación propias. */
+.catalog-navigation>nav>.nav-button{min-height:50px;border:1px solid #e5cbd3;border-radius:11px;background:#fffdfc;gap:11px}
+.catalog-navigation>nav>.nav-button[aria-pressed="true"],.catalog-navigation>nav>.nav-button[aria-current="page"]{background:#f6e0e2}
+.catalog-navigation>nav>.nav-button .ui-icon{color:#8c4b63}
+/* 3. Panel de atención con jerarquía y contraste definidos. */
+.catalog-contact>.service-card{background:#fffdfb;border-color:#dcb8c6;box-shadow:0 8px 22px #653d5114}
+.catalog-contact>.service-card>h2{color:#643749;margin-bottom:9px;padding-bottom:13px;border-bottom:2px solid #dbacba}
+.catalog-contact>.service-card .service-list .ui-icon{color:#87455f}
+/* 4. Redes presentadas dentro de un módulo claro también en móvil. */
+.social-contact-region>.social-contact-card{padding:18px 20px 16px;border:1px solid #e5c7d1;border-radius:18px;background:#fffaf8;box-shadow:0 7px 20px #6544560e}
+.social-contact-region>.social-contact-card h2{margin-bottom:15px;color:#643749}
+@media(min-width:761px){.catalog-navigation .social-contact-card{border-color:#dcb7c4;background:linear-gradient(160deg,#fffdfb,#fff1f3)}}
+/* 5. Beneficios del pie ordenados en módulos de lectura uniforme. */
+.site-footer .footer-product-benefits li{min-width:0;padding:9px 11px;border:1px solid #e9d4da;border-radius:12px;background:#fffaf8}
+@media(max-width:760px){.site-footer .footer-product-benefits{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}}

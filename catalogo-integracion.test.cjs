@@ -443,7 +443,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-visible-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=simetria-exterior-cinco-2026-10-13-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
