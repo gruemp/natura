@@ -879,6 +879,14 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 .catalog-ficha-card .ficha-image-ready>img{opacity:0}
 .catalog-ficha-card .product-selection{z-index:2}
 .catalog-ficha-card .product-selection{top:0;left:0;right:auto;width:28px;height:28px}
+/* Selección del folleto: zona táctil de 44 px sin agrandar la marca visible. */
+@media (max-width:760px){
+  .product-selection,.catalog-ficha-card .product-selection{width:44px;height:44px;border:0;background:transparent;box-shadow:none}
+  .product-selection::before{content:"";position:absolute;inset:7px;border:1px solid #edcfce;border-radius:50%;background:#fffefa;box-shadow:0 2px 8px #6a36400a;pointer-events:none}
+  .product-selection input{position:relative;z-index:1}
+  .product-selection:has(input:focus-visible)::before{outline:3px solid #795b6a;outline-offset:2px}
+}
+
 .catalog-ficha-card .ficha-facts{--ficha-text-unit:calc(var(--ficha-unit,1px) * var(--ficha-fit,1));min-width:0;min-height:0;display:flex;flex-direction:column;align-items:stretch;gap:0}
 .catalog-ficha-card .ficha-facts>*{flex:none}
 .catalog-ficha-card [hidden]{display:none!important}
