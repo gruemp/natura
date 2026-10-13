@@ -969,3 +969,13 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
   .folleto-checkboxes{grid-template-columns:minmax(0,1fr)}
   .folleto-checkboxes label{min-height:44px;font-size:13px}
 }
+
+/* Mejoras externas de interfaz sin alterar fichas. */
+.site-header .search-wrap:focus-within #q{border-color:#9b647a;box-shadow:0 0 0 3px #9b647a29}
+.catalog-navigation .nav-button span{min-width:0;overflow-wrap:anywhere}
+@media (min-width:761px) and (max-width:980px){.catalog-navigation .nav-button{gap:7px;padding-inline:9px;font-size:14px}}
+@media (max-width:760px){.site-header .header-actions button{min-height:44px}}
+@media (max-width:760px){.social-contact-card .social-icons .social-label{font-size:12px;line-height:1.25}}
+.word-filter-status .filter-summary-chip{display:inline-flex;align-items:center;min-height:40px}
+@media (max-width:760px){.word-filter-status .filter-summary-chip{min-height:44px}}
+.site-footer .footer-phone{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px}
