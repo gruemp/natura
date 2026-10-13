@@ -1153,7 +1153,7 @@ test('Descripción justificada en ficha web y en exportaciones PNG/PDF sin estir
 test('La capa exterior del diálogo Folleto no toca fichas ni el lienzo de vista previa',()=>{
   const marker="/* Folleto: renovación de los controles del diálogo; nunca altera la vista previa ni las fichas. */";
   assert.equal(fichaCssSource.split(marker).length,2);
-  const layer=fichaCssSource.split(marker)[1];
+  const layer=fichaCssSource.split(marker)[1].split('/* Fichas: opción editorial minimalista (reversible; composición cuadrada intacta). */')[0];
   assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|#grid|\.folleto-preview(?:\s*[\\{>]| img)|\.folleto-body\s*\\{|\.card\s*\\{/);
   for(const line of layer.split('\n')){
     const candidate=line.trim();
