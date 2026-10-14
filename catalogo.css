@@ -1401,3 +1401,25 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 #cartModal .cart-qty-btn{width:37px;height:37px}
 #cartModal .cart-footer-actions{gap:8px}
 }
+
+/* Control de inventario reservado al carrito administrativo. */
+.cart-inventory-tools[hidden],.cart-camera-preview[hidden]{display:none!important}
+.cart-inventory-tools{padding:14px 16px;border-bottom:1px solid #314941;background:linear-gradient(120deg,#1c3931,#2d444b);color:#fff}
+.cart-inventory-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cart-inventory-heading strong{display:block;font-size:15px;letter-spacing:.01em}
+.cart-inventory-heading small{display:block;margin-top:4px;color:#cadfd6;font-size:12px}
+.cart-movement-label{display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:900;font-size:12px;letter-spacing:.03em}
+.cart-movement-input{position:absolute;width:1px;height:1px;opacity:0}
+.cart-movement-track{display:flex;align-items:center;width:58px;height:32px;padding:4px;border-radius:99px;background:#777e85;transition:background .2s}
+.cart-movement-track>span{width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 4px #0005;transition:transform .2s}
+.cart-movement-input:checked+.cart-movement-track{background:#278666}
+.cart-movement-input:checked+.cart-movement-track>span{transform:translateX(26px)}
+.cart-movement-input:focus-visible+.cart-movement-track{outline:3px solid #f5df96;outline-offset:3px}
+.cart-inventory-scan{margin-top:13px}
+.cart-inventory-scan>label{display:block;margin-bottom:6px;font-size:12px;font-weight:800;color:#e3eee8}
+.cart-inventory-scan-row{display:flex;flex-wrap:wrap;gap:8px}
+.cart-inventory-scan-row input{min-width:130px;flex:1 1 180px;min-height:40px;border-radius:9px;border:1px solid #a4bfb2;background:#fff;color:#273e34;padding:9px;font-size:14px}
+.cart-inventory-scan-row button{min-height:40px;border-radius:9px}
+.cart-camera-preview{display:block;width:min(100%,350px);max-height:260px;object-fit:cover;margin:10px auto 0;border:2px solid #d2bb7a;border-radius:12px}
+.cart-barcode-status{min-height:1.3em;margin:8px 0 0;font-size:12px;color:#f2ead4}
+@media(max-width:480px){.cart-inventory-heading{align-items:flex-start}.cart-movement-label{flex-shrink:0}.cart-inventory-scan-row button{flex:1}}
