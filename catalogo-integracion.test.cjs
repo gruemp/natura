@@ -441,9 +441,9 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=movimientos-admin-2026-10-13-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=carrito-editorial-2026-10-13-9'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=movimientos-admin-2026-10-13-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1193,5 +1193,43 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=carrito-editorial-2026-10-13-9'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=movimientos-admin-2026-10-13-1'));
+});
+
+
+test('El carrito público conserva el pedido y el administrador utiliza el puente autenticado',()=>{
+  assert.match(cartSource,/if\(window\.CATALOG_ADMIN_MODE_ACTIVE===true\)\{\s*await registerAdminInventoryMovement\(\);\s*return;\s*\}/);
+  assert.match(cartSource,/const receipt = await registerOrderInSheet\("Pedido"\)/);
+  assert.match(cartSource,/window\.CATALOG_ADMIN_REQUEST\(\{tipo:"registrar-movimiento",datos:request\}\)/);
+  assert.match(adminSource,/m\.tipo==="movimiento-registrado"/);
+  assert.match(htmlSource,/id="cartInventoryTools"/);
+  assert.match(htmlSource,/id="cartMovementSwitch"[^>]*type="checkbox"[^>]*role="switch"/);
+  assert.match(htmlSource,/id="cartBarcodeInput"/);
+  assert.match(htmlSource,/id="cartCameraToggle"/);
+  assert.ok(!htmlSource.includes('id="cartMovementSwitch" checked'),'El interruptor debe iniciar apagado: SALIDA');
+});
+
+test('Solo SALIDA crea un documento; la ENTRADA únicamente registra el movimiento',()=>{
+  assert.match(cartSource,/if\(tipo==="SALIDA"\)\{\s*try\{invoice=await invoiceBuildPng\(\)/);
+  assert.match(cartSource,/if\(tipo==="SALIDA"\)\{\s*try\{invoiceDownloadPng\(invoice\.blob\)/);
+  assert.match(cartSource,/if\(inventorySwitchEl\)inventorySwitchEl\.checked=false/);
+  assert.match(appSource,/entryMode\?"Registrar ENTRADA":"Registrar SALIDA y generar documento"/);
+  assert.match(appSource,/cartInvoiceBtn\.hidden=!adminCart\|\|entryMode/);
+});
+
+test('Servidor valida códigos, cantidades y precios de movimientos sin crear ventas públicas',()=>{
+  const movementSource=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','admin-movimientos.js'),'utf8');
+  const ctx=vm.createContext({});
+  vm.runInContext(movementSource,ctx);
+  assert.equal(vm.runInContext('movCode("583")',ctx),'0583');
+  assert.equal(vm.runInContext('movQty("3")',ctx),3);
+  assert.equal(vm.runInContext('movPrice("40.000")',ctx),40000);
+  assert.equal(vm.runInContext('movPrice("19.450,5")',ctx),19450.5);
+  assert.equal(vm.runInContext('movPrice("")',ctx),null);
+  assert.throws(()=>vm.runInContext('movCode("ABC")',ctx),/inválido/);
+  assert.throws(()=>vm.runInContext('movQty(0)',ctx),/inválida/);
+  assert.match(movementSource,/tipo!=="ENTRADA"&&tipo!=="SALIDA"|!\["ENTRADA","SALIDA"\]\.includes\(tipo\)/);
+  assert.match(movementSource,/tipo==="SALIDA"\?p\.price:null/);
+  assert.match(movementSource,/i===0\?payment:"",""/);
+  assert.match(movementSource,/MOV-\s*"\+key/);
 });

@@ -8,7 +8,8 @@
   const ADMIN_MODE_STORAGE_KEY="irenismb_admin_mode_active_v1";
   const DOCUMENTS=Object.freeze({
     productos:Object.freeze({label:"Productos",help:"Inventario, precios y descripciones del catálogo.",group:"Inventario",url:`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=893686273`}),
-    pedidos:Object.freeze({label:"Pedidos",help:"Pedidos y salidas registrados desde la página.",group:"Pedidos y prospectos",url:"https://docs.google.com/spreadsheets/d/1C4SA31dGX-6twdyZki68G4sV7j4Gwc21UuZpO0QPtuc/edit#gid=0"}),
+    pedidos:Object.freeze({label:"Pedidos",help:"Solicitudes de compras y pedidos del catálogo público.",group:"Pedidos y prospectos",url:"https://docs.google.com/spreadsheets/d/1C4SA31dGX-6twdyZki68G4sV7j4Gwc21UuZpO0QPtuc/edit#gid=0"}),
+    movimientos:Object.freeze({label:"Movimientos",help:"Entradas y salidas reales del inventario.",group:"Inventario",url:"https://docs.google.com/spreadsheets/d/1M8yCu65FG0wBeBAPqMXLaaXg2YXIhrJ_4gJ5lo1tZ9g/edit#gid=1376116992"}),
     prospectos:Object.freeze({label:"Prospectos",help:"Perfiles de Facebook y seguimiento comercial.",group:"Pedidos y prospectos",url:"https://docs.google.com/spreadsheets/d/1C4SA31dGX-6twdyZki68G4sV7j4Gwc21UuZpO0QPtuc/edit#gid=639690806"}),
     visitas:Object.freeze({label:"Visitas",help:"Actividad y ubicación de los visitantes.",group:"Visitas",url:"https://docs.google.com/spreadsheets/d/1vxxTu4HWcgDm2HcCwPykMXyepVAFQcFsQkHUS6ed81g/edit#gid=0"}),
     resumen_visitas:Object.freeze({label:"Resumen de visitas",help:"Estadísticas acumuladas de las visitas.",group:"Visitas",url:"https://docs.google.com/spreadsheets/d/1vxxTu4HWcgDm2HcCwPykMXyepVAFQcFsQkHUS6ed81g/edit#gid=1300000001"}),
@@ -761,7 +762,7 @@
   }
   window.CATALOG_ADMIN_REQUEST=request;
   window.CATALOG_ADMIN_CAPABILITIES=capabilities;
-  function onReply(e){const m=e.data||{},p=requests.get(m.solicitudId);if(!p)return;clearTimeout(p.timer);requests.delete(m.solicitudId);if(m.tipo==="conexion-verificada"||m.tipo==="precio-actualizado"||m.tipo==="visibilidad-actualizada"||m.tipo==="configuracion-obtenida"||m.tipo==="configuracion-actualizada"||m.tipo==="orden-navegacion-actualizado"||m.tipo==="prospectos-obtenidos"||m.tipo==="prospecto-registrado"||m.tipo==="prospecto-actualizado")p.resolve(m.resultado||{});else p.reject(new Error(m.error||"No se pudo completar la operación."))}
+  function onReply(e){const m=e.data||{},p=requests.get(m.solicitudId);if(!p)return;clearTimeout(p.timer);requests.delete(m.solicitudId);if(m.tipo==="conexion-verificada"||m.tipo==="precio-actualizado"||m.tipo==="visibilidad-actualizada"||m.tipo==="configuracion-obtenida"||m.tipo==="configuracion-actualizada"||m.tipo==="orden-navegacion-actualizado"||m.tipo==="prospectos-obtenidos"||m.tipo==="prospecto-registrado"||m.tipo==="prospecto-actualizado"||m.tipo==="movimiento-registrado"||m.tipo==="codigo-barras-resuelto"||m.tipo==="codigo-barras-vinculado")p.resolve(m.resultado||{});else p.reject(new Error(m.error||"No se pudo completar la operación."))}
   function closeBridge(options={}){
     clearTimeout(connectTimer);connectTimer=0;try{port?.close()}catch(_){}port=null;bridgeCheck=null;
     for(const pending of requests.values()){clearTimeout(pending.timer);pending.reject(new Error("Se interrumpió la conexión con Google. Comprueba el documento antes de volver a guardar."))}requests.clear();
