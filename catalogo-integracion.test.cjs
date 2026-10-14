@@ -441,10 +441,10 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=vinculacion-barras-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=control-imagenes-2026-10-14-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=control-imagenes-2026-10-14-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
