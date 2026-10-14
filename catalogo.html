@@ -233,7 +233,7 @@
 
 
 
-  <link rel="stylesheet" href="catalogo.css?actualizacion=movimientos-admin-2026-10-13-1" />
+  <link rel="stylesheet" href="catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1" />
 
 
 
@@ -1041,6 +1041,35 @@
 
 
 
+
+  <!-- Asociación de códigos reales: exclusivamente en administración. No afecta existencias. -->
+  <div id="barcodeBindDialog" class="catalog-barcode-dialog" role="dialog" aria-modal="true" aria-labelledby="barcodeBindTitle" hidden>
+    <div class="catalog-barcode-backdrop" data-barcode-close></div>
+    <div class="catalog-barcode-dialog-content" role="document">
+      <header class="catalog-barcode-dialog-head">
+        <div><span class="catalog-barcode-eyebrow">NATURA · ADMINISTRACIÓN</span><h2 id="barcodeBindTitle">Vincular código de barras</h2></div>
+        <button type="button" id="barcodeBindClose" class="catalog-barcode-close" aria-label="Cerrar asociación">✕</button>
+      </header>
+      <div class="catalog-barcode-dialog-body">
+        <p id="barcodeBindProduct" class="catalog-barcode-product"></p>
+        <p id="barcodeBindCode" class="catalog-barcode-internal"></p>
+        <label for="barcodeBindInput">Código de barras EAN/UPC del envase</label>
+        <div class="catalog-barcode-input-row">
+          <input id="barcodeBindInput" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="Escanea o escribe 8–14 dígitos">
+          <button type="button" id="barcodeBindSave" class="catalog-barcode-save">Vincular</button>
+        </div>
+        <button type="button" id="barcodeBindCamera" class="catalog-barcode-camera">Abrir cámara</button>
+        <video id="barcodeBindVideo" class="catalog-barcode-video" playsinline autoplay muted hidden></video>
+        <p id="barcodeBindStatus" class="catalog-barcode-dialog-status" role="status" aria-live="polite"></p>
+        <section class="catalog-barcode-existing" aria-label="Códigos asociados a este producto">
+          <h3>Códigos vinculados</h3>
+          <ul id="barcodeBindList"></ul>
+        </section>
+        <p class="catalog-barcode-help">Puedes vincular varios códigos al mismo producto. Si un código ya pertenece a otro producto, no se reasignará. Este proceso no modifica el inventario.</p>
+      </div>
+    </div>
+  </div>
+
   <div class="cart-modal" id="cartModal" aria-hidden="true" aria-modal="true" role="dialog" aria-label="Carrito">
     <div class="cart-modal-backdrop" id="cartModalBackdrop"></div>
     <div class="cart-modal-content" role="document" aria-label="Contenido del carrito">
@@ -1715,8 +1744,8 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo"></script>
- <script src="catalogo-app.js?actualizacion=movimientos-admin-2026-10-13-1"></script>
-  <script src="catalogo-carrito-pedido.js?actualizacion=movimientos-admin-2026-10-13-1"></script>
+ <script src="catalogo-app.js?actualizacion=vinculacion-barras-2026-10-13-1"></script>
+  <script src="catalogo-carrito-pedido.js?actualizacion=vinculacion-barras-2026-10-13-1"></script>
   <script src="catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2"></script>
   <script src="analytics-visitas.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="catalogo-ui.js?actualizacion=pestanas-tres-palabras-2026-10-12-1"></script>
