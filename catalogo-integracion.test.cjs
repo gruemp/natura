@@ -478,7 +478,7 @@ test('La configuración y visibilidad públicas consultan únicamente lector App
   const config=env.run('loadRemoteCatalogConfiguration("__testControl")');
   const request=new URL(env.requests.at(-1).src);
   assert.equal(request.hostname,'script.google.com');assert.equal(request.searchParams.get('modo'),'config');
-  env.reply({ok:true,valores:{REGISTRAR_VISITAS_PROPIAS:'DESACTIVADO',MOSTRAR_CANTIDAD_STOCK:'DESACTIVADO',MOSTRAR_PRECIOS_PRODUCTO:'ACTIVADO',ORDEN_NAVEGACION:'!section,category,subcategory,public,!line,product',ORDEN_PRODUCTOS:'price_asc'},publicadoEn:'2026-10-07T23:00:14.772Z'});
+  env.reply({ok:true,valores:{REGISTRAR_VISITAS_PROPIAS:'DESACTIVADO',MOSTRAR_CANTIDAD_STOCK:'DESACTIVADO',MOSTRAR_PRECIOS_PRODUCTO:'ACTIVADO',CARGAR_IMAGENES_CATALOGO:'ACTIVADO',ORDEN_NAVEGACION:'!section,category,subcategory,public,!line,product',ORDEN_PRODUCTOS:'price_asc'},publicadoEn:'2026-10-07T23:00:14.772Z'});
   return config.then(x=>assert.equal(x.valores.ORDEN_PRODUCTOS,'price_asc'));
 });
 
