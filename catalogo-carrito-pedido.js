@@ -1422,6 +1422,95 @@
       }
     }
 
+
+    /* Lector USB/Bluetooth (Enter) y cámara con BarcodeDetector, sin envío de códigos al servicio público. */
+    async function addScannedCode(raw){
+      if(!inventoryAllowed())throw new Error("Conecta como administrador para escanear.");
+      const barcode=String(raw||"").trim().replace(/\s+/g,"");
+      if(!/^\d{1,14}$/.test(barcode))throw new Error("Código inválido. Lee un código EAN/UPC o interno.");
+      let code=/^\d{1,4}$/.test(barcode)?barcode.padStart(4,"0"):"";
+      if(!code){
+        const found=await window.CATALOG_ADMIN_REQUEST({tipo:"buscar-codigo-barras",codigoBarras:barcode});
+        code=String(found?.codigoInterno||"");
+        if(!code){
+          const text=prompt("Código de barras "+barcode+" todavía no asociado. Escribe el código interno (por ejemplo 0583):");
+          if(text===null)return;
+          const normalized=String(text).trim();
+          code=/^\d{1,4}$/.test(normalized)?normalized.padStart(4,"0"):"";
+          const candidate=productById.get(code);
+          if(!candidate)throw new Error("El código interno no corresponde a un producto disponible.");
+          if(!confirm("¿Asociar "+barcode+" a "+candidate.name+" (código "+code+")?"))return;
+          const saved=await window.CATALOG_ADMIN_REQUEST({tipo:"vincular-codigo-barras",codigoBarras:barcode,codigoInterno:code});
+          if(!saved?.ok)throw new Error("No se confirmó la asociación del código de barras.");
+        }
+      }
+      const product=productById.get(code);
+      if(!product||product.isGiftGalleryImage)throw new Error("Producto "+code+" no disponible. Actualiza el catálogo.");
+      if(cart[code])cart[code].qty=Math.min(9999,Math.max(0,Number(cart[code].qty)||0)+1);
+      else cart[code]={id:code,name:product.name,price:product.price,hasPrice:product.hasPrice!==false,qty:1,stock:product.stock,imgFilename:product.imgFilename||null};
+      lastRegisteredFingerprint="";
+      saveCart();renderCartModal();
+      inventoryStatus("Escaneado: "+product.name+". Cantidad: "+cart[code].qty);
+      if(barcodeInputEl){barcodeInputEl.value="";barcodeInputEl.focus()}
+      stopInventoryCamera();
+    }
+    async function scannerFromInput(){
+      if(scannerBusy)return;scannerBusy=true;
+      try{await addScannedCode(barcodeInputEl?.value||"")}
+      catch(error){inventoryStatus(String(error?.message||error))}
+      finally{scannerBusy=false}
+    }
+    async function toggleInventoryCamera(){
+      if(scannerRunning){stopInventoryCamera();return}
+      if(!inventoryAllowed()){inventoryStatus("Conecta como administrador para usar la cámara.");return}
+      if(!navigator.mediaDevices?.getUserMedia||!window.BarcodeDetector){
+        inventoryStatus("Este navegador no admite lectura por cámara. Usa un lector USB/Bluetooth o escribe el código.");
+        return;
+      }
+      try{
+        const supported=await window.BarcodeDetector.getSupportedFormats();
+        const formats=supported.filter(f=>["code_128","code_39","ean_13","ean_8","upc_a","upc_e"].includes(f));
+        if(!formats.length)throw new Error("El navegador no reconoce los formatos requeridos.");
+        const detector=new window.BarcodeDetector({formats});
+        scannerStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+        cameraPreviewEl.srcObject=scannerStream;cameraPreviewEl.hidden=false;
+        await cameraPreviewEl.play();
+        scannerRunning=true;cameraToggleEl.textContent="Cerrar cámara";
+        inventoryStatus("Apunta al código de barras del producto.");
+        const detect=async()=>{
+          if(!scannerRunning)return;
+          try{
+            if(!scannerBusy&&cameraPreviewEl.readyState>=2){
+              const codes=await detector.detect(cameraPreviewEl);
+              if(codes.length){
+                scannerBusy=true;
+                try{await addScannedCode(codes[0].rawValue)}
+                catch(error){inventoryStatus(String(error?.message||error))}
+                finally{scannerBusy=false}
+              }
+            }
+          }catch(error){inventoryStatus("La cámara no pudo leer el código. Prueba otra vez.")}
+          if(scannerRunning)scannerTimer=setTimeout(detect,350);
+        };
+        scannerTimer=setTimeout(detect,350);
+      }catch(error){stopInventoryCamera();inventoryStatus("No se pudo abrir la cámara: "+String(error?.message||error))}
+    }
+    barcodeAddEl?.addEventListener("click",scannerFromInput);
+    barcodeInputEl?.addEventListener("keydown",event=>{
+      if(event.key==="Enter"){event.preventDefault();scannerFromInput()}
+    });
+    cameraToggleEl?.addEventListener("click",toggleInventoryCamera);
+    inventorySwitchEl?.addEventListener("change",()=>{
+      if(!inventoryAllowed()){inventorySwitchEl.checked=false;inventoryStatus("Conecta con Google antes de registrar movimientos.")}
+      renderCartModal();
+    });
+    window.addEventListener("irenismb:admin-mode-change",event=>{
+      if(!event.detail?.active){stopInventoryCamera();if(inventorySwitchEl)inventorySwitchEl.checked=false}
+      if(cartModal?.classList.contains("open"))renderCartModal();
+    });
+    window.addEventListener("irenismb:admin-bridge-disconnected",()=>{
+      stopInventoryCamera();inventoryStatus("Conexión administrativa interrumpida.");
+    });
     let orderSending = false;
 
     const cartModal = document.getElementById("cartModal");
