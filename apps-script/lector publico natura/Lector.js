@@ -1,7 +1,7 @@
 // Implementación inmutable, pública y de SOLO LECTURA del catálogo.
 // No contiene el panel administrativo ni métodos de actualización.
-// Lee únicamente tres propiedades públicas del administrador mediante biblioteca privada versionada.
-const CONFIG_PUBLIC_KEYS = ['REGISTRAR_VISITAS_PROPIAS','MOSTRAR_CANTIDAD_STOCK','MOSTRAR_PRECIOS_PRODUCTO','ORDEN_NAVEGACION','ORDEN_PRODUCTOS'];
+// Lee únicamente propiedades públicas del administrador mediante biblioteca privada versionada.
+const CONFIG_PUBLIC_KEYS = ['REGISTRAR_VISITAS_PROPIAS','MOSTRAR_CANTIDAD_STOCK','MOSTRAR_PRECIOS_PRODUCTO','CARGAR_IMAGENES_CATALOGO','ORDEN_NAVEGACION','ORDEN_PRODUCTOS'];
 const VISIBILIDAD_TIPOS = ['producto','seccion','categoria','subcategoria','publico','linea','familia'];
 
 function doGet(evento) {
@@ -48,11 +48,16 @@ function leerVisibilidadPublica_() {
   return {ok:true,reglas:confirmarReglas_(obj.reglas),actualizadoEn:new Date().toISOString()};
 }
 function confirmarConfiguracion_(valores,revision) {
-  if(!Array.isArray(valores) || valores.length!==5 || !revision || !Number.isFinite(Date.parse(revision)))throw new Error('Configuración incompleta');
-  for(let i=0;i<3;i++)if(!['ACTIVADO','DESACTIVADO'].includes(valores[i]))throw new Error('Configuración de booleanos inválida');
-  if(!/^!?section,!?category,!?subcategory,!?public,!?line,!?product$/.test(valores[3]) && !validarOrdenPublico_(valores[3]))throw new Error('Orden de navegación inválido');
-  if(!['price_asc','price_desc','name_asc','name_desc'].includes(valores[4]))throw new Error('Orden de productos inválido');
-  const result={};CONFIG_PUBLIC_KEYS.forEach((key,i)=>{result[key]=valores[i]});return result;
+  if(!Array.isArray(valores) || ![5,6].includes(valores.length) || !revision || !Number.isFinite(Date.parse(revision)))throw new Error('Configuración incompleta');
+  // Una versión anterior del administrador publicaba cinco claves. Completar la
+  // nueva preferencia en ACTIVADO conserva fotografías sin bloquear el catálogo.
+  const actuales=valores.length===5
+    ? [valores[0],valores[1],valores[2],'ACTIVADO',valores[3],valores[4]]
+    : valores;
+  for(let i=0;i<4;i++)if(!['ACTIVADO','DESACTIVADO'].includes(actuales[i]))throw new Error('Configuración de booleanos inválida');
+  if(!validarOrdenPublico_(actuales[4]))throw new Error('Orden de navegación inválido');
+  if(!['price_asc','price_desc','name_asc','name_desc'].includes(actuales[5]))throw new Error('Orden de productos inválido');
+  const result={};CONFIG_PUBLIC_KEYS.forEach((key,i)=>{result[key]=actuales[i]});return result;
 }
 function validarOrdenPublico_(orden) {
   const parts=String(orden||'').split(',');
