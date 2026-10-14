@@ -188,6 +188,7 @@ function normalizarPrecioComparable_(valor) {
   }
   const texto = String(valor == null ? "" : valor).trim();
   if (!texto) return "";
-  const digitos = texto.replace(/[^\d]/g, "");
-  return digitos ? String(Number(digitos)) : "";
+  const precio = catalogCompactNumber(texto);
+  if(!precio.valid)throw new Error("Precio anterior inválido.");
+  return precio.value === null ? "" : String(precio.value);
 }

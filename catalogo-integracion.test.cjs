@@ -1426,3 +1426,10 @@ test('Una modificación durante la respuesta de Google no se pierde al confirmar
   assert.ok(env.alerts.some(message=>message.includes('El carrito cambió durante el envío y se conservó')));
   assert.equal(env.ctx.inventorySubmitting,false);
 });
+
+
+test('El administrador directo conserva decimales del precio anterior escrito con formato colombiano',()=>{
+  const original=compactDescription.replace('25.000','194.974,5'),env=compactPriceBackend(original);
+  assert.equal(env.run('actualizarPrecioWeb("0042","200000","194.974,5").precioGuardado'),'200000');
+  assert.equal(env.writes(),1);
+});
