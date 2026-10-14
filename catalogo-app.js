@@ -91,9 +91,26 @@
     function shouldEnforceStockLimits(){
       return false;
     }
+    let adminImageLoading = null;
     function shouldShowProductImages(){
+      if(window.CATALOG_ADMIN_MODE_ACTIVE === true && adminImageLoading !== null) return adminImageLoading;
       return INTERRUPTORES.CARGAR_IMAGENES_CATALOGO !== false;
     }
+    let effectiveImageLoading = shouldShowProductImages();
+    function syncCatalogImageLoading(){
+      const enabled = shouldShowProductImages();
+      if(enabled === effectiveImageLoading) return;
+      effectiveImageLoading = enabled;
+      window.dispatchEvent(new CustomEvent("natura:image-visibility-changed",{detail:{enabled}}));
+    }
+    window.applyCatalogAdminImageLoading = value=>{
+      const enabled = parseRemoteBoolean(value);
+      if(enabled === null) return false;
+      adminImageLoading = enabled;
+      syncCatalogImageLoading();
+      return true;
+    };
+    window.addEventListener("irenismb:admin-mode-change",syncCatalogImageLoading);
     function shouldShowPublicProductPrices(){
       return !!(window.INTERRUPTORES && window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO !== false);
     }
@@ -664,13 +681,12 @@ function readCompactGoogleSheetProductRows(table,indices){
       if(remoteConfigRevision && Date.parse(revision) < Date.parse(remoteConfigRevision)) return false;
       const source = Object.fromEntries(PUBLIC_CONFIGURATION_KEYS.map(key=>[key,values[key]]));
       const first = !window.CATALOG_PUBLIC_CONFIG_CONFIRMED;
-      const previousImageLoading = shouldShowProductImages();
       const changed = applyRemoteControlValues(source);
       remoteConfigRevision = revision; remoteConfigGeneration++;
       window.CATALOG_PUBLIC_CONFIG_CONFIRMED = true;
       try{ localStorage.setItem(REMOTE_CONTROL_SOURCE.cacheKey, JSON.stringify({valores:source, publicadoEn:revision})); }catch(_){}
       setConfigurationNotice("");
-      if(previousImageLoading !== shouldShowProductImages()) window.dispatchEvent(new CustomEvent("natura:image-visibility-changed",{detail:{enabled:shouldShowProductImages()}}));
+      syncCatalogImageLoading();
       if((changed || first) && options.rebuild !== false && allLoadedProducts.length){
         rebuildCatalogVisibility(); syncWordToggleButton();
         if(cartModal?.classList.contains("open")) renderCartModal();

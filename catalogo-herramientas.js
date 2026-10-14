@@ -955,10 +955,12 @@ function initFolleto(){
   });
   previous.addEventListener("click",()=>{if(!busy&&state&&pageIndex>0)showPage(pageIndex-1,version);});
   next.addEventListener("click",()=>{if(!busy&&state&&pageIndex<state.plan.pages.length-1)showPage(pageIndex+1,version);});
-  window.addEventListener("irenismb:admin-mode-change",()=>{
+  const refreshFolletoImages = ()=>{
     previewController?.abort();exportController?.abort();
     if(dialog.open&&!busy)refresh(true);
-  });
+  };
+  window.addEventListener("irenismb:admin-mode-change",refreshFolletoImages);
+  window.addEventListener("natura:image-visibility-changed",refreshFolletoImages);
   async function generateFolleto(formatKey){
     if(busy||!valid)return;
     busy=true;clearTimeout(timer);previewController?.abort();exportController=new AbortController();

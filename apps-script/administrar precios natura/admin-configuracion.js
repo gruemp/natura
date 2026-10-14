@@ -242,7 +242,10 @@ const CONFIG_PUBLISHED_REVISION = "CATALOGO_CONFIG_PUBLIC_REVISION_V1";
 const CONFIG_MIGRATION_PUBLIC_KEYS = ["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","ORDEN_NAVEGACION","ORDEN_PRODUCTOS"];
 function migrarConfiguracionPublicaDesdeHoja_(){
   const props=PropertiesService.getScriptProperties();
-  if(props.getProperty(CONFIG_MIGRATION_MARKER)==="ok")return;
+  if(props.getProperty(CONFIG_MIGRATION_MARKER)==="ok"){
+    migrarConfiguracionImagenesAdmin_();
+    return;
+  }
   const sh=SpreadsheetApp.openById(INVENTARIO_SPREADSHEET_ID).getSheetByName("configuracion_publica");
   if(!sh||sh.getLastRow()<6)throw new Error("No hay configuración pública inicial.");
   const rows=sh.getRange(1,1,6,3).getDisplayValues();
@@ -263,6 +266,18 @@ function migrarConfiguracionPublicaDesdeHoja_(){
   migrated[CONFIG_MIGRATION_MARKER]="ok";
   props.setProperties(migrated,false);
   if(props.getProperty(CONFIG_PUBLISHED_VALUES)!==migrated[CONFIG_PUBLISHED_VALUES])throw new Error("No se confirmó la importación pública.");
+  migrarConfiguracionImagenesAdmin_();
+}
+// Se ejecuta bajo el bloqueo de configuración. Copiar una sola vez el ajuste
+// anterior conserva ambas vistas, sin vincular sus cambios posteriores.
+function migrarConfiguracionImagenesAdmin_(){
+  const props=PropertiesService.getScriptProperties();
+  const key=CONFIG_PROPERTY_PREFIX+"CARGAR_IMAGENES_ADMIN";
+  if(props.getProperty(key)!==null)return;
+  const estado=normalizarEstadoConfiguracion_(props.getProperty(CONFIG_PROPERTY_PREFIX+"CARGAR_IMAGENES_CATALOGO"))
+    || CONFIG_DEFAULTS.CARGAR_IMAGENES_CATALOGO;
+  props.setProperty(key,estado);
+  if(props.getProperty(key)!==estado)throw new Error("No se confirmó la configuración de imágenes administrativas.");
 }
 function asegurarConfiguracionPublica_(){
   const lock=LockService.getScriptLock();lock.waitLock(30000);

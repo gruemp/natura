@@ -194,6 +194,7 @@ function environment(){
     set innerHTML(value){this.children=[];this._html=value;}
     get innerHTML(){return this._html||'';}
     focus(){document.activeElement=this;}
+    pause(){}
     constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.style={setProperty(){}};this.value='';this.textContent='';this.attributes={};this.hidden=false;this.listeners=new Map();this.classList={add(){},remove(){},toggle(){},contains(){return false}};}
     appendChild(node){this.children.push(node);node.parentNode=this;if(node.tagName==='SCRIPT')requests.push(node);return node;}
     append(...nodes){nodes.forEach(node=>this.appendChild(node));}
@@ -222,7 +223,7 @@ function environment(){
     CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},
     location:{href:'https://gruemp.github.io/natura/catalogo.html',origin:'https://gruemp.github.io',protocol:'https:',search:'',hash:''},
     history:{state:null,replaceState(){},pushState(){}},navigator:{},performance:{now:()=>0,getEntriesByType:()=>[]},
-    addEventListener:(name,fn)=>events.set(name,fn),dispatchEvent:event=>events.get(event.type)?.(event),
+    addEventListener:(name,fn)=>{if(!events.has(name))events.set(name,[]);events.get(name).push(fn);},dispatchEvent:event=>events.get(event.type)?.forEach(fn=>fn(event)),
     PRECIOS_ADMIN_CONFIG:{endpoint:'https://script.google.com/macros/s/PRUEBA_SIN_RED/exec'},
     fetch(){throw new Error('Las pruebas no permiten solicitudes de red.');}};
   sandbox.window=sandbox;
@@ -441,10 +442,10 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=correccion-config-2026-10-14-2'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=imagenes-por-vista-v1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-exacto-2026-10-14-1'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=imagenes-por-vista-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
@@ -1290,6 +1291,105 @@ test('Interruptor de imágenes impide consultar el índice y conserva los datos 
   assert.equal(env.run('makeAlbumPreview(["https://ejemplo.invalid/foto.png"],"Natura").tagName'),'DIV');
 });
 
+function imageConfigurationServer(publicEnabled,existing={}){
+  const props={
+    CATALOGO_CONFIG_MIGRADA_V1:'ok',
+    CATALOGO_CONFIG_CARGAR_IMAGENES_CATALOGO:publicEnabled?'ACTIVADO':'DESACTIVADO',
+    CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1:JSON.stringify(['DESACTIVADO','DESACTIVADO','ACTIVADO',publicEnabled?'ACTIVADO':'DESACTIVADO','section,category,subcategory,public,line,product','price_asc']),
+    CATALOGO_CONFIG_PUBLIC_REVISION_V1:'2026-10-11T06:00:00.000Z',
+    ...existing
+  };
+  let locked=false;
+  const context=vm.createContext({
+    console:{log(){}},
+    PropertiesService:{getScriptProperties:()=>({
+      getProperty:key=>props[key]??null,getProperties:()=>({...props}),
+      setProperty(key,value){assert.equal(locked,true);props[key]=value;},
+      setProperties(values){assert.equal(locked,true);Object.assign(props,values);}
+    })},
+    LockService:{getScriptLock:()=>({waitLock(){assert.equal(locked,false);locked=true;},releaseLock(){locked=false;}})},
+    SpreadsheetApp:{openById:()=>({getSheetByName:name=>{assert.equal(name,'Configuracion');return null;}})}
+  });
+  const root=path.join(__dirname,'apps-script','administrar precios natura');
+  for(const file of fs.readdirSync(root).filter(name=>name.endsWith('.js')).sort()){
+    vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
+  }
+  return {props,run:code=>vm.runInContext(code,context)};
+}
+
+test('Separar imágenes conserva una sola vez el estado anterior y no vuelve a vincular las vistas',()=>{
+  for(const enabled of [false,true]){
+    const server=imageConfigurationServer(enabled);
+    const initial=server.run('obtenerConfiguracionWeb()');
+    assert.equal(initial.valores.CARGAR_IMAGENES_ADMIN,enabled?'ACTIVADO':'DESACTIVADO');
+    server.run(`actualizarConfiguracionWeb("CARGAR_IMAGENES_CATALOGO",${!enabled})`);
+    const again=server.run('obtenerConfiguracionWeb()');
+    assert.equal(again.valores.CARGAR_IMAGENES_CATALOGO,!enabled?'ACTIVADO':'DESACTIVADO');
+    assert.equal(again.valores.CARGAR_IMAGENES_ADMIN,initial.valores.CARGAR_IMAGENES_ADMIN);
+    const restored=imageConfigurationServer(!enabled,server.props).run('obtenerConfiguracionWeb()');
+    assert.equal(restored.valores.CARGAR_IMAGENES_ADMIN,initial.valores.CARGAR_IMAGENES_ADMIN);
+  }
+});
+
+test('Los cuatro estados de imágenes se guardan independientemente y la preferencia administrativa es privada',()=>{
+  for(const publicEnabled of [false,true])for(const adminEnabled of [false,true]){
+    const server=imageConfigurationServer(publicEnabled);
+    server.run('obtenerConfiguracionWeb()');
+    const snapshot=server.props.CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1;
+    const revision=server.props.CATALOGO_CONFIG_PUBLIC_REVISION_V1;
+    const saved=server.run(`actualizarConfiguracionWeb("CARGAR_IMAGENES_ADMIN",${adminEnabled})`);
+    assert.equal(saved.valores.CARGAR_IMAGENES_ADMIN,adminEnabled?'ACTIVADO':'DESACTIVADO');
+    assert.equal(saved.valores.CARGAR_IMAGENES_CATALOGO,publicEnabled?'ACTIVADO':'DESACTIVADO');
+    assert.equal(server.props.CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1,snapshot);
+    assert.equal(server.props.CATALOGO_CONFIG_PUBLIC_REVISION_V1,revision);
+    const publicConfig=server.run('obtenerConfiguracionPublicaWeb()');
+    assert.equal(Object.hasOwn(publicConfig.valores,'CARGAR_IMAGENES_ADMIN'),false);
+    assert.equal(Object.keys(publicConfig.valores).length,6);
+    assert.throws(()=>server.run('actualizarConfiguracionWeb("CARGAR_IMAGENES_ADMIN","invalido")'),/estado.*no es válido/);
+    assert.equal(server.run('obtenerConfiguracionWeb().valores.CARGAR_IMAGENES_ADMIN'),saved.valores.CARGAR_IMAGENES_ADMIN);
+  }
+});
+
+test('Público y administradores muestran fotos y Folleto según su propio control en las cuatro combinaciones',async()=>{
+  for(const publicEnabled of [false,true])for(const adminEnabled of [false,true]){
+    const env=environment();await confirmed(env);
+    vm.runInContext(toolsSource,env.context);
+    env.run(`INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=${publicEnabled};window.applyCatalogAdminImageLoading("${adminEnabled?'ACTIVADO':'DESACTIVADO'}")`);
+    assert.equal(env.run('shouldShowProductImages()'),publicEnabled);
+    env.run('window.CATALOG_INITIAL_LOAD_READY=true');
+    // Sin productos no hay recarga de datos al cambiar de modo en esta prueba.
+    const check=enabled=>{
+      assert.equal(env.run('shouldShowProductImages()'),enabled);
+      assert.equal(env.run('makeImgFromFilename("foto.png","Producto","https://ejemplo.invalid/foto.png").tagName'),enabled?'IMG':'DIV');
+      assert.equal(env.run('makeCartThumbFromFilename("foto.png","Producto","https://ejemplo.invalid/foto.png").tagName'),enabled?'IMG':'DIV');
+      assert.equal(env.run('buildFolletoSnapshot({images:true}).settings.images'),enabled);
+    };
+    check(publicEnabled);
+    env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true;window.dispatchEvent(new CustomEvent("irenismb:admin-mode-change",{detail:{active:true}}))');
+    check(adminEnabled);
+    if(!adminEnabled)assert.equal((await env.run('loadAppsScriptImageIndex()')).ok,true);
+    env.run('window.CATALOG_ADMIN_MODE_ACTIVE=false;window.dispatchEvent(new CustomEvent("irenismb:admin-mode-change",{detail:{active:false}}))');
+    check(publicEnabled);
+    assert.equal(env.run('window.applyCatalogAdminImageLoading("invalido")'),false);
+  }
+});
+
+test('Cambios de vista y de preferencias notifican imágenes únicamente cuando cambia su estado efectivo',()=>{
+  const env=environment(),changes=[];
+  env.sandbox.addEventListener('natura:image-visibility-changed',event=>changes.push(event.detail.enabled));
+  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"DESACTIVADO"});syncCatalogImageLoading()');
+  env.run('window.applyCatalogAdminImageLoading("ACTIVADO")');
+  assert.deepEqual(changes,[false]);
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=true;window.dispatchEvent(new CustomEvent("irenismb:admin-mode-change",{detail:{active:true}}))');
+  assert.deepEqual(changes,[false,true]);
+  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"ACTIVADO"});syncCatalogImageLoading()');
+  assert.deepEqual(changes,[false,true]);
+  env.run('window.applyCatalogAdminImageLoading("DESACTIVADO")');
+  assert.deepEqual(changes,[false,true,false]);
+  env.run('window.CATALOG_ADMIN_MODE_ACTIVE=false;window.dispatchEvent(new CustomEvent("irenismb:admin-mode-change",{detail:{active:false}}))');
+  assert.deepEqual(changes,[false,true,false,true]);
+});
+
 test('El administrador arranca y lee configuración aunque Apps Script cargue configuración antes de Código.js',()=>{
   const root=path.join(__dirname,'apps-script','administrar precios natura');
   const files=fs.readdirSync(root).filter(name=>name.endsWith('.js')).sort();
@@ -1328,8 +1428,8 @@ test('El administrador arranca y lee configuración aunque Apps Script cargue co
 
 test('El ajuste compartido se valida, se expone en administración y conserva migración histórica',()=>{
   assert.match(appSource,/CARGAR_IMAGENES_CATALOGO: "ACTIVADO"/);
-  assert.match(appSource,/function shouldShowProductImages\(\)\{\s*return INTERRUPTORES\.CARGAR_IMAGENES_CATALOGO !== false/);
-  assert.match(adminSource,/key:"CARGAR_IMAGENES_CATALOGO",label:"Cargar imágenes del catálogo"/);
+  assert.match(adminSource,/key:"CARGAR_IMAGENES_CATALOGO",scope:"public",label:"Cargar imágenes para el público"/);
+  assert.match(adminSource,/key:"CARGAR_IMAGENES_ADMIN",scope:"admin",label:"Cargar imágenes para administradores"/);
   const server=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','Código.js'),'utf8');
   const config=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','admin-configuracion.js'),'utf8');
   assert.match(server,/CARGAR_IMAGENES_CATALOGO: "ACTIVADO"/);
