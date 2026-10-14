@@ -3353,7 +3353,11 @@ function refreshCardUI(card,p){
   const barcodeLink=card.querySelector(".catalog-barcode-bind");
   if(barcodeLink)barcodeLink.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
   const additionalCode=card.querySelector(".catalog-barcode-extra-code");
-  if(additionalCode)additionalCode.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
+  if(additionalCode){
+    additionalCode.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
+    const attributes=additionalCode.closest(".ficha-attributes");
+    if(attributes&&attributes.children.length===1)attributes.hidden=additionalCode.hidden;
+  }
   const row=card.querySelector(".row");
   const actions=card.querySelector(".actions");
   const meta=card.querySelector(".meta");
@@ -3451,6 +3455,8 @@ function addBarcodeBindingControl(card,p){
   const allowed=window.CATALOG_ADMIN_MODE_ACTIVE===true;
   button.hidden=!allowed;
   if(codeRow.classList.contains("catalog-barcode-extra-code"))codeRow.hidden=!allowed;
+  if(!Array.from(facts.children).some(child=>child!==codeRow||!child.classList.contains("catalog-barcode-extra-code")))
+    facts.hidden=!allowed;
 }
 
 function makeCard(p){
