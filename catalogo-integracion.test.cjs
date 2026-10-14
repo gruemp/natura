@@ -1290,6 +1290,42 @@ test('Interruptor de imágenes impide consultar el índice y conserva los datos 
   assert.equal(env.run('makeAlbumPreview(["https://ejemplo.invalid/foto.png"],"Natura").tagName'),'DIV');
 });
 
+test('El administrador arranca y lee configuración aunque Apps Script cargue configuración antes de Código.js',()=>{
+  const root=path.join(__dirname,'apps-script','administrar precios natura');
+  const files=fs.readdirSync(root).filter(name=>name.endsWith('.js')).sort();
+  const revision='2026-10-11T06:00:00.000Z';
+  for(const first of ['admin-configuracion.js','Código.js']){
+    const props={
+      CATALOGO_CONFIG_MIGRADA_V1:'ok',
+      CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1:JSON.stringify(['DESACTIVADO','DESACTIVADO','ACTIVADO','ACTIVADO','section,category,subcategory,public,line,product','price_asc']),
+      CATALOGO_CONFIG_PUBLIC_REVISION_V1:revision
+    };
+    const served=[];
+    let released=0;
+    const context=vm.createContext({
+      PropertiesService:{getScriptProperties:()=>({getProperty:key=>props[key],getProperties:()=>({...props}),setProperties:()=>assert.fail('La configuración vigente no debe reescribirse')})},
+      LockService:{getScriptLock:()=>({waitLock:()=>{},releaseLock:()=>released++})},
+      HtmlService:{XFrameOptionsMode:{ALLOWALL:'allowall'},createHtmlOutputFromFile(name){
+        assert.ok(fs.existsSync(path.join(root,name+'.html')));
+        const output={name,setTitle(){return this;},setXFrameOptionsMode(mode){this.frameMode=mode;return this;}};
+        served.push(output);return output;
+      }}
+    });
+    for(const file of [first,...files.filter(name=>name!==first)]){
+      vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),context,{filename:file});
+    }
+    assert.equal(vm.runInContext('doGet({parameter:{}}).name',context),'Admin');
+    assert.equal(vm.runInContext('doGet({parameter:{modo:"puente"}}).name',context),'Puente');
+    assert.equal(served[1].frameMode,'allowall');
+    const config=vm.runInContext('obtenerConfiguracionWeb()',context);
+    assert.equal(config.ok,true);
+    assert.equal(config.valores.ORDEN_NAVEGACION,'section,category,subcategory,public,line,product');
+    assert.equal(config.valores.CARGAR_IMAGENES_CATALOGO,'ACTIVADO');
+    assert.equal(config.publicadoEn,revision);
+    assert.equal(released,1);
+  }
+});
+
 test('El ajuste compartido se valida, se expone en administración y conserva migración histórica',()=>{
   assert.match(appSource,/CARGAR_IMAGENES_CATALOGO: "ACTIVADO"/);
   assert.match(appSource,/function shouldShowProductImages\(\)\{\s*return INTERRUPTORES\.CARGAR_IMAGENES_CATALOGO !== false/);

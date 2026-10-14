@@ -23,7 +23,7 @@ Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://githu
 
 ## Apps Script
 
-- `apps-script/`: fuentes de los proyectos de Apps Script mantenidas en el repositorio independiente. Los proyectos y despliegues de Google siguen siendo sistemas externos; ninguna actualización del código autoriza por sí sola publicar, sobrescribir el Apps Script remoto ni cambiar sus datos.
+- `apps-script/`: fuentes de los proyectos de Apps Script mantenidas en el repositorio independiente. El titular autoriza a los agentes a corregir y actualizar por iniciativa propia el código de los proyectos remotos oficiales, así como publicar sus despliegues existentes, sin pedir una confirmación adicional para cada corrección. Antes de publicar, ejecutar las pruebas pertinentes y verificar las identidades del proyecto y del despliegue; conservar los IDs, enlaces y permisos existentes y comprobar el resultado. Utilizar los workflows vigentes y las credenciales autorizadas, sin extraerlas ni mostrarlas. Esta autorización se limita al código y sus despliegues: no incluye modificar datos comerciales, inventario, precios, pedidos ni sincronizar archivos de Drive fuera de Apps Script.
 - `lectura de carpetas en natura`: proyecto Apps Script real visible en Drive; es destino de ejecución, no fuente normal de edición.
 
 ## Repositorio independiente

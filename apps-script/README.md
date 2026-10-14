@@ -22,7 +22,7 @@ Esta carpeta reúne las fuentes de los cinco proyectos Apps Script de Natura en 
 - Endpoint vigente: https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec .
 - La carpeta de anuncios y el proyecto nativo de lectura se trasladaron a la carpeta vigente conservando IDs y permisos. Las hojas comerciales y los despliegues mantienen sus identidades.
 - `google-projects.json` registra los cinco proyectos y no habilita sincronización con Drive. Los auxiliares históricos están en `.github/archivo/` y sus referencias no deben utilizarse como fuentes actuales.
-- Las operaciones con datos comerciales, inventario, precios, pedidos y servicios publicados requieren autorización correspondiente.
+- El titular autoriza a los agentes a corregir y actualizar por iniciativa propia el código remoto de estos proyectos oficiales y publicar sus despliegues existentes, sin confirmación adicional por corrección, según el README de la raíz. Verificar pruebas, identidades y resultado; conservar IDs, enlaces y permisos. Las operaciones con datos comerciales, inventario, precios y pedidos requieren autorización específica.
 
 ## Pedidos Natura
 

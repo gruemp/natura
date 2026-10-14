@@ -237,7 +237,9 @@ const CONFIG_PUBLISHED_VALUES = "CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1";
 const CONFIG_PUBLISHED_REVISION = "CATALOGO_CONFIG_PUBLIC_REVISION_V1";
 // La hoja de origen histórica contiene cinco ajustes. Se preserva sin editarla
 // y se añade CARGAR_IMAGENES_CATALOGO con el valor seguro ACTIVADO.
-const CONFIG_MIGRATION_PUBLIC_KEYS = ["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO",NAVIGATION_ORDER_KEY,"ORDEN_PRODUCTOS"];
+// Apps Script puede evaluar este archivo antes de Código.js: esta lista histórica
+// debe inicializarse sin depender de constantes declaradas en otro archivo.
+const CONFIG_MIGRATION_PUBLIC_KEYS = ["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","ORDEN_NAVEGACION","ORDEN_PRODUCTOS"];
 function migrarConfiguracionPublicaDesdeHoja_(){
   const props=PropertiesService.getScriptProperties();
   if(props.getProperty(CONFIG_MIGRATION_MARKER)==="ok")return;
