@@ -314,7 +314,7 @@ test('Conserva decimales reales y separa el texto usado para edición optimista'
   const start=adminSource.indexOf('  function previousPriceForEditor('),end=adminSource.indexOf('  function addPrice(',start);
   const valuesStart=adminSource.indexOf('  function priceValue('),valuesEnd=adminSource.indexOf('  function editable(',valuesStart);
   env.run(adminSource.slice(start,end)+adminSource.slice(valuesStart,valuesEnd));
-  assert.equal(env.run('previousPriceForEditor(product,"194.975")'),'194975');
+  assert.equal(env.run('previousPriceForEditor(product,"194.975")'),'194974.5');
 });
 test('Precio y stock desconocidos permanecen desconocidos y no excluyen',()=>{
   const env=environment(),product=assess(env,fixture()).products[1];
@@ -444,7 +444,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=correccion-config-2026-10-14-2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=control-imagenes-2026-10-14-1'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-exacto-2026-10-14-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
@@ -1405,4 +1405,24 @@ test('Un fallo de transporte conserva el identificador para reintentar el mismo 
   await env.submit();assert.equal(env.storage.size,1);assert.equal(env.ctx.inventorySubmitting,false);
   await env.submit();assert.equal(env.sent.length,2);
   assert.equal(env.sent[0].datos.client_request_id,env.sent[1].datos.client_request_id);
+});
+
+
+test('El precio anterior decimal se compara exactamente y permite cambiarlo a entero sin conflicto falso',()=>{
+  const original=compactDescription.replace('25.000','194.974,5'),env=compactPriceBackend(original);
+  assert.throws(()=>env.run('actualizarPrecioWeb("0042","200000",194975)'),/precio cambió/);
+  assert.equal(env.writes(),0);
+  assert.equal(env.run('actualizarPrecioWeb("0042","200000",194974.5).precioGuardado'),'200000');
+  assert.equal(env.content(),original.replace('194.974,5','200000'));
+  assert.equal(env.writes(),1);
+});
+
+
+test('Una modificación durante la respuesta de Google no se pierde al confirmar el movimiento anterior',async()=>{
+  const env=inventorySubmissionEnvironment();env.ctx.inventorySwitchEl.checked=true;
+  const task=env.submit();assert.equal(env.sent.length,1);
+  env.ctx.cart['0042'].qty=3;env.reply();await task;
+  assert.equal(env.ctx.cart['0042'].qty,3);assert.equal(env.storage.size,0);
+  assert.ok(env.alerts.some(message=>message.includes('El carrito cambió durante el envío y se conservó')));
+  assert.equal(env.ctx.inventorySubmitting,false);
 });

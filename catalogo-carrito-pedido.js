@@ -1361,13 +1361,16 @@
     function fingerprintInventory(request){
       return JSON.stringify({tipo:request.tipo,items:request.items,envio:request.envio,medioPago:request.medioPago,cliente:request.cliente});
     }
+    function inventoryStateSnapshot(){
+      return JSON.stringify({items:cartItemsArray(),entry:inventoryIsEntry(),client:getClientDataCurrent(),address:getAddressDataCurrent(),shipping:getShippingCop(),payment:invoicePaymentMethod()});
+    }
     async function registerAdminInventoryMovement(){
       if(inventorySubmitting)return;
       if(!inventoryAllowed()){alert("Conecta con Google como administrador para registrar movimientos.");return}
       inventorySubmitting=true;window.NATURA_INVENTORY_SUBMITTING=true;
       if(cartBuyBtn){cartBuyBtn.disabled=true;cartBuyBtn.textContent="Preparando movimiento…"}
       try{
-        const initialState=JSON.stringify({items:cartItemsArray(),entry:inventoryIsEntry(),client:getClientDataCurrent(),address:getAddressDataCurrent(),shipping:getShippingCop(),payment:invoicePaymentMethod()});
+        const initialState=inventoryStateSnapshot();
         const items=cartItemsArray().map(it=>({codigo:String(it.id||""),cantidad:Number(it.qty)||0}));
         if(!items.length){alert("El carrito está vacío.");return}
         const tipo=inventoryIsEntry()?"ENTRADA":"SALIDA";
@@ -1378,7 +1381,7 @@
           }
         }
         if(!inventoryAllowed())throw new Error("La sesión de administración terminó. Conecta con Google antes de registrar.");
-        const currentState=JSON.stringify({items:cartItemsArray(),entry:inventoryIsEntry(),client:getClientDataCurrent(),address:getAddressDataCurrent(),shipping:getShippingCop(),payment:invoicePaymentMethod()});
+        const currentState=inventoryStateSnapshot();
         if(currentState!==initialState)throw new Error("El carrito o los datos cambiaron durante la preparación. Revisa el movimiento y vuelve a confirmar.");
         const client=getClientDataCurrent(),address=getAddressDataCurrent();
         const request={tipo,items,envio:tipo==="SALIDA"?getShippingCop():0,
@@ -1411,7 +1414,8 @@
           if(tipo==="SALIDA"){
             try{invoiceDownloadPng(invoice.blob)}catch(error){downloaded=false}
           }
-          if(downloaded){
+          const cartUnchanged=inventoryStateSnapshot()===initialState;
+          if(downloaded&&cartUnchanged){
             for(const code of Object.keys(cart))delete cart[code];
             saveCart();
             if(inventorySwitchEl)inventorySwitchEl.checked=false;
@@ -1419,7 +1423,8 @@
           const warning=saved.saldosSinBase?.length?" Las existencias iniciales de algunos productos aún no están certificadas.":"";
           inventoryStatus(tipo+" registrada: "+String(saved.numeroMovimiento||""));
           alert(tipo+" registrada en Google Sheets. "+String(saved.filas||0)+" artículos."+
-            (tipo==="SALIDA"?(downloaded?" Se generó el documento SALIDA.":" No se pudo descargar el documento. Usa Vista previa antes de vaciar el carrito."):" No se genera documento para entradas.")+warning);
+            (tipo==="SALIDA"?(downloaded?" Se generó el documento SALIDA.":" No se pudo descargar el documento. Usa Vista previa antes de vaciar el carrito."):" No se genera documento para entradas.")+warning+
+            (!cartUnchanged?" El carrito cambió durante el envío y se conservó. Revisa sus cantidades antes de crear otro movimiento.":""));
         }catch(error){
           alert("No se confirmó la operación. No cambies el carrito antes de verificar el registro: "+String(error?.message||error));
         }

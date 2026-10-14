@@ -1,0 +1,94 @@
+name: Verificar despliegue administrativo Natura sin escribir datos
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verificar-administracion-natura.yml"
+      - "apps-script/administrar precios natura/**"
+permissions:
+  contents: read
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: npm install --global @google/clasp@3.4.1
+      - name: Restaurar acceso existente sin mostrar credenciales
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          test -n "$CLASPRC_JSON" || { echo "::error::Falta acceso Google existente"; exit 1; }
+          printf '%s' "$CLASPRC_JSON" > "$RUNNER_TEMP/.clasprc.json"
+          chmod 600 "$RUNNER_TEMP/.clasprc.json"
+      - name: Comprobar versión publicada, permisos y acceso al puente
+        env:
+          clasp_config_auth: ${{ runner.temp }}/.clasprc.json
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess, time, urllib.request, urllib.error
+          from pathlib import Path
+          root = Path('apps-script/administrar precios natura')
+          script_id = json.loads((root / '.clasp.json').read_text())['scriptId']
+          deployment_id = 'AKfycbwAUk8ysr-3k_T5iRxFpbp8KxmvPpYeGRNbL156lp9CsVjNFjQQgg5v7ySaxO7dcP_X'
+          expected = {p.stem: p.read_text() for p in root.iterdir()
+                      if p.suffix in ('.js', '.html', '.json') and p.name not in ('.clasp.json', 'deployment.json')}
+          def get_json(path, token):
+              req = urllib.request.Request('https://script.googleapis.com/v1/projects/' + script_id + path,
+                                           headers={'Authorization': 'Bearer ' + token})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      return json.load(response)
+              except urllib.error.HTTPError as error:
+                  raise RuntimeError('API Google HTTP ' + str(error.code)) from None
+          def equal(name, a, b):
+              if name == 'appsscript':
+                  return json.loads(a) == json.loads(b)
+              return a.replace('\r\n', '\n').strip() == b.replace('\r\n', '\n').strip()
+          for attempt in range(18):
+              # clasp renueva el acceso; su salida nunca se muestra.
+              result = subprocess.run(['clasp', 'deployments', script_id, '--json'], capture_output=True, text=True)
+              if result.returncode:
+                  raise SystemExit('No fue posible consultar el administrador con el acceso Google existente')
+              auth = json.loads(Path(os.environ['clasp_config_auth']).read_text())
+              credentials = ((auth.get('tokens') or {}).get('default') or auth.get('token') or auth)
+              token = credentials.get('access_token', '')
+              if not token:
+                  raise SystemExit('No hay acceso Google actualizado')
+              deployment = get_json('/deployments/' + deployment_id, token)
+              version = deployment['deploymentConfig'].get('versionNumber')
+              if not version:
+                  raise SystemExit('El despliegue no apunta a una versión publicada')
+              live = {f['name']: f['source'] for f in get_json('/content?versionNumber=' + str(version), token)['files']}
+              missing = [name for name in expected if name not in live or not equal(name, expected[name], live[name])]
+              extra = [name for name in live if name not in expected]
+              if not missing and not extra:
+                  break
+              if attempt == 17:
+                  raise SystemExit('Versión publicada distinta: ' + ', '.join(missing + extra))
+              time.sleep(10) # Esperar publicación automática concurrente, sin escribir en Google.
+          manifest = json.loads(live['appsscript'])
+          if manifest.get('webapp') != {'executeAs': 'USER_ACCESSING', 'access': 'ANYONE'}:
+              raise SystemExit('Permisos del administrador distintos de los previstos')
+          print('Administrador publicado: versión', version, '; todos los archivos coinciden; permisos USER_ACCESSING conservados')
+          url = 'https://script.google.com/macros/s/' + deployment_id + '/exec?modo=puente'
+          try:
+              with urllib.request.urlopen(url, timeout=30) as response:
+                  destination = response.geturl()
+                  body = response.read(150000).decode('utf-8', errors='replace')
+                  if 'accounts.google.com' in destination or 'ServiceLogin' in destination:
+                      print('Acceso web: Google exige sesión, como corresponde al administrador privado')
+                  elif 'irenismb-precios-puente-listo' in body:
+                      print('Acceso web: puente servido correctamente')
+                  else:
+                      raise SystemExit('La respuesta web no corresponde al puente ni al acceso Google')
+          except urllib.error.HTTPError as error:
+              raise SystemExit('Acceso web HTTP ' + str(error.code)) from None
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('Versión publicada y contenido administrativo coinciden con el commit comprobado. Permisos conservados. Acceso web comprobado sin sesión. No se escribieron datos comerciales. La sesión interactiva y las operaciones autenticadas no se prueban por esta consulta.\n')
+          PY

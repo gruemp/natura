@@ -139,7 +139,7 @@ function actualizarPrecioWeb(codigo, precioNuevo, precioAnterior) {
     const celdaPrecio = contexto.hoja.getRange(fila, contexto.columnas.precio + 1);
     const precioActual = String(celdaPrecio.getDisplayValue() || "").trim();
 
-    if (normalizarPrecioComparable_(precioActual) !== precioAnteriorNormalizado) {
+    if (normalizarPrecioComparable_(celdaPrecio.getValue()) !== precioAnteriorNormalizado) {
       throw new Error(
         "El precio cambió desde que se abrió el administrador. Recarga la lista antes de guardar."
       );
@@ -182,6 +182,10 @@ function normalizarPrecioEntrada_(valor) {
   return String(numero);
 }
 function normalizarPrecioComparable_(valor) {
+  if(typeof valor === "number"){
+    if(!Number.isFinite(valor)||valor<0)throw new Error("Precio anterior inválido.");
+    return String(valor);
+  }
   const texto = String(valor == null ? "" : valor).trim();
   if (!texto) return "";
   const digitos = texto.replace(/[^\d]/g, "");
