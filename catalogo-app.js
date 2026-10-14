@@ -23,7 +23,7 @@
     };
     window.REMOTE_CONTROL_SOURCE = REMOTE_CONTROL_SOURCE;
     const PUBLIC_CONFIGURATION_KEYS = Object.freeze([
-      "REGISTRAR_VISITAS_PROPIAS", "MOSTRAR_CANTIDAD_STOCK", "MOSTRAR_PRECIOS_PRODUCTO",
+      "REGISTRAR_VISITAS_PROPIAS", "MOSTRAR_CANTIDAD_STOCK", "MOSTRAR_PRECIOS_PRODUCTO", "CARGAR_IMAGENES_CATALOGO",
       "ORDEN_NAVEGACION", "ORDEN_PRODUCTOS"
     ]);
     // Solo limita intentos duplicados de imágenes; no programa peticiones.
@@ -58,7 +58,8 @@
 
 	const INTERRUPTORES = {
 	  MOSTRAR_CANTIDAD_STOCK: false,
-	  MOSTRAR_PRECIOS_PRODUCTO: true
+	  MOSTRAR_PRECIOS_PRODUCTO: true,
+	  CARGAR_IMAGENES_CATALOGO: true
     };
     window.INTERRUPTORES = INTERRUPTORES;
     const NAVIGATION_ORDER_CONFIG_KEY = "ORDEN_NAVEGACION";
@@ -70,12 +71,14 @@
     window.CATALOG_NAVIGATION_ORDER = CATALOG_NAVIGATION_ORDER.slice();
     const REMOTE_BOOLEAN_CONTROL_KEYS = new Set([
       "MOSTRAR_CANTIDAD_STOCK",
-      "MOSTRAR_PRECIOS_PRODUCTO"
+      "MOSTRAR_PRECIOS_PRODUCTO",
+      "CARGAR_IMAGENES_CATALOGO"
     ]);
     const REMOTE_CONTROL_DEFAULTS = Object.freeze({
       REGISTRAR_VISITAS_PROPIAS: "DESACTIVADO",
       MOSTRAR_CANTIDAD_STOCK: "DESACTIVADO",
       MOSTRAR_PRECIOS_PRODUCTO: "ACTIVADO",
+      CARGAR_IMAGENES_CATALOGO: "ACTIVADO",
       ORDEN_NAVEGACION: ALL_NAVIGATION_LEVELS.join(",")
     });
     window.REMOTE_CONTROL_VALUES = window.REMOTE_CONTROL_VALUES || {};
@@ -89,7 +92,7 @@
       return false;
     }
     function shouldShowProductImages(){
-      return true;
+      return INTERRUPTORES.CARGAR_IMAGENES_CATALOGO !== false;
     }
     function shouldShowPublicProductPrices(){
       return !!(window.INTERRUPTORES && window.INTERRUPTORES.MOSTRAR_PRECIOS_PRODUCTO !== false);
@@ -556,7 +559,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     function validatePublicConfiguration(values){
       if(!values || typeof values !== "object") return false;
       if(!PUBLIC_CONFIGURATION_KEYS.every(key=>typeof values[key] === "string")) return false;
-      if(!PUBLIC_CONFIGURATION_KEYS.slice(0,3).every(key=>parseRemoteBoolean(values[key]) !== null)) return false;
+      if(!["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","CARGAR_IMAGENES_CATALOGO"].every(key=>parseRemoteBoolean(values[key]) !== null)) return false;
       if(!["price_asc","price_desc","name_asc","name_desc"].includes(values.ORDEN_PRODUCTOS)) return false;
       const levels = values.ORDEN_NAVEGACION.split(",").map(item=>item.replace(/^!/, ""));
       return levels.length === ALL_NAVIGATION_LEVELS.length && new Set(levels).size === levels.length
@@ -650,11 +653,13 @@ function readCompactGoogleSheetProductRows(table,indices){
       if(remoteConfigRevision && Date.parse(revision) < Date.parse(remoteConfigRevision)) return false;
       const source = Object.fromEntries(PUBLIC_CONFIGURATION_KEYS.map(key=>[key,values[key]]));
       const first = !window.CATALOG_PUBLIC_CONFIG_CONFIRMED;
+      const previousImageLoading = shouldShowProductImages();
       const changed = applyRemoteControlValues(source);
       remoteConfigRevision = revision; remoteConfigGeneration++;
       window.CATALOG_PUBLIC_CONFIG_CONFIRMED = true;
       try{ localStorage.setItem(REMOTE_CONTROL_SOURCE.cacheKey, JSON.stringify({valores:source, publicadoEn:revision})); }catch(_){}
       setConfigurationNotice("");
+      if(previousImageLoading !== shouldShowProductImages()) window.dispatchEvent(new CustomEvent("natura:image-visibility-changed",{detail:{enabled:shouldShowProductImages()}}));
       if((changed || first) && options.rebuild !== false && allLoadedProducts.length){
         rebuildCatalogVisibility(); syncWordToggleButton();
         if(cartModal?.classList.contains("open")) renderCartModal();
@@ -758,6 +763,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     let lastImageIndex = null;
     const imageIndexRefresh = {nextAt:0, failures:0};
     function loadAppsScriptImageIndex(){
+      if(!shouldShowProductImages()) return Promise.resolve({ok:true,products:{},gifts:[]});
       if(!imageIndexInFlight && Date.now() < imageIndexRefresh.nextAt) return Promise.resolve(lastImageIndex || readAppsScriptImageIndexCache() || {ok:false, products:{}, gifts:[]});
       if(!imageIndexInFlight){
         imageIndexInFlight = fetchAppsScriptImageIndex().finally(()=>{
@@ -859,7 +865,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       let rows = [];
       try{
         rows = await loadGoogleSheetRows();
-        if(progressEnabled) setCatalogLoadingStage("Cargando imágenes…", 31, 94);
+        if(progressEnabled) setCatalogLoadingStage(shouldShowProductImages()?"Cargando imágenes…":"Preparando datos del inventario…", 31, 94);
       }catch(error){
         const sheetError = error instanceof Error ? error : new Error(String(error || "No se pudo leer el Google Sheet."));
         sheetError.catalogStage = "sheet";
@@ -868,7 +874,8 @@ function readCompactGoogleSheetProductRows(table,indices){
 
       let imagePayload = null;
       try{
-        imagePayload = refreshImages ? await loadAppsScriptImageIndex() : readAppsScriptImageIndexCache();
+        imagePayload = shouldShowProductImages() ? (refreshImages ? await loadAppsScriptImageIndex() : readAppsScriptImageIndexCache()) : null;
+        if(!shouldShowProductImages()) imagePayload = null;
       }catch(error){
         console.warn("Los productos se cargaron desde el Google Sheet, pero no se pudo leer el índice de imágenes de Apps Script. Se usarán imágenes suplentes.", error);
         imagePayload = null;
@@ -1105,8 +1112,11 @@ function readCompactGoogleSheetProductRows(table,indices){
       const box = document.createElement("div");
       box.className = "product-no-photo" + (mode === "cart" ? " product-no-photo--cart" : mode === "album" ? " product-no-photo--album" : "");
       box.setAttribute("role", "img");
-      box.setAttribute("aria-label", "Sin fotografía disponible");
-      box.innerHTML = '<span class="product-no-photo__ornament" aria-hidden="true"></span><span class="product-no-photo__title">Sin fotografía</span><span class="product-no-photo__caption">Próximamente</span>';
+      const disabled = !shouldShowProductImages();
+      box.setAttribute("aria-label", disabled ? "Carga de imágenes desactivada" : "Sin fotografía disponible");
+      box.innerHTML = disabled
+        ? '<span class="product-no-photo__ornament" aria-hidden="true"></span><span class="product-no-photo__title">Sin imagen</span><span class="product-no-photo__caption">Carga desactivada</span>'
+        : '<span class="product-no-photo__ornament" aria-hidden="true"></span><span class="product-no-photo__title">Sin fotografía</span><span class="product-no-photo__caption">Próximamente</span>';
       return box;
     }
 
@@ -1815,6 +1825,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       return parts.filter(Boolean).join(" · ");
     }
    function makeAlbumPreview(sources, label){
+      if(!shouldShowProductImages()) return makeNoPhotoPlaceholder("album");
       const img = document.createElement("img");
       img.alt = label ? ("Vista previa " + label) : "Vista previa de la categoría";
       img.loading = "lazy";
@@ -3126,6 +3137,13 @@ function readCompactGoogleSheetProductRows(table,indices){
       }
       return true;
     }
+
+    window.addEventListener("natura:image-visibility-changed", event=>{
+      if(event.detail?.enabled===true && window.CATALOG_INITIAL_LOAD_READY===true && allLoadedProducts.length){
+        loadProducts({silent:true,refreshImages:true}).catch(error=>console.warn("No se pudieron recargar las imágenes.",error));
+      }
+      if(event.detail?.enabled!==true && imgModal?.classList.contains("open")) closeImgModal();
+    });
 
     function initCartButton(){
       const btnCart = document.getElementById("btn-cart");

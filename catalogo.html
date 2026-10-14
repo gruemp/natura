@@ -1744,12 +1744,12 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo"></script>
- <script src="catalogo-app.js?actualizacion=vinculacion-barras-2026-10-13-1"></script>
+ <script src="catalogo-app.js?actualizacion=control-imagenes-2026-10-14-1"></script>
   <script src="catalogo-carrito-pedido.js?actualizacion=vinculacion-barras-2026-10-13-1"></script>
   <script src="catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2"></script>
   <script src="analytics-visitas.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="catalogo-ui.js?actualizacion=pestanas-tres-palabras-2026-10-12-1"></script>
-  <script src="precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1"></script>
+  <script src="precios-admin.js?actualizacion=control-imagenes-2026-10-14-1"></script>
   <script src="prospectos-admin.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script>
     // Se lee el índice de anuncios de Apps Script: nunca usa un file ID fijo ni GitHub como almacén.
@@ -1811,7 +1811,11 @@
       };
       let displayedId = "";
       let displayedUrl = "";
+      // El control compartido se resuelve antes de solicitar o mostrar anuncios.
+      const imagesAllowed = () => window.CATALOG_PUBLIC_CONFIG_CONFIRMED === true
+        && typeof shouldShowProductImages === "function" && shouldShowProductImages();
       function render(file) {
+        if (!imagesAllowed()) file = null;
         if (!file) {
           displayedId = ""; displayedUrl = "";
           photo.removeAttribute("src");
@@ -1821,6 +1825,7 @@
         if (displayedId === file.id && displayedUrl === file.url && !card.hidden) return;
         const next = new Image();
         next.onload = () => {
+          if (!imagesAllowed()) return;
           photo.src = file.url;
           photo.alt = "Anuncio de Natura: " + String(file.name || "promoción");
           photoLink.href = file.url;
@@ -1875,6 +1880,7 @@
 
       let pending = false;
       async function refreshAds() {
+        if (!imagesAllowed()) { render(null); return; }
         if (pending || document.visibilityState === "hidden") return;
         pending = true;
         const controller = new AbortController();
@@ -1901,7 +1907,15 @@
           pending = false;
         }
       }
-      render(readSaved());
+      // No se precarga el anuncio antes de confirmar la configuración pública.
+      window.REMOTE_CONFIG_READY?.then(() => {
+        if (imagesAllowed()) { render(readSaved()); refreshAds(); }
+        else render(null);
+      });
+      window.addEventListener("natura:image-visibility-changed", () => {
+        if (imagesAllowed()) { render(readSaved()); refreshAds(); }
+        else render(null);
+      });
       if (document.readyState === "complete") refreshAds();
       else window.addEventListener("load", refreshAds, {once:true});
       document.addEventListener("visibilitychange", () => {

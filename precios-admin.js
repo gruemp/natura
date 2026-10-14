@@ -28,7 +28,8 @@
   const CONFIG_ITEMS=[
     {key:"REGISTRAR_VISITAS_PROPIAS",label:"Registrar mis propias visitas",help:"Incluye o excluye tus navegadores conocidos del registro de visitas y avisos."},
     {key:"MOSTRAR_CANTIDAD_STOCK",label:"Mostrar cantidad de stock",help:"Muestra al público la cantidad exacta cuando el stock es conocido."},
-    {key:"MOSTRAR_PRECIOS_PRODUCTO",label:"Mostrar precios",help:"Muestra u oculta los precios para visitantes. Los administradores siempre los ven."}
+    {key:"MOSTRAR_PRECIOS_PRODUCTO",label:"Mostrar precios",help:"Muestra u oculta los precios para visitantes. Los administradores siempre los ven."},
+    {key:"CARGAR_IMAGENES_CATALOGO",label:"Cargar imágenes del catálogo",help:"Desactiva la descarga de fotos de productos, regalos y anuncios para todos, sin dejar de cargar los datos del inventario. Los iconos SVG de navegación permanecen."}
   ];
   const ADMIN_FILTER_ITEMS=[
     {key:"ADMIN_VER_PRODUCTOS_SIN_PRECIO",id:"sin-precio",label:"Ver productos sin precio",help:"Muestra únicamente productos del inventario cuyo Precio está vacío."},
@@ -594,7 +595,7 @@
     if(!values||typeof values!=="object")return;
     if(revision&&window.acceptCatalogPublicConfiguration&&!window.acceptCatalogPublicConfiguration(values,{revision,rebuild:false}))return;
     window.REMOTE_CONTROL_VALUES=window.REMOTE_CONTROL_VALUES||{};
-    for(const [rawKey,rawState] of Object.entries(values)){const k=String(rawKey||"").trim().toUpperCase();if(!k)continue;window.REMOTE_CONTROL_VALUES[k]=String(rawState??"");if(k==="ORDEN_PRODUCTOS"){window.applyCatalogDefaultProductOrder?.(String(rawState));continue}if(k===NAVIGATION_ORDER_KEY){navigationOrderDraft=normalizeNavigationConfig(rawState);try{window.applyCatalogNavigationOrder?.(serializeNavigationConfig(navigationOrderDraft),{rebuild:false})}catch(e){console.info(e)}continue}if(["MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO"].includes(k)&&window.INTERRUPTORES)window.INTERRUPTORES[k]=stateBool(rawState);if(ADMIN_FILTER_ITEMS.some(item=>item.key===k))adminGlobalStates.set(k,stateBool(rawState))}
+    for(const [rawKey,rawState] of Object.entries(values)){const k=String(rawKey||"").trim().toUpperCase();if(!k)continue;window.REMOTE_CONTROL_VALUES[k]=String(rawState??"");if(k==="ORDEN_PRODUCTOS"){window.applyCatalogDefaultProductOrder?.(String(rawState));continue}if(k===NAVIGATION_ORDER_KEY){navigationOrderDraft=normalizeNavigationConfig(rawState);try{window.applyCatalogNavigationOrder?.(serializeNavigationConfig(navigationOrderDraft),{rebuild:false})}catch(e){console.info(e)}continue}if(["MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","CARGAR_IMAGENES_CATALOGO"].includes(k)&&window.INTERRUPTORES)window.INTERRUPTORES[k]=stateBool(rawState);if(ADMIN_FILTER_ITEMS.some(item=>item.key===k))adminGlobalStates.set(k,stateBool(rawState))}
     syncEffectiveAdminFilters();renderConfigValues(values);renderAdminFilterRows();
     try{if(typeof syncAdministrativeToolVisibility==="function")syncAdministrativeToolVisibility()}catch(e){console.info(e)}
     if(shouldRebuild){try{if(typeof rebuildCatalogVisibility==="function")rebuildCatalogVisibility();else if(typeof render==="function")render();if(typeof renderCartModal==="function"&&document.getElementById("cartModal")?.classList.contains("open"))renderCartModal();requestAnimationFrame(()=>syncAdminSectionUI(false))}catch(e){console.info(e)}}
