@@ -28,7 +28,8 @@
   const CONFIG_ITEMS=[
     {key:"REGISTRAR_VISITAS_PROPIAS",label:"Registrar mis propias visitas",help:"Incluye o excluye tus navegadores conocidos del registro de visitas y avisos."},
     {key:"MOSTRAR_CANTIDAD_STOCK",label:"Mostrar cantidad de stock",help:"Muestra al público la cantidad exacta cuando el stock es conocido."},
-    {key:"MOSTRAR_PRECIOS_PRODUCTO",label:"Mostrar precios",help:"Muestra u oculta los precios para visitantes. Los administradores siempre los ven."}
+    {key:"MOSTRAR_PRECIOS_PRODUCTO",label:"Mostrar precios",help:"Muestra u oculta los precios para visitantes. Los administradores siempre los ven."},
+    {key:"CARGAR_IMAGENES_CATALOGO",label:"Cargar imágenes del catálogo",help:"Desactiva la descarga de fotos de productos, regalos y anuncios para todos, sin dejar de cargar los datos del inventario. Los iconos SVG de navegación permanecen."}
   ];
   const ADMIN_FILTER_ITEMS=[
     {key:"ADMIN_VER_PRODUCTOS_SIN_PRECIO",id:"sin-precio",label:"Ver productos sin precio",help:"Muestra únicamente productos del inventario cuyo Precio está vacío."},
