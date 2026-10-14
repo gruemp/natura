@@ -64,7 +64,7 @@
       puerto.start();
 
       destino.postMessage(
-        {tipo:"irenismb-precios-puente-listo", canal:canal, capacidades:["precio","visibilidad","configuracion","prospectos"]},
+        {tipo:"irenismb-precios-puente-listo", canal:canal, capacidades:["precio","visibilidad","configuracion","prospectos","movimientos"]},
         catalogOrigin,
         [canalMensajes.port2]
       );
@@ -136,6 +136,31 @@
             Boolean(mensaje.ocultoNuevo),
             mensaje.etiqueta || ""
           );
+        return;
+      }
+
+      if(mensaje.tipo === "registrar-movimiento"){
+        google.script.run.withSuccessHandler(function(resultado){
+          responder({tipo:"movimiento-registrado",solicitudId:mensaje.solicitudId,resultado:resultado});
+        }).withFailureHandler(function(error){
+          responder({tipo:"movimiento-error",solicitudId:mensaje.solicitudId,error:String(error && error.message || error)});
+        }).registrarMovimientoInventarioWeb(mensaje.datos || {});
+        return;
+      }
+      if(mensaje.tipo === "buscar-codigo-barras"){
+        google.script.run.withSuccessHandler(function(resultado){
+          responder({tipo:"codigo-barras-resuelto",solicitudId:mensaje.solicitudId,resultado:resultado});
+        }).withFailureHandler(function(error){
+          responder({tipo:"codigo-barras-error",solicitudId:mensaje.solicitudId,error:String(error && error.message || error)});
+        }).buscarCodigoBarrasWeb(mensaje.codigoBarras || "");
+        return;
+      }
+      if(mensaje.tipo === "vincular-codigo-barras"){
+        google.script.run.withSuccessHandler(function(resultado){
+          responder({tipo:"codigo-barras-vinculado",solicitudId:mensaje.solicitudId,resultado:resultado});
+        }).withFailureHandler(function(error){
+          responder({tipo:"codigo-barras-error",solicitudId:mensaje.solicitudId,error:String(error && error.message || error)});
+        }).vincularCodigoBarrasWeb(mensaje.codigoBarras || "",mensaje.codigoInterno || "");
         return;
       }
 
