@@ -1333,6 +1333,95 @@
       }
     }
 
+
+    /* Operaciones reales de inventario: el servicio público de pedidos nunca recibe ENTRADA. */
+    const inventorySwitchEl=document.getElementById("cartMovementSwitch");
+    const barcodeInputEl=document.getElementById("cartBarcodeInput");
+    const barcodeAddEl=document.getElementById("cartBarcodeAdd");
+    const cameraToggleEl=document.getElementById("cartCameraToggle");
+    const cameraPreviewEl=document.getElementById("cartCameraPreview");
+    const barcodeStatusEl=document.getElementById("cartBarcodeStatus");
+    let inventorySubmitting=false,scannerRunning=false,scannerBusy=false,scannerStream=null,scannerTimer=null;
+    window.NATURA_INVENTORY_SUBMITTING=false;
+    let lastRegisteredFingerprint="";
+    function inventoryAllowed(){
+      return window.CATALOG_ADMIN_MODE_ACTIVE===true
+        &&window.CATALOG_ADMIN_CAPABILITIES?.has?.("movimientos")
+        &&typeof window.CATALOG_ADMIN_REQUEST==="function";
+    }
+    function inventoryIsEntry(){return inventorySwitchEl?.checked===true}
+    function inventoryStatus(message){if(barcodeStatusEl)barcodeStatusEl.textContent=String(message||"")}
+    function stopInventoryCamera(){
+      scannerRunning=false;
+      if(scannerTimer){clearTimeout(scannerTimer);scannerTimer=null}
+      if(scannerStream){scannerStream.getTracks().forEach(track=>track.stop());scannerStream=null}
+      if(cameraPreviewEl){cameraPreviewEl.pause();cameraPreviewEl.srcObject=null;cameraPreviewEl.hidden=true}
+      if(cameraToggleEl)cameraToggleEl.textContent="Abrir cámara";
+    }
+    function fingerprintInventory(request){
+      return JSON.stringify({tipo:request.tipo,items:request.items,envio:request.envio,cliente:request.cliente});
+    }
+    async function registerAdminInventoryMovement(){
+      if(inventorySubmitting)return;
+      if(!inventoryAllowed()){alert("Conecta con Google como administrador para registrar movimientos.");return}
+      const items=cartItemsArray().map(it=>({codigo:String(it.id||""),cantidad:Number(it.qty)||0}));
+      if(!items.length){alert("El carrito está vacío.");return}
+      const tipo=inventoryIsEntry()?"ENTRADA":"SALIDA";
+      let invoice=null;
+      if(tipo==="SALIDA"){
+        try{invoice=await invoiceBuildPng()}catch(error){
+          alert("No se puede registrar SALIDA sin un documento válido: "+String(error?.message||error));return;
+        }
+      }
+      const client=getClientDataCurrent(),address=getAddressDataCurrent();
+      const request={tipo,items,envio:tipo==="SALIDA"?getShippingCop():0,
+        medioPago:tipo==="SALIDA"?invoicePaymentMethod():"",
+        cliente:{nombre:client.name||"",celular:client.phone||"",direccion:address.addressLine||"",ciudad:address.city||""}};
+      const fingerprint=fingerprintInventory(request);
+      if(fingerprint===lastRegisteredFingerprint){
+        alert("Este carrito ya se registró. Vacíalo antes de crear otro movimiento.");return;
+      }
+      const pendingKey="natura_inventory_pending_v1";
+      let pending=null;
+      try{pending=JSON.parse(sessionStorage.getItem(pendingKey)||"null")}catch(_){}
+      if(pending&&pending.fingerprint!==fingerprint){
+        alert("Hay una solicitud anterior sin confirmar. Comprueba la hoja Movimientos antes de registrar una operación diferente.");return;
+      }
+      if(!confirm("¿Confirmar "+tipo+" de "+cartTotalQty()+" unidades como movimiento REAL?"))return;
+      if(!pending){
+        const id=(crypto.randomUUID?.()||("registro_"+Date.now()+"_"+Math.random().toString(36).slice(2))).replace(/-/g,"");
+        pending={id,fingerprint};
+        try{sessionStorage.setItem(pendingKey,JSON.stringify(pending))}catch(_){}
+      }
+      request.client_request_id=pending.id;
+      inventorySubmitting=true;window.NATURA_INVENTORY_SUBMITTING=true;
+      if(cartBuyBtn){cartBuyBtn.disabled=true;cartBuyBtn.textContent="Registrando "+tipo+"…"}
+      try{
+        const saved=await window.CATALOG_ADMIN_REQUEST({tipo:"registrar-movimiento",datos:request});
+        if(!saved?.ok)throw new Error(saved?.message||"Google no confirmó el movimiento.");
+        try{sessionStorage.removeItem(pendingKey)}catch(_){}
+        lastRegisteredFingerprint=fingerprint;
+        let downloaded=true;
+        if(tipo==="SALIDA"){
+          try{invoiceDownloadPng(invoice.blob)}catch(error){downloaded=false}
+        }
+        if(downloaded){
+          for(const code of Object.keys(cart))delete cart[code];
+          saveCart();
+          if(inventorySwitchEl)inventorySwitchEl.checked=false;
+        }
+        const warning=saved.saldosSinBase?.length?" Las existencias iniciales de algunos productos aún no están certificadas.":"";
+        inventoryStatus(tipo+" registrada: "+String(saved.numeroMovimiento||""));
+        alert(tipo+" registrada en Google Sheets. "+String(saved.filas||0)+" artículos."+
+          (tipo==="SALIDA"?(downloaded?" Se generó el documento SALIDA.":" No se pudo descargar el documento. Usa Vista previa antes de vaciar el carrito."):" No se genera documento para entradas.")+warning);
+      }catch(error){
+        alert("No se confirmó la operación. No cambies el carrito antes de verificar el registro: "+String(error?.message||error));
+      }finally{
+        inventorySubmitting=false;window.NATURA_INVENTORY_SUBMITTING=false;
+        renderCartModal();
+      }
+    }
+
     let orderSending = false;
 
     const cartModal = document.getElementById("cartModal");
@@ -1358,6 +1447,7 @@
     }
     function closeCartModal(){
       if(!cartModal.classList.contains("open")) return;
+      stopInventoryCamera();
       cartModal.classList.remove("open");
       cartModal.setAttribute("aria-hidden", "true");
       unlockBodyScroll();
@@ -1429,7 +1519,7 @@
     let invoiceCopying = false;
     if(cartInvoiceBtn){
       cartInvoiceBtn.addEventListener("click", async ()=>{
-        if(invoiceCopying || window.CATALOG_ADMIN_MODE_ACTIVE!==true) return;
+        if(invoiceCopying || window.CATALOG_ADMIN_MODE_ACTIVE!==true || inventoryIsEntry()) return;
         invoiceCopying = true;
         const previousText = cartInvoiceBtn.textContent;
         cartInvoiceBtn.disabled = true;
@@ -1455,6 +1545,10 @@
     // ÚNICO BOTÓN: Registrar pedido y luego abrir WhatsApp (se envía al número de la tienda)
     if(cartBuyBtn){
       cartBuyBtn.addEventListener("click", async ()=>{
+        if(window.CATALOG_ADMIN_MODE_ACTIVE===true){
+          await registerAdminInventoryMovement();
+          return;
+        }
         if(orderSending) return;
 
         orderSending = true;
