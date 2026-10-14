@@ -155,6 +155,14 @@
         }).buscarCodigoBarrasWeb(mensaje.codigoBarras || "");
         return;
       }
+      if(mensaje.tipo === "listar-codigos-barras"){
+        google.script.run.withSuccessHandler(function(resultado){
+          responder({tipo:"codigos-barras-listados",solicitudId:mensaje.solicitudId,resultado:resultado});
+        }).withFailureHandler(function(error){
+          responder({tipo:"codigo-barras-error",solicitudId:mensaje.solicitudId,error:String(error && error.message || error)});
+        }).listarCodigosBarrasWeb(mensaje.codigoInterno || "");
+        return;
+      }
       if(mensaje.tipo === "vincular-codigo-barras"){
         google.script.run.withSuccessHandler(function(resultado){
           responder({tipo:"codigo-barras-vinculado",solicitudId:mensaje.solicitudId,resultado:resultado});

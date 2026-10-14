@@ -441,9 +441,9 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=movimientos-admin-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=vinculacion-barras-2026-10-13-1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=movimientos-admin-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=precio-admin-siempre-visible-2026-10-11-1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1193,7 +1193,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=movimientos-admin-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
 });
 
 
@@ -1232,4 +1232,40 @@ test('Servidor valida códigos, cantidades y precios de movimientos sin crear ve
   assert.match(movementSource,/tipo==="SALIDA"\?p\.price:null/);
   assert.match(movementSource,/i===0\?payment:"",""/);
   assert.match(movementSource,/MOV-\s*"\+key/);
+});
+
+
+test('Botón cuadrado de vincular barras junto al código, solo en administración',()=>{
+  assert.match(appSource,/function addBarcodeBindingControl\(card,p\)/);
+  assert.match(appSource,/codeRow\.appendChild\(control\)/);
+  assert.match(appSource,/button\.dataset\.vincularBarras=code/);
+  assert.match(appSource,/barcodeLink\.hidden=window\.CATALOG_ADMIN_MODE_ACTIVE!==true/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.catalog-barcode-bind\{[^}]*aspect-ratio:1/);
+  assert.match(fichaCssSource,/\.catalog-ficha-card \.catalog-barcode-bind svg\{/);
+  for(const id of ['barcodeBindDialog','barcodeBindVideo','barcodeBindInput','barcodeBindList'])assert.ok(htmlSource.includes('id="'+id+'"'));
+});
+test('Lector y cámara asocian al producto elegido sin registrar inventario',()=>{
+  const start=cartSource.indexOf('/* Asociación individual desde las fichas;');
+  const end=cartSource.indexOf('let orderSending = false;',start);
+  assert.ok(start>0&&end>start);
+  const src=cartSource.slice(start,end);
+  for(const kind of ['listar-codigos-barras','buscar-codigo-barras','vincular-codigo-barras'])assert.ok(src.includes('tipo:"'+kind+'"'));
+  assert.match(src,/new window\.BarcodeDetector\(\{formats\}\)/);
+  assert.match(src,/bindInput\?\.addEventListener\("keydown"/);
+  assert.match(src,/existing\.codigoInterno!==code/);
+  assert.doesNotMatch(src,/registerAdminInventoryMovement|registerOrderInSheet|saveCart\(/);
+});
+test('Servidor admite varios EAN por producto e impide reasignar los existentes',()=>{
+  const backend=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','admin-movimientos.js'),'utf8');
+  const bridge=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','Puente.html'),'utf8');
+  assert.match(backend,/function listarCodigosBarrasWeb\(internal\)/);
+  assert.match(backend,/codes\.push\(barcode\)/);
+  assert.match(backend,/if\(movCode\(old\[1\]\)!==code\)throw new Error\("Código vinculado a otro producto"\)/);
+  assert.match(backend,/sheet\.setFrozenColumns\(0\)/);
+  assert.match(bridge,/mensaje\.tipo === "listar-codigos-barras"/);
+  assert.match(adminSource,/m\.tipo==="codigos-barras-listados"/);
+  const ctx=vm.createContext({});
+  vm.runInContext(backend,ctx);
+  assert.equal(vm.runInContext('movBarcodeCode("7701234567890")',ctx),'7701234567890');
+  assert.throws(()=>vm.runInContext('movBarcodeCode("1234")',ctx),/inválido/);
 });

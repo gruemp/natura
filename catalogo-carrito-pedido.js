@@ -1513,6 +1513,201 @@
     window.addEventListener("irenismb:admin-bridge-disconnected",()=>{
       stopInventoryCamera();inventoryStatus("Conexión administrativa interrumpida.");
     });
+
+    /* Asociación individual desde las fichas; no registra movimientos de inventario. */
+    const bindDialog=document.getElementById("barcodeBindDialog");
+    const bindClose=document.getElementById("barcodeBindClose");
+    const bindProduct=document.getElementById("barcodeBindProduct");
+    const bindInternal=document.getElementById("barcodeBindCode");
+    const bindInput=document.getElementById("barcodeBindInput");
+    const bindSave=document.getElementById("barcodeBindSave");
+    const bindCamera=document.getElementById("barcodeBindCamera");
+    const bindVideo=document.getElementById("barcodeBindVideo");
+    const bindStatus=document.getElementById("barcodeBindStatus");
+    const bindList=document.getElementById("barcodeBindList");
+    let bindProductCode="",bindActiveToken=0,bindBusy=false,bindCameraRunning=false;
+    let bindCameraStream=null,bindCameraTimer=null,bindRestoreFocus=null;
+    const barcodeLinkAllowed=()=>window.CATALOG_ADMIN_MODE_ACTIVE===true
+      &&window.CATALOG_ADMIN_CAPABILITIES?.has?.("movimientos")
+      &&typeof window.CATALOG_ADMIN_REQUEST==="function";
+    const barcodeLinkMessage=text=>{if(bindStatus)bindStatus.textContent=String(text||"")};
+    function stopBarcodeLinkCamera(){
+      bindCameraRunning=false;
+      if(bindCameraTimer){clearTimeout(bindCameraTimer);bindCameraTimer=null}
+      if(bindCameraStream){bindCameraStream.getTracks().forEach(track=>track.stop());bindCameraStream=null}
+      if(bindVideo){bindVideo.pause();bindVideo.srcObject=null;bindVideo.hidden=true}
+      if(bindCamera)bindCamera.textContent="Abrir cámara";
+    }
+    function closeBarcodeLinkDialog(){
+      ++bindActiveToken;
+      stopBarcodeLinkCamera();
+      bindProductCode="";
+      if(bindDialog)bindDialog.hidden=true;
+      const focus=bindRestoreFocus;bindRestoreFocus=null;
+      if(focus?.isConnected)focus.focus({preventScroll:true});
+    }
+    async function refreshProductBarcodes(code,token){
+      const result=await window.CATALOG_ADMIN_REQUEST({tipo:"listar-codigos-barras",codigoInterno:code});
+      if(bindDialog?.hidden||token!==bindActiveToken||bindProductCode!==code)return;
+      if(!result?.ok||result.codigoInterno!==code||!Array.isArray(result.codigos))
+        throw new Error("No se pudo comprobar la asociación de los códigos.");
+      bindList.replaceChildren();
+      if(!result.codigos.length){
+        const empty=document.createElement("li");empty.textContent="Sin códigos asociados";
+        empty.className="catalog-barcode-empty";bindList.appendChild(empty);
+      }else for(const barcode of result.codigos){
+        const item=document.createElement("li");item.textContent=String(barcode);bindList.appendChild(item);
+      }
+      return result.codigos;
+    }
+    async function openBarcodeLinkDialog(code,trigger){
+      if(window.CATALOG_ADMIN_MODE_ACTIVE!==true)return;
+      if(!(/^\d{4}$/.test(String(code))))return;
+      if(!bindDialog)return;
+      const product=productById.get(String(code));
+      if(!product||product.isGiftGalleryImage)return;
+      closeBarcodeLinkDialog();
+      bindRestoreFocus=trigger||document.activeElement;
+      bindProductCode=String(code);
+      const token=++bindActiveToken;
+      bindDialog.hidden=false;
+      bindProduct.textContent=String(product.name||"");
+      bindInternal.textContent="Código interno: "+code;
+      bindInput.value="";
+      bindList.replaceChildren();
+      barcodeLinkMessage("");
+      bindSave.disabled=false;
+      bindInput.focus({preventScroll:true});
+      if(!barcodeLinkAllowed()){
+        barcodeLinkMessage("Conecta con Google desde Administrar para vincular códigos de barras.");
+        return;
+      }
+      barcodeLinkMessage("Consultando códigos ya asociados…");
+      // El primer toque al botón abre directamente la cámara cuando hay soporte.
+      toggleBarcodeLinkCamera();
+      try{
+        const existing=await refreshProductBarcodes(code,token);
+        if(existing&&token===bindActiveToken)barcodeLinkMessage("Escanea un EAN/UPC del envase. Puedes asociar varios al mismo producto.");
+      }catch(error){
+        if(token===bindActiveToken)barcodeLinkMessage("No fue posible consultar los códigos: "+String(error?.message||error));
+      }
+    }
+    async function saveBarcodeLink(){
+      if(bindBusy||bindDialog?.hidden||!bindProductCode)return;
+      if(!barcodeLinkAllowed()){barcodeLinkMessage("Es necesario conectar con Google en modo administrador.");return}
+      const code=bindProductCode,barcode=String(bindInput?.value||"").trim();
+      if(!/^\d{8,14}$/.test(barcode)){
+        barcodeLinkMessage("Introduce un EAN/UPC numérico de 8 a 14 dígitos.");
+        bindInput?.focus();return;
+      }
+      const token=bindActiveToken;
+      stopBarcodeLinkCamera();
+      bindBusy=true;bindSave.disabled=true;bindCamera.disabled=true;
+      try{
+        barcodeLinkMessage("Comprobando que el código no pertenezca a otro producto…");
+        const existing=await window.CATALOG_ADMIN_REQUEST({tipo:"buscar-codigo-barras",codigoBarras:barcode});
+        if(token!==bindActiveToken||bindProductCode!==code)return;
+        if(existing?.codigoInterno&&existing.codigoInterno!==code)
+          throw new Error("Este código ya pertenece al producto "+existing.codigoInterno+". No se cambiará su asociación.");
+        if(existing?.codigoInterno===code){
+          barcodeLinkMessage("Este código ya está vinculado a este producto.");
+          await refreshProductBarcodes(code,token);
+          return;
+        }
+        if(!window.confirm("¿Vincular el código "+barcode+" al producto "+code+"?")){barcodeLinkMessage("Asociación cancelada.");return}
+        if(!barcodeLinkAllowed()||token!==bindActiveToken||bindProductCode!==code)
+          throw new Error("La administración se cerró antes de vincular el código.");
+        barcodeLinkMessage("Guardando asociación en Google Sheets…");
+        const saved=await window.CATALOG_ADMIN_REQUEST({tipo:"vincular-codigo-barras",codigoBarras:barcode,codigoInterno:code});
+        if(token!==bindActiveToken||bindProductCode!==code)return;
+        if(!saved?.ok||saved.codigoInterno!==code)throw new Error("Google no confirmó la asociación.");
+        bindInput.value="";
+        await refreshProductBarcodes(code,token);
+        if(token===bindActiveToken){
+          barcodeLinkMessage(saved.duplicate?"El código ya estaba asociado.":"Código de barras vinculado correctamente.");
+          bindInput.focus();
+        }
+      }catch(error){
+        if(token===bindActiveToken)barcodeLinkMessage(String(error?.message||error));
+      }finally{
+        bindBusy=false;
+        if(bindSave)bindSave.disabled=false;
+        if(bindCamera)bindCamera.disabled=false;
+      }
+    }
+    async function toggleBarcodeLinkCamera(){
+      if(bindCameraRunning){stopBarcodeLinkCamera();return}
+      if(!barcodeLinkAllowed()){barcodeLinkMessage("Conecta Google antes de escanear.");return}
+      if(!navigator.mediaDevices?.getUserMedia||!window.BarcodeDetector){
+        barcodeLinkMessage("Este navegador no admite la cámara. Usa un lector USB/Bluetooth o introduce el número.");
+        return;
+      }
+      const token=bindActiveToken;
+      try{
+        const formats=(await window.BarcodeDetector.getSupportedFormats())
+          .filter(f=>["ean_13","ean_8","upc_a","upc_e","code_128"].includes(f));
+        if(!formats.length)throw new Error("No hay soporte para códigos EAN/UPC.");
+        const detector=new window.BarcodeDetector({formats});
+        const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}},audio:false});
+        if(token!==bindActiveToken||!barcodeLinkAllowed()||bindDialog.hidden){
+          stream.getTracks().forEach(track=>track.stop());return;
+        }
+        bindCameraStream=stream;bindVideo.srcObject=stream;bindVideo.hidden=false;
+        await bindVideo.play();
+        bindCameraRunning=true;bindCamera.textContent="Cerrar cámara";
+        barcodeLinkMessage("Acerca la cámara al código de barras del envase.");
+        const detect=async()=>{
+          if(!bindCameraRunning||token!==bindActiveToken)return;
+          try{
+            if(!bindBusy&&bindVideo.readyState>=2){
+              const matches=await detector.detect(bindVideo);
+              const match=matches.find(item=>/^\d{8,14}$/.test(String(item.rawValue||"")));
+              if(match&&token===bindActiveToken&&bindCameraRunning){
+                bindInput.value=String(match.rawValue);
+                stopBarcodeLinkCamera();
+                await saveBarcodeLink();
+                return;
+              }
+            }
+          }catch(_){barcodeLinkMessage("No se pudo leer el código. Ajusta la cámara y vuelve a intentarlo.")}
+          if(bindCameraRunning&&token===bindActiveToken)bindCameraTimer=setTimeout(detect,350);
+        };
+        bindCameraTimer=setTimeout(detect,350);
+      }catch(error){stopBarcodeLinkCamera();if(token===bindActiveToken)barcodeLinkMessage("No se pudo abrir la cámara: "+String(error?.message||error))}
+    }
+    document.getElementById("grid")?.addEventListener("click",event=>{
+      const button=event.target.closest("button[data-vincular-barras]");
+      if(!button)return;
+      event.preventDefault();event.stopPropagation();
+      if(window.CATALOG_ADMIN_MODE_ACTIVE!==true)return;
+      openBarcodeLinkDialog(button.dataset.vincularBarras,button);
+    });
+    bindClose?.addEventListener("click",closeBarcodeLinkDialog);
+    bindDialog?.querySelector("[data-barcode-close]")?.addEventListener("click",closeBarcodeLinkDialog);
+    bindSave?.addEventListener("click",saveBarcodeLink);
+    bindInput?.addEventListener("keydown",event=>{
+      if(event.key==="Enter"){event.preventDefault();saveBarcodeLink()}
+    });
+    bindCamera?.addEventListener("click",toggleBarcodeLinkCamera);
+    document.addEventListener("keydown",event=>{
+      if(bindDialog?.hidden)return;
+      if(event.key==="Escape"){event.preventDefault();closeBarcodeLinkDialog()}
+      if(event.key==="Tab"){
+        const focusable=Array.from(bindDialog.querySelectorAll("button:not(:disabled),input:not(:disabled)"))
+          .filter(el=>el.getClientRects().length>0);
+        if(!focusable.length)return;
+        const first=focusable[0],last=focusable[focusable.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+      }
+    });
+    window.addEventListener("irenismb:admin-mode-change",event=>{
+      if(event.detail?.active!==true)closeBarcodeLinkDialog();
+    });
+    window.addEventListener("irenismb:admin-bridge-disconnected",()=>{
+      if(!bindDialog?.hidden){stopBarcodeLinkCamera();barcodeLinkMessage("Conexión con Google interrumpida. Vuelve a conectar antes de vincular.");}
+    });
+
     let orderSending = false;
 
     const cartModal = document.getElementById("cartModal");
