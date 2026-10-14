@@ -229,12 +229,15 @@ function actualizarOrdenProductosWeb(orden) {
 }
 
 
-// Solo estos cinco ajustes se publican; los filtros administrativos quedan en Propiedades.
+// Los ajustes compartidos se publican; los filtros administrativos quedan en Propiedades.
 // Todas las escrituras se ejecutan bajo el mismo bloqueo que protege los ajustes.
 // Configuración pública persistida en Propiedades. Importar una sola vez.
 const CONFIG_MIGRATION_MARKER = "CATALOGO_CONFIG_MIGRADA_V1";
 const CONFIG_PUBLISHED_VALUES = "CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1";
 const CONFIG_PUBLISHED_REVISION = "CATALOGO_CONFIG_PUBLIC_REVISION_V1";
+// La hoja de origen histórica contiene cinco ajustes. Se preserva sin editarla
+// y se añade CARGAR_IMAGENES_CATALOGO con el valor seguro ACTIVADO.
+const CONFIG_MIGRATION_PUBLIC_KEYS = ["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO",NAVIGATION_ORDER_KEY,"ORDEN_PRODUCTOS"];
 function migrarConfiguracionPublicaDesdeHoja_(){
   const props=PropertiesService.getScriptProperties();
   if(props.getProperty(CONFIG_MIGRATION_MARKER)==="ok")return;
@@ -244,16 +247,16 @@ function migrarConfiguracionPublicaDesdeHoja_(){
   if(rows[0].join("|")!=="Clave|Valor|Actualizado")throw new Error("Encabezados de configuración inesperados.");
   const values={},dates=new Set();
   for(const row of rows.slice(1)){
-    if(CONFIG_PUBLIC_KEYS.indexOf(row[0])<0||Object.prototype.hasOwnProperty.call(values,row[0]))throw new Error("Clave pública duplicada.");
+    if(CONFIG_MIGRATION_PUBLIC_KEYS.indexOf(row[0])<0||Object.prototype.hasOwnProperty.call(values,row[0]))throw new Error("Clave pública duplicada.");
     values[row[0]]=String(row[1]);dates.add(String(row[2]));
   }
-  if(Object.keys(values).length!==5||dates.size!==1)throw new Error("Configuración pública incompleta.");
+  if(Object.keys(values).length!==CONFIG_MIGRATION_PUBLIC_KEYS.length||dates.size!==1)throw new Error("Configuración pública incompleta.");
   const rev=[...dates][0];
-  if(!rev||!Number.isFinite(Date.parse(rev))||CONFIG_BOOLEAN_PUBLIC_KEYS.some(k=>!normalizarEstadoConfiguracion_(values[k]))
+  if(!rev||!Number.isFinite(Date.parse(rev))||CONFIG_MIGRATION_PUBLIC_KEYS.slice(0,3).some(k=>!normalizarEstadoConfiguracion_(values[k]))
       ||!normalizarOrdenNavegacion_(values.ORDEN_NAVEGACION)||!normalizarOrdenProductos_(values.ORDEN_PRODUCTOS))throw new Error("Configuración pública inicial inválida.");
   const migrated={};
-  CONFIG_PUBLIC_KEYS.forEach(k=>{migrated[CONFIG_PROPERTY_PREFIX+k]=values[k]});
-  migrated[CONFIG_PUBLISHED_VALUES]=JSON.stringify(CONFIG_PUBLIC_KEYS.map(k=>values[k]));
+  CONFIG_PUBLIC_KEYS.forEach(k=>{migrated[CONFIG_PROPERTY_PREFIX+k]=values[k] || CONFIG_DEFAULTS[k]});
+  migrated[CONFIG_PUBLISHED_VALUES]=JSON.stringify(CONFIG_PUBLIC_KEYS.map(k=>values[k] || CONFIG_DEFAULTS[k]));
   migrated[CONFIG_PUBLISHED_REVISION]=rev;
   migrated[CONFIG_MIGRATION_MARKER]="ok";
   props.setProperties(migrated,false);
