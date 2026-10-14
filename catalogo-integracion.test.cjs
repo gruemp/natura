@@ -263,6 +263,7 @@ function priceEditorEnvironment(){
   const grid={hidden:false,querySelectorAll(selector){return [':scope > .card:not(.album-card)','.card'].includes(selector)?[card]:[];}};
   function node(tag){return {tag,dataset:{},children:[],value:'',disabled:false,append(...children){this.children.push(...children);},remove(){if(this===editor){if(this.children.includes(focused))focused=null;editor=null;removed++;}}};}
   const context={Intl,admin:true,adminSection:'catalogo',capabilities:new Set(),grid,window:{dispatchEvent(){}},
+    DOCUMENTS:environment().sandbox.CATALOG_ADMIN_DOCUMENTS,
     CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}},
     document:{body:{classList:classes},getElementById(){return null;},createElement:node},
     ensureAdminSidebar:()=>({querySelectorAll:()=>[]}),syncConnectionButton(){},addDescriptionCopy(){},
@@ -274,6 +275,9 @@ function priceEditorEnvironment(){
 test('Actualizar interfaz conserva campo de precio, foco, importe y botón Guardar',()=>{
   const env=priceEditorEnvironment();env.context.syncUI();
   const editor=env.editor,input=editor.children[0],save=editor.children[1];
+  const book=editor.children.find(child=>child.tag==='a');
+  assert.equal(book.href,env.context.DOCUMENTS.productos.url);
+  assert.equal(book.target,'_blank');assert.equal(book.rel,'noopener noreferrer');
   input.value='25000';env.focus(input);input.oninput();assert.equal(save.disabled,false);
   for(let i=0;i<4;i++)env.context.syncUI();
   assert.equal(env.editor,editor);assert.equal(env.focused,input);assert.equal(input.value,'25000');
@@ -444,8 +448,8 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=imagenes-por-vista-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=imagenes-por-vista-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=libros-administrativos-v1'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=libros-administrativos-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
@@ -1194,9 +1198,27 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=vinculacion-barras-2026-10-13-1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=libros-administrativos-v1'));
 });
 
+
+test('Los accesos administrativos apuntan a los libros de escritura reales y abren una pestaña nueva',()=>{
+  const docs=environment().sandbox.CATALOG_ADMIN_DOCUMENTS;
+  const dir=path.join(__dirname,'apps-script','administrar precios natura');
+  const movements=fs.readFileSync(path.join(dir,'admin-movimientos.js'),'utf8').match(/const MOV_BOOK="([^"]+)"/)[1];
+  const products=fs.readFileSync(path.join(dir,'Código.js'),'utf8').match(/const INVENTARIO_SPREADSHEET_ID = "([^"]+)"/)[1];
+  assert.equal(new URL(docs.movimientos.url).pathname,`/spreadsheets/d/${movements}/edit`);
+  assert.equal(new URL(docs.codigos_barras.url).pathname,`/spreadsheets/d/${movements}/edit`);
+  assert.equal(new URL(docs.productos.url).pathname,`/spreadsheets/d/${products}/edit`);
+  const cart=htmlSource.slice(htmlSource.indexOf('<section id="cartInventoryTools"'),htmlSource.indexOf('<div class="cart-modal-layout">'));
+  const barcodes=htmlSource.slice(htmlSource.indexOf('<div id="barcodeBindDialog"'),htmlSource.indexOf('<div class="cart-modal"'));
+  for(const [markup,key] of [[cart,'movimientos'],[cart,'productos'],[barcodes,'codigos_barras']]){
+    const anchor=markup.match(new RegExp('<a[^>]+data-admin-document="'+key+'"[^>]*>'))[0];
+    assert.match(anchor,/target="_blank"/);assert.match(anchor,/rel="noopener noreferrer"/);
+  }
+  const standalone=fs.readFileSync(path.join(dir,'Admin.html'),'utf8');
+  assert.ok(standalone.includes(`href="${docs.productos.url}" target="_blank" rel="noopener noreferrer"`));
+});
 
 test('El carrito público conserva el pedido y el administrador utiliza el puente autenticado',()=>{
   assert.match(cartSource,/if\(window\.CATALOG_ADMIN_MODE_ACTIVE===true\)\{\s*await registerAdminInventoryMovement\(\);\s*return;\s*\}/);

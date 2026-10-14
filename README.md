@@ -54,6 +54,8 @@ El **origen del código** es GitHub; la carpeta de [fuentes originales en Drive]
 
 Conservar los nombres públicos y técnicos estables salvo necesidad real. Dividir archivos solo cuando exista una responsabilidad clara y la separación reduzca riesgo de mantenimiento sin cambiar el comportamiento público.
 
+Toda opción administrativa que escriba en un libro externo debe ofrecer en esa misma pantalla un enlace al libro correspondiente, en una pestaña nueva y conservando abierto el formulario o diálogo. Reutilizar el registro de documentos vigente y verificar que el destino coincide con el libro donde se escribe.
+
 ## Archivo
 
 Los recursos históricos se conservan en `.github/archivo/`, con guía en `.github/archivo/leeme.md`. Los workflows retirados están en `.github/archivo/workflows/`; los operativos permanecen en `.github/workflows/`. Los IDs de recursos archivados son evidencia histórica, no referencias vigentes. No ejecutar auxiliares archivados sin revisar referencias, permisos y autorización.

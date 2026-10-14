@@ -6,16 +6,24 @@
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(endpoint)) return;
   const SHEET_ID=(()=>{try{return String(GOOGLE_SHEET_SOURCE?.spreadsheetId||"").trim()}catch(_){return "1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs"}})();
   const ADMIN_MODE_STORAGE_KEY="irenismb_admin_mode_active_v1";
+  const MOVEMENTS_BOOK_URL="https://docs.google.com/spreadsheets/d/1M8yCu65FG0wBeBAPqMXLaaXg2YXIhrJ_4gJ5lo1tZ9g/edit";
   const DOCUMENTS=Object.freeze({
     productos:Object.freeze({label:"Productos",help:"Inventario, precios y descripciones del catálogo.",group:"Inventario",url:`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=893686273`}),
     pedidos:Object.freeze({label:"Pedidos",help:"Solicitudes de compras y pedidos del catálogo público.",group:"Pedidos y prospectos",url:"https://docs.google.com/spreadsheets/d/1C4SA31dGX-6twdyZki68G4sV7j4Gwc21UuZpO0QPtuc/edit#gid=0"}),
-    movimientos:Object.freeze({label:"Movimientos",help:"Entradas y salidas reales del inventario.",group:"Inventario",url:"https://docs.google.com/spreadsheets/d/1M8yCu65FG0wBeBAPqMXLaaXg2YXIhrJ_4gJ5lo1tZ9g/edit#gid=1376116992"}),
+    movimientos:Object.freeze({label:"Movimientos",help:"Entradas y salidas reales del inventario.",group:"Inventario",url:MOVEMENTS_BOOK_URL+"#gid=1376116992"}),
+    codigos_barras:Object.freeze({label:"Códigos de barras",help:"Asociaciones EAN/UPC con productos, guardadas en el libro de Movimientos.",group:"Inventario",url:MOVEMENTS_BOOK_URL}),
     prospectos:Object.freeze({label:"Prospectos",help:"Perfiles de Facebook y seguimiento comercial.",group:"Pedidos y prospectos",url:"https://docs.google.com/spreadsheets/d/1C4SA31dGX-6twdyZki68G4sV7j4Gwc21UuZpO0QPtuc/edit#gid=639690806"}),
     visitas:Object.freeze({label:"Visitas",help:"Actividad y ubicación de los visitantes.",group:"Visitas",url:"https://docs.google.com/spreadsheets/d/1vxxTu4HWcgDm2HcCwPykMXyepVAFQcFsQkHUS6ed81g/edit#gid=0"}),
     resumen_visitas:Object.freeze({label:"Resumen de visitas",help:"Estadísticas acumuladas de las visitas.",group:"Visitas",url:"https://docs.google.com/spreadsheets/d/1vxxTu4HWcgDm2HcCwPykMXyepVAFQcFsQkHUS6ed81g/edit#gid=1300000001"}),
     navegadores:Object.freeze({label:"Navegadores",help:"Identificación de navegadores y visitas propias.",group:"Visitas",url:"https://docs.google.com/spreadsheets/d/1vxxTu4HWcgDm2HcCwPykMXyepVAFQcFsQkHUS6ed81g/edit#gid=1246775301"})
   });
   window.CATALOG_ADMIN_DOCUMENTS=DOCUMENTS;
+  document.querySelectorAll("a[data-admin-document]").forEach(link=>{
+    const item=DOCUMENTS[link.dataset.adminDocument];
+    if(!item)return;
+    link.href=item.url;
+    link.title="Abrir "+item.label+" en una pestaña nueva";
+  });
   const rules=new Set();
   const lastConfirmedPublicSignatures=new Set();
   let visibilityReadFailed=true;
@@ -69,6 +77,7 @@
   .catalog-admin-vis button.hidden{background:#ffe8ec;border-color:#d996a5;color:#8f263c}.catalog-admin-vis button.inherited{background:#f3f0f1;color:#71676a;cursor:not-allowed}.catalog-admin-vis button.mixed{background:#fff4d6;border-color:#d6b56a;color:#765719}
   .catalog-admin-hidden{outline:2px dashed #c75b72!important;outline-offset:-2px;opacity:.72}.catalog-admin-inherited{outline:2px dashed #9d9698!important;outline-offset:-2px;opacity:.72}
   .price-admin-editor{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;row-gap:7px;flex:1 1 220px;min-width:0;width:100%}.price-admin-input{box-sizing:border-box;min-width:0;width:100%;height:40px;padding:8px;border:1px solid #d8c9c6;border-radius:10px;text-align:right;font:750 15px Arial}.price-admin-save{box-sizing:border-box;min-width:88px}.price-admin-status{grid-column:1/-1;font-size:11px;font-weight:750}.price-admin-status.ok{color:#176b3a}.price-admin-status.err{color:#a02323}
+  .price-admin-editor .catalog-admin-book-link{grid-column:1/-1;justify-self:start}
   .card .row.price-admin-active{align-items:flex-start;flex-wrap:wrap;gap:8px}#priceAdminBtn[aria-pressed="true"]{color:#8d5360!important;border-color:#cfa8b0!important;background:#f5e5e8!important}
   .catalog-admin-copy-description{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;margin:8px 0 2px;padding:8px 12px;border:1px solid #d8c9c6;border-radius:10px;background:#fff;color:#4c3b3e;font:850 11px Arial;cursor:pointer;transition:background .16s ease,border-color .16s ease,color .16s ease}.catalog-admin-copy-description:hover{background:#f8f1f3;border-color:#cfa8b0}.catalog-admin-copy-description.copied{background:#e7f7ed;border-color:#a9d6b8;color:#176b3a}
   .catalog-admin-config{margin:14px 0 20px;padding:10px 12px;border:1px solid #e3d5d2;border-radius:18px;background:#fffaf9;box-shadow:0 8px 24px #5d35400d}
@@ -683,7 +692,7 @@
     if(product?.priceText!==undefined)return priceValue(product.priceText);
     return priceValue(fallback);
   }
-  function addPrice(card){if(card.querySelector(".price-admin-editor"))return;const price=card.querySelector(".price"),row=card.querySelector(".row"),code=visibilityId("producto",card.dataset.id||"");if(!price||!row||!/^\d{4}$/.test(code))return;const p=productObj(code),prev=previousPriceForEditor(p,price.textContent),ed=document.createElement("div"),inp=document.createElement("input"),save=document.createElement("button"),st=document.createElement("span");ed.className="price-admin-editor";ed.dataset.prev=prev;inp.className="price-admin-input";inp.inputMode="numeric";inp.value=editable(prev);save.className="btn-acc price-admin-save";save.textContent="Guardar";save.disabled=true;st.className="price-admin-status";inp.oninput=()=>save.disabled=!validPrice(inp.value)||priceValue(inp.value)===ed.dataset.prev;inp.onkeydown=e=>{if(e.key!=="Enter"||e.isComposing)return;e.preventDefault();if(inp.disabled)return;if(!validPrice(inp.value)){status(st,"Precio inválido","err");return}if(priceValue(inp.value)===ed.dataset.prev)return;savePrice(card,price,ed,inp,save,st)};save.onclick=()=>savePrice(card,price,ed,inp,save,st);ed.append(inp,save,st);price.hidden=true;row.classList.add("price-admin-active");row.hidden=false;price.insertAdjacentElement("afterend",ed)}
+  function addPrice(card){if(card.querySelector(".price-admin-editor"))return;const price=card.querySelector(".price"),row=card.querySelector(".row"),code=visibilityId("producto",card.dataset.id||"");if(!price||!row||!/^\d{4}$/.test(code))return;const p=productObj(code),prev=previousPriceForEditor(p,price.textContent),ed=document.createElement("div"),inp=document.createElement("input"),save=document.createElement("button"),st=document.createElement("span");ed.className="price-admin-editor";ed.dataset.prev=prev;inp.className="price-admin-input";inp.inputMode="numeric";inp.value=editable(prev);save.className="btn-acc price-admin-save";save.textContent="Guardar";save.disabled=true;st.className="price-admin-status";inp.oninput=()=>save.disabled=!validPrice(inp.value)||priceValue(inp.value)===ed.dataset.prev;inp.onkeydown=e=>{if(e.key!=="Enter"||e.isComposing)return;e.preventDefault();if(inp.disabled)return;if(!validPrice(inp.value)){status(st,"Precio inválido","err");return}if(priceValue(inp.value)===ed.dataset.prev)return;savePrice(card,price,ed,inp,save,st)};save.onclick=()=>savePrice(card,price,ed,inp,save,st);const book=document.createElement("a");book.className="catalog-admin-book-link";book.href=DOCUMENTS.productos.url;book.target="_blank";book.rel="noopener noreferrer";book.title="Abrir Productos en una pestaña nueva";book.textContent="Abrir Productos";ed.append(inp,save,st,book);price.hidden=true;row.classList.add("price-admin-active");row.hidden=false;price.insertAdjacentElement("afterend",ed)}
   function addDescriptionCopy(card){
     if(card.classList.contains("catalog-ficha-card")) return;
     if(card.querySelector(".product-copy-description")) return;

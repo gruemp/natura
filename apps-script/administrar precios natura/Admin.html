@@ -19,6 +19,8 @@
     button:hover{background:var(--brand-dark)}
     button:disabled{cursor:wait;opacity:.65}
     .secondary{background:#68736b}
+    .document-link{display:inline-flex;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font-weight:700;text-decoration:none}
+    .document-link:hover{background:#edf2ee}
     .status{min-height:24px;margin:8px 0 12px;color:var(--muted)}
     .status.ok{color:var(--ok)}
     .status.error{color:var(--error)}
@@ -43,6 +45,7 @@
     <div class="toolbar">
       <input id="buscar" type="search" placeholder="Buscar por código o nombre" aria-label="Buscar producto">
       <button id="recargar" class="secondary" type="button">Recargar</button>
+      <a class="document-link" href="https://docs.google.com/spreadsheets/d/1x7mC7iq-vbOcvSL58cL-slC55gP4aoCKCig-WpggCNs/edit#gid=893686273" target="_blank" rel="noopener noreferrer">Abrir Productos</a>
     </div>
 
     <div id="estado" class="status" role="status" aria-live="polite">Cargando productos…</div>
