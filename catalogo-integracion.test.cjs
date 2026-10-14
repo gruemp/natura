@@ -1269,3 +1269,46 @@ test('Servidor admite varios EAN por producto e impide reasignar los existentes'
   assert.equal(vm.runInContext('movBarcodeCode("7701234567890")',ctx),'7701234567890');
   assert.throws(()=>vm.runInContext('movBarcodeCode("1234")',ctx),/inválido/);
 });
+
+
+test('Interruptor de imágenes impide consultar el índice y conserva los datos del inventario',async()=>{
+  const env=environment();
+  env.run('window.INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
+  assert.equal(env.run('shouldShowProductImages()'),false);
+  const n=env.requests.length;
+  const result=await env.run('loadAppsScriptImageIndex()');
+  assert.equal(result.ok,true);
+  assert.equal(Object.keys(result.products).length,0);
+  assert.equal(env.requests.length,n,'No se debe consultar el servicio de imágenes');
+  env.run('loadGoogleSheetRows=async()=>[{code:"0583",name:"Producto Natura"}]');
+  const data=await env.run('loadGoogleSheetCatalog({refreshImages:true})');
+  assert.equal(data.sheetEntries.length,1);
+  assert.equal(data.sheetEntries[0].row.code,'0583');
+  assert.equal(data.sheetEntries[0].imageIndex.size,0);
+  assert.equal(env.requests.length,n,'Los datos no deben causar descargas de imágenes');
+  assert.match(env.run('makeNoPhotoPlaceholder().innerHTML'),/Carga desactivada/);
+  assert.equal(env.run('makeAlbumPreview(["https://ejemplo.invalid/foto.png"],"Natura").tagName'),'DIV');
+});
+
+test('El ajuste compartido se valida, se expone en administración y conserva migración histórica',()=>{
+  assert.match(appSource,/CARGAR_IMAGENES_CATALOGO: "ACTIVADO"/);
+  assert.match(appSource,/function shouldShowProductImages\(\)\{\s*return INTERRUPTORES\.CARGAR_IMAGENES_CATALOGO !== false/);
+  assert.match(adminSource,/key:"CARGAR_IMAGENES_CATALOGO",label:"Cargar imágenes del catálogo"/);
+  const server=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','Código.js'),'utf8');
+  const config=fs.readFileSync(path.join(__dirname,'apps-script','administrar precios natura','admin-configuracion.js'),'utf8');
+  assert.match(server,/CARGAR_IMAGENES_CATALOGO: "ACTIVADO"/);
+  assert.match(server,/"CARGAR_IMAGENES_CATALOGO"/);
+  assert.match(config,/CONFIG_MIGRATION_PUBLIC_KEYS/);
+  assert.match(config,/values\[k\] \|\| CONFIG_DEFAULTS\[k\]/);
+  assert.match(appSource,/natura:image-visibility-changed/);
+});
+
+test('Anuncios y miniaturas respetan la configuración sin descargar archivos al estar apagada',()=>{
+  const html=htmlSource.slice(htmlSource.indexOf('const cacheKey = "irenismb_ads_last_valid_v1"'));
+  assert.match(html,/const imagesAllowed = \(\) => window\.CATALOG_PUBLIC_CONFIG_CONFIRMED === true/);
+  assert.match(html,/if \(!imagesAllowed\(\)\) \{ render\(null\); return; \}/);
+  assert.match(html,/window\.REMOTE_CONFIG_READY\?\.then/);
+  assert.match(html,/window\.addEventListener\("natura:image-visibility-changed"/);
+  assert.match(appSource,/if\(!shouldShowProductImages\(\) \|\| !preferredUrl\) return makeNoPhotoPlaceholder/);
+  assert.match(appSource,/if\(!shouldShowProductImages\(\)\) return makeNoPhotoPlaceholder\("album"\)/);
+});
