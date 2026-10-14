@@ -448,7 +448,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.match(htmlSource,/id="ld-products"/);
   assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=imagenes-por-vista-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=libros-administrativos-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=libros-administrativos-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1187,7 +1187,7 @@ test('Fichas editoriales comparten tipografía y paleta en web, PNG y PDF, sin a
 test('El estilo editorial del carrito no altera fichas ni lógica de productos y pedidos',()=>{
   const marker="/* Carrito: presentación editorial cálida y reversible, aislada de fichas y pedidos. */";
   assert.ok(fichaCssSource.includes(marker));
-  const layer=fichaCssSource.split(marker)[1];
+  const layer=fichaCssSource.split(marker)[1].split("/* Composición exterior 2026-10-14: cinco mejoras estáticas; nunca seleccionar #grid ni fichas. */")[0];
   assert.ok(layer.includes('#cartModal .cart-item')&&layer.includes('#cartModal .cart-summary')&&layer.includes('#cartModal .cart-footer-actions>#cartBuyBtn'));
   assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|#grid|\.folleto-|\.card\s*\{|\.form-modal|\.site-header|\.cart-modal[^-]/);
   for(const row of layer.split('\n')){
@@ -1198,7 +1198,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=libros-administrativos-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
 });
 
 
@@ -1590,4 +1590,18 @@ test('El administrador directo conserva decimales del precio anterior escrito co
   const original=compactDescription.replace('25.000','194.974,5'),env=compactPriceBackend(original);
   assert.equal(env.run('actualizarPrecioWeb("0042","200000","194.974,5").precioGuardado'),'200000');
   assert.equal(env.writes(),1);
+});
+
+test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=>{
+  const marker="/* Composición exterior 2026-10-14: cinco mejoras estáticas; nunca seleccionar #grid ni fichas. */";
+  assert.equal(fichaCssSource.split(marker).length,2);
+  const layer=marker+fichaCssSource.split(marker)[1];
+  assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|\.folleto-dialog|#grid:|\.product-details|\.product-selection|\.ficha-square/);
+  const selectors=layer.split('\n').filter(line=>line.includes('{')&&!line.trim().startsWith('/*')&&!line.trim().startsWith('@media'));
+  assert.ok(selectors.length>=12);
+  for(const line of selectors)assert.match(line,/^\s*\.(?:site-header|catalog-contact|social-contact-region|site-footer)\b/);
+  assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
+  assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
 });

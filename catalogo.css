@@ -1464,3 +1464,36 @@ body.cart-open,body.form-open,body.img-open{overflow:hidden}
 #cartModal .cart-footer-actions{gap:8px}
 }
 
+/* Composición exterior 2026-10-14: cinco mejoras estáticas; nunca seleccionar #grid ni fichas. */
+/* 1. Folleto móvil: acción secundaria que no compite con la búsqueda. */
+@media(max-width:760px){
+  .site-header .header-actions>#folletoBtn{background:#fff8fa;border:2px solid #d3a8ba;color:#714459;box-shadow:0 2px 7px #74425b0a}
+}
+/* 2. Atención en tableta: tres servicios con iconografía centrada y columnas coherentes. */
+@media(min-width:761px) and (max-width:980px){
+  .catalog-contact>.service-card .service-list>li{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:10px;text-align:center;padding:16px 8px;min-height:106px}
+  .catalog-contact>.service-card .service-list>li>.ui-icon{width:34px;height:34px;padding:7px;margin:0;flex:none}
+  .catalog-contact>.service-card .service-list>li>span{font-size:13px;line-height:1.45}
+  .catalog-contact>.service-card .service-list>li:first-child{padding:16px 8px}
+}
+/* 3. Redes en escritorio: nueve accesos equilibrados en una fila, sin segunda hilera asimétrica. */
+@media(min-width:1260px){
+  .social-contact-region>.social-contact-card{max-width:1200px;padding:20px 22px 19px}
+  .social-contact-region>.social-contact-card .social-icons{grid-template-columns:repeat(9,minmax(0,1fr));grid-template-rows:auto;gap:9px}
+  .social-contact-region>.social-contact-card .social-icons .social-row>*{grid-column:auto}
+  .social-contact-region>.social-contact-card .social-icons .social-row:nth-child(2)>:first-child{grid-column:auto}
+}
+/* 4. Pie: dirección y teléfono en dos bloques visualmente equivalentes desde tableta. */
+@media(min-width:761px){
+  .site-footer .footer-visit-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:center;column-gap:12px;row-gap:10px}
+  .site-footer .footer-visit-content>h2{grid-column:1/-1;margin-bottom:0}
+  .site-footer .footer-visit-content>.footer-contact-line{min-width:0;min-height:80px;align-items:center;margin:0;padding:12px 11px;border:1px solid #edd9dc;border-radius:13px;background:#fffaf9}
+  .site-footer .footer-visit-content>.footer-contact-line:last-child{border:1px solid #edd9dc}
+  .site-footer .footer-visit-content>.footer-contact-line p{font-size:clamp(12px,1.1vw,15px);line-height:1.4}
+  .site-footer .footer-visit-content>.footer-contact-line .footer-phone{font-size:clamp(17px,1.8vw,26px);padding:4px 7px}
+}
+/* 5. Beneficios: tres columnas del mismo ancho en tableta y escritorio. */
+@media(min-width:761px){
+  .site-footer .footer-products-card .footer-product-benefits{display:grid;grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 0 0;border-left:0;border-top:1px solid #ead4dc}
+  .site-footer .footer-products-card .footer-product-benefits>li{min-width:0;justify-content:center;gap:10px}
+}
