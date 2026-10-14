@@ -1349,3 +1349,60 @@ test('configuración nueva permite apagar fotografías sin bloquear los producto
   assert.equal(env.run('window.CATALOG_PUBLIC_CONFIG_CONFIRMED'),true);
   assert.equal(env.run('shouldShowProductImages()'),false);
 });
+
+// Ejecuta el registro real del frontend con servicios y almacenamiento aislados.
+function inventorySubmissionEnvironment(){
+  const start=cartSource.indexOf('    function fingerprintInventory(request){');
+  const end=cartSource.indexOf('    /* Lector USB',start);
+  let finishInvoice,finishRequest;
+  const storage=new Map(),sent=[],alerts=[];
+  const ctx={inventorySubmitting:false,lastRegisteredFingerprint:'',
+    cart:{'0042':{id:'0042',qty:2}},inventorySwitchEl:{checked:false},cartBuyBtn:{},
+    window:{CATALOG_ADMIN_REQUEST:async data=>{sent.push(clone(data));return new Promise(resolve=>finishRequest=resolve)}},
+    inventoryAllowed:()=>ctx.allowed,allowed:true,cartItemsArray:()=>Object.values(ctx.cart),
+    inventoryIsEntry:()=>ctx.inventorySwitchEl.checked,
+    invoiceBuildPng:()=>new Promise(resolve=>finishInvoice=()=>resolve({blob:'aislado'})),
+    getClientDataCurrent:()=>({name:'Prueba aislada'}),getAddressDataCurrent:()=>({}),
+    getShippingCop:()=>0,invoicePaymentMethod:()=>ctx.payment,payment:'Efectivo',
+    sessionStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},
+    crypto:{randomUUID:()=> '12345678-1234-1234-1234-123456789012'},
+    confirm:()=>ctx.confirmed,confirmed:true,alert:message=>alerts.push(message),
+    cartTotalQty:()=>Object.values(ctx.cart).reduce((n,it)=>n+it.qty,0),
+    invoiceDownloadPng(){ctx.downloads++},downloads:0,saveCart(){},inventoryStatus(){},renderCartModal(){ctx.renders++},renders:0};
+  vm.createContext(ctx);vm.runInContext(cartSource.slice(start,end),ctx);
+  return {ctx,sent,alerts,storage,submit:()=>ctx.registerAdminInventoryMovement(),
+    invoice:()=>finishInvoice(),reply:()=>finishRequest({ok:true,filas:1,numeroMovimiento:'aislado'})};
+}
+test('Una segunda pulsación durante el PNG no envía otro movimiento y libera el bloqueo al terminar',async()=>{
+  const env=inventorySubmissionEnvironment(),first=env.submit();
+  assert.equal(env.ctx.inventorySubmitting,true);assert.equal(env.ctx.cartBuyBtn.disabled,true);
+  await env.submit();assert.equal(env.sent.length,0);
+  env.invoice();await new Promise(resolve=>setImmediate(resolve));assert.equal(env.sent.length,1);
+  env.reply();await first;
+  assert.equal(env.sent[0].datos.tipo,'SALIDA');assert.equal(env.ctx.downloads,1);
+  assert.equal(env.ctx.inventorySubmitting,false);assert.equal(env.ctx.window.NATURA_INVENTORY_SUBMITTING,false);
+  assert.equal(env.storage.size,0);assert.deepEqual(Object.keys(env.ctx.cart),[]);
+});
+test('Cambiar cantidades, pago, tipo o sesión mientras se prepara el PNG impide registrar',async()=>{
+  for(const change of [ctx=>ctx.cart['0042'].qty++,ctx=>ctx.payment='Nequi',ctx=>ctx.inventorySwitchEl.checked=true,ctx=>ctx.allowed=false]){
+    const env=inventorySubmissionEnvironment(),task=env.submit();change(env.ctx);env.invoice();await task;
+    assert.equal(env.sent.length,0);assert.equal(env.storage.size,0);assert.equal(env.ctx.downloads,0);
+    assert.equal(env.ctx.inventorySubmitting,false);assert.ok(env.alerts.length);
+  }
+});
+test('Cancelar una salida libera el bloqueo y la entrada registra sin generar PNG',async()=>{
+  const env=inventorySubmissionEnvironment();env.ctx.confirmed=false;
+  const canceled=env.submit();env.invoice();await canceled;
+  assert.equal(env.sent.length,0);assert.equal(env.ctx.inventorySubmitting,false);
+  env.ctx.confirmed=true;env.ctx.inventorySwitchEl.checked=true;
+  const entry=env.submit();assert.equal(env.sent.length,1);env.reply();await entry;
+  assert.equal(env.sent[0].datos.tipo,'ENTRADA');assert.equal(env.ctx.downloads,0);
+  assert.equal(env.ctx.inventorySwitchEl.checked,false);
+});
+test('Un fallo de transporte conserva el identificador para reintentar el mismo movimiento',async()=>{
+  const env=inventorySubmissionEnvironment();env.ctx.inventorySwitchEl.checked=true;
+  env.ctx.window.CATALOG_ADMIN_REQUEST=async data=>{env.sent.push(clone(data));throw new Error('Sin confirmación')};
+  await env.submit();assert.equal(env.storage.size,1);assert.equal(env.ctx.inventorySubmitting,false);
+  await env.submit();assert.equal(env.sent.length,2);
+  assert.equal(env.sent[0].datos.client_request_id,env.sent[1].datos.client_request_id);
+});
