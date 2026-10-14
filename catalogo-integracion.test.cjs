@@ -1312,3 +1312,40 @@ test('Anuncios y miniaturas respetan la configuración sin descargar archivos al
   assert.match(appSource,/if\(!shouldShowProductImages\(\) \|\| !preferredUrl\) return makeNoPhotoPlaceholder/);
   assert.match(appSource,/if\(!shouldShowProductImages\(\)\) return makeNoPhotoPlaceholder\("album"\)/);
 });
+
+test('catálogo acepta cinco controles legacy y conserva fotografías activadas',async()=>{
+  const env=environment();
+  const old={
+    REGISTRAR_VISITAS_PROPIAS:'DESACTIVADO',
+    MOSTRAR_CANTIDAD_STOCK:'DESACTIVADO',
+    MOSTRAR_PRECIOS_PRODUCTO:'ACTIVADO',
+    ORDEN_NAVEGACION:'section,category,subcategory,public,line,product',
+    ORDEN_PRODUCTOS:'price_asc'
+  };
+  env.sandbox.legacyConfig=old;
+  const normalized=env.run('normalizePublicConfiguration(legacyConfig)');
+  assert.equal(normalized.CARGAR_IMAGENES_CATALOGO,'ACTIVADO');
+  assert.equal(env.run('acceptCatalogPublicConfiguration(legacyConfig,{revision:"2026-10-12T10:00:00.000Z",rebuild:false})'),true);
+  assert.equal(env.run('window.CATALOG_PUBLIC_CONFIG_CONFIRMED'),true);
+  assert.equal(env.run('shouldShowProductImages()'),true);
+  const pending=env.run('loadRemoteCatalogConfiguration("__legacyReader")');
+  env.reply({ok:true,valores:old,publicadoEn:'2026-10-12T11:00:00.000Z'});
+  const remote=await pending;
+  assert.equal(remote.valores.CARGAR_IMAGENES_CATALOGO,'ACTIVADO');
+});
+
+test('configuración nueva permite apagar fotografías sin bloquear los productos',()=>{
+  const env=environment();
+  const values={
+    REGISTRAR_VISITAS_PROPIAS:'DESACTIVADO',
+    MOSTRAR_CANTIDAD_STOCK:'DESACTIVADO',
+    MOSTRAR_PRECIOS_PRODUCTO:'ACTIVADO',
+    CARGAR_IMAGENES_CATALOGO:'DESACTIVADO',
+    ORDEN_NAVEGACION:'section,category,subcategory,public,line,product',
+    ORDEN_PRODUCTOS:'price_asc'
+  };
+  env.sandbox.newConfig=values;
+  assert.equal(env.run('acceptCatalogPublicConfiguration(newConfig,{revision:"2026-10-12T10:00:00.000Z",rebuild:false})'),true);
+  assert.equal(env.run('window.CATALOG_PUBLIC_CONFIG_CONFIRMED'),true);
+  assert.equal(env.run('shouldShowProductImages()'),false);
+});
