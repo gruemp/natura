@@ -1434,18 +1434,20 @@
         code=String(found?.codigoInterno||"");
         if(!code){
           const text=prompt("Código de barras "+barcode+" todavía no asociado. Escribe el código interno (por ejemplo 0583):");
-          if(text===null)return;
+          if(text===null){stopInventoryCamera();return;}
           const normalized=String(text).trim();
           code=/^\d{1,4}$/.test(normalized)?normalized.padStart(4,"0"):"";
           const candidate=productById.get(code);
           if(!candidate)throw new Error("El código interno no corresponde a un producto disponible.");
-          if(!confirm("¿Asociar "+barcode+" a "+candidate.name+" (código "+code+")?"))return;
+          if(!confirm("¿Asociar "+barcode+" a "+candidate.name+" (código "+code+")?")){stopInventoryCamera();return;}
           const saved=await window.CATALOG_ADMIN_REQUEST({tipo:"vincular-codigo-barras",codigoBarras:barcode,codigoInterno:code});
           if(!saved?.ok)throw new Error("No se confirmó la asociación del código de barras.");
         }
       }
+      if(!inventoryAllowed()){stopInventoryCamera();throw new Error("La sesión de administración terminó durante la lectura.");}
       const product=productById.get(code);
       if(!product||product.isGiftGalleryImage)throw new Error("Producto "+code+" no disponible. Actualiza el catálogo.");
+      if(lastRegisteredFingerprint)lastRegisteredFingerprint="";
       if(cart[code])cart[code].qty=Math.min(9999,Math.max(0,Number(cart[code].qty)||0)+1);
       else cart[code]={id:code,name:product.name,price:product.price,hasPrice:product.hasPrice!==false,qty:1,stock:product.stock,imgFilename:product.imgFilename||null};
       lastRegisteredFingerprint="";
