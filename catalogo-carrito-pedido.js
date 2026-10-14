@@ -1583,6 +1583,8 @@
         return;
       }
       barcodeLinkMessage("Consultando códigos ya asociados…");
+      // El primer toque al botón abre directamente la cámara cuando hay soporte.
+      toggleBarcodeLinkCamera();
       try{
         const existing=await refreshProductBarcodes(code,token);
         if(existing&&token===bindActiveToken)barcodeLinkMessage("Escanea un EAN/UPC del envase. Puedes asociar varios al mismo producto.");
@@ -1599,6 +1601,7 @@
         bindInput?.focus();return;
       }
       const token=bindActiveToken;
+      stopBarcodeLinkCamera();
       bindBusy=true;bindSave.disabled=true;bindCamera.disabled=true;
       try{
         barcodeLinkMessage("Comprobando que el código no pertenezca a otro producto…");
