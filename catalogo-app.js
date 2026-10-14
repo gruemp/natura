@@ -3350,6 +3350,10 @@ function syncFilterVisibility(){
 }
 
 function refreshCardUI(card,p){
+  const barcodeLink=card.querySelector(".catalog-barcode-bind");
+  if(barcodeLink)barcodeLink.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
+  const additionalCode=card.querySelector(".catalog-barcode-extra-code");
+  if(additionalCode)additionalCode.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
   const row=card.querySelector(".row");
   const actions=card.querySelector(".actions");
   const meta=card.querySelector(".meta");
@@ -3415,6 +3419,40 @@ function catalogProductDisplayName(value){
   });
 }
 
+
+function addBarcodeBindingControl(card,p){
+  if(p?.isGiftGalleryImage||!(/^\d{4}$/.test(String(p?.id||""))))return;
+  const facts=card.querySelector(".ficha-attributes");
+  if(!facts)return;
+  const code=String(p.id);
+  let codeRow=Array.from(facts.children).find(row=>{
+    const label=String(row.querySelector("dt")?.textContent||"").trim().toLowerCase()
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+    return /^codigo\s*:/.test(label);
+  });
+  if(!codeRow){
+    codeRow=document.createElement("div");
+    codeRow.className="catalog-barcode-extra-code";
+    const term=document.createElement("dt");term.textContent="Código:";
+    const value=document.createElement("dd");value.textContent=code;
+    codeRow.append(term,value);facts.appendChild(codeRow);
+  }
+  const control=document.createElement("span");
+  control.className="catalog-barcode-control";
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="catalog-barcode-bind";
+  button.dataset.vincularBarras=code;
+  button.title="Vincular código de barras al producto "+code;
+  button.setAttribute("aria-label","Vincular código de barras al producto "+code);
+  button.innerHTML='<svg viewBox="0 0 64 56" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><path d="M7 7v42M12 7v42M16 7v42M21 7v42M26 7v42M29 7v42M35 7v42M41 7v42M44 7v42M50 7v42M56 7v42" stroke="currentColor" stroke-width="2.4"/><path d="M10 7v42M24 7v42M38 7v42M52 7v42" stroke="currentColor" stroke-width="1"/></svg><span class="catalog-barcode-caption">Vincular</span>';
+  control.appendChild(button);
+  codeRow.appendChild(control);
+  const allowed=window.CATALOG_ADMIN_MODE_ACTIVE===true;
+  button.hidden=!allowed;
+  if(codeRow.classList.contains("catalog-barcode-extra-code"))codeRow.hidden=!allowed;
+}
+
 function makeCard(p){
   const card=cardTemplate.content.firstElementChild.cloneNode(true);
   card.id="p-"+encodeURIComponent(String(p.id));
@@ -3457,7 +3495,10 @@ function makeCard(p){
     const label=document.createElement("span");label.textContent="Seleccionar para Folleto";label.className="visually-hidden";
     selection.append(check,label);imgBox.appendChild(selection);
   }
-  if(!p.isGiftGalleryImage) renderCatalogFicha(card,p);
+  if(!p.isGiftGalleryImage){
+    renderCatalogFicha(card,p);
+    addBarcodeBindingControl(card,p);
+  }
   refreshCardUI(card,p);
   return card;
 }
