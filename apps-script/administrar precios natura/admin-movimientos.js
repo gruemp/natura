@@ -103,7 +103,7 @@ function movBarcodeTable(create){
     sheet.getRange("A:B").setNumberFormat("@");
     sheet.getRange(1,1,1,3).setValues([["Código de barras","Código interno","Fecha de vinculación"]]);
     sheet.setFrozenRows(1);
-    sheet.setFrozenColumns(2);
+    sheet.setFrozenColumns(0);
     sheet.setHiddenGridlines(true);
     sheet.setColumnWidth(1,210);sheet.setColumnWidth(2,155);sheet.setColumnWidth(3,205);
     sheet.getRange("A1:C1").setBackground("#1f3d38").setFontColor("#ffffff")
@@ -120,6 +120,22 @@ function buscarCodigoBarrasWeb(input){
   const matches=sheet.getRange(2,1,sheet.getLastRow()-1,2).getDisplayValues().filter(function(r){return String(r[0]).trim()===barcode});
   if(matches.length>1)throw new Error("Código de barras duplicado");
   return {ok:true,codigoInterno:matches.length?movCode(matches[0][1]):""};
+}
+function listarCodigosBarrasWeb(internal){
+  const code=movCode(internal);
+  movSheet(); // El usuario debe contar con permisos sobre el registro privado.
+  const sheet=movBarcodeTable(false);
+  if(!sheet||sheet.getLastRow()<2)return {ok:true,codigoInterno:code,codigos:[]};
+  const rows=sheet.getRange(2,1,sheet.getLastRow()-1,2).getDisplayValues();
+  const codes=[],seen=new Set();
+  rows.forEach(function(row){
+    const barcode=String(row[0]||"").trim();
+    if(!barcode||String(row[1]||"").trim().padStart(4,"0")!==code)return;
+    if(!/^\d{8,14}$/.test(barcode))throw new Error("Hay un código de barras registrado con formato inválido.");
+    if(seen.has(barcode))throw new Error("Existe una asociación de código de barras duplicada.");
+    seen.add(barcode);codes.push(barcode);
+  });
+  return {ok:true,codigoInterno:code,codigos:codes};
 }
 function vincularCodigoBarrasWeb(input,internal){
   const barcode=movBarcodeCode(input),code=movCode(internal);
