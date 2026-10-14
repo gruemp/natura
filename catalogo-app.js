@@ -3540,7 +3540,14 @@ function renderCartModal(){
   const hasUnpricedItems=items.some(it=>it&&it.hasPrice===false);
   const subtotalEl=document.getElementById("cartSubtotal");
   const shippingEl=document.getElementById("cartShippingTotal");
-  if(cartInvoiceBtn) cartInvoiceBtn.hidden=window.CATALOG_ADMIN_MODE_ACTIVE!==true;
+  const adminCart=window.CATALOG_ADMIN_MODE_ACTIVE===true;
+  const toolSection=document.getElementById("cartInventoryTools");
+  const switchInput=document.getElementById("cartMovementSwitch");
+  const entryMode=adminCart&&switchInput?.checked===true;
+  if(toolSection)toolSection.hidden=!adminCart;
+  const movementText=document.getElementById("cartMovementText");
+  if(movementText)movementText.textContent=entryMode?"ENTRADA":"SALIDA";
+  if(cartInvoiceBtn)cartInvoiceBtn.hidden=!adminCart||entryMode;
   if(cartInvoiceBtn && !invoiceCopying){
     const canGenerateSummary=window.CATALOG_ADMIN_MODE_ACTIVE===true&&items.length>0&&showPrices&&!hasUnpricedItems;
     cartInvoiceBtn.disabled=!canGenerateSummary;
@@ -3550,11 +3557,14 @@ function renderCartModal(){
         ? "Agrega productos para crear la salida de inventario"
         : "Todos los productos deben tener un precio visible";
   }
-  if(cartBuyBtn && !orderSending) cartBuyBtn.disabled=items.length===0;
+  if(cartBuyBtn && !orderSending && !window.NATURA_INVENTORY_SUBMITTING){
+    cartBuyBtn.disabled=items.length===0||(adminCart&&!entryMode&&hasUnpricedItems);
+    cartBuyBtn.textContent=adminCart?(entryMode?"Registrar ENTRADA":"Registrar SALIDA y generar documento"):"Continuar pedido por WhatsApp";
+  }
   if(cartClearBtn) cartClearBtn.disabled=items.length===0;
   if(subtotalEl) subtotalEl.textContent=(!showPrices||hasUnpricedItems)?"Por confirmar":fmtCOP.format(subtotalValue);
-  if(shippingEl) shippingEl.textContent=fmtCOP.format(shippingValue);
-  cartTotalEl.textContent=(!showPrices||hasUnpricedItems)?"Total: Por confirmar":"Total: "+fmtCOP.format(total);
+  if(shippingEl) shippingEl.textContent=entryMode?"No aplica":fmtCOP.format(shippingValue);
+  cartTotalEl.textContent=entryMode?"Entrada: "+cartTotalQty()+" unidades":(!showPrices||hasUnpricedItems)?"Total: Por confirmar":"Total: "+fmtCOP.format(total);
   if(!items.length){
     cartItemsEl.innerHTML="";
     return;
