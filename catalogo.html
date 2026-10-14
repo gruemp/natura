@@ -233,7 +233,7 @@
 
 
 
-  <link rel="stylesheet" href="catalogo.css?actualizacion=carrito-editorial-2026-10-13-9" />
+  <link rel="stylesheet" href="catalogo.css?actualizacion=movimientos-admin-2026-10-13-1" />
 
 
 
@@ -1048,6 +1048,26 @@
         <h3 class="cart-modal-title">🛒 Carrito</h3>
         <button class="cart-modal-close" id="cartModalClose" type="button" aria-label="Cerrar">✕</button>
       </div>
+      <section id="cartInventoryTools" class="cart-inventory-tools" aria-label="Operaciones de inventario" hidden>
+        <div class="cart-inventory-heading">
+          <div><strong>Inventario · Administrador</strong><small>Elige la operación antes de confirmar el carrito.</small></div>
+          <label class="cart-movement-label" for="cartMovementSwitch">
+            <span id="cartMovementText">SALIDA</span>
+            <input id="cartMovementSwitch" class="cart-movement-input" type="checkbox" role="switch" aria-label="Encendido entrada; apagado salida">
+            <span class="cart-movement-track" aria-hidden="true"><span></span></span>
+          </label>
+        </div>
+        <div class="cart-inventory-scan">
+          <label for="cartBarcodeInput">Código de barras / código interno</label>
+          <div class="cart-inventory-scan-row">
+            <input id="cartBarcodeInput" type="text" autocomplete="off" placeholder="Escanear o escribir 0583" aria-label="Código escaneado">
+            <button id="cartBarcodeAdd" class="btn-ghost" type="button">Agregar</button>
+            <button id="cartCameraToggle" class="btn-ghost" type="button">Abrir cámara</button>
+          </div>
+          <video id="cartCameraPreview" class="cart-camera-preview" playsinline autoplay muted hidden></video>
+          <p id="cartBarcodeStatus" role="status" aria-live="polite" class="cart-barcode-status"></p>
+        </div>
+      </section>
       <div class="cart-modal-layout">
         <div class="cart-modal-body">
           <div id="cartItems"></div>
@@ -1695,8 +1715,8 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo"></script>
- <script src="catalogo-app.js?actualizacion=columnas-a-b-2026-10-12-2"></script>
-  <script src="catalogo-carrito-pedido.js?actualizacion=pedidos-compacto-2026-10-10-1"></script>
+ <script src="catalogo-app.js?actualizacion=movimientos-admin-2026-10-13-1"></script>
+  <script src="catalogo-carrito-pedido.js?actualizacion=movimientos-admin-2026-10-13-1"></script>
   <script src="catalogo-herramientas.js?actualizacion=columnas-a-b-2026-10-12-2"></script>
   <script src="analytics-visitas.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="catalogo-ui.js?actualizacion=pestanas-tres-palabras-2026-10-12-1"></script>
