@@ -89,3 +89,37 @@ jobs:
           clasp push --force
           clasp deploy --deploymentId "$deployment_id" --description "Lector independiente de solo lectura ${GITHUB_SHA}"
           echo "Lector independiente publicado; no se modificó el administrador." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comprobar respuesta pública de configuración
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.parse, urllib.request
+          from pathlib import Path
+          manifest = json.loads(Path("apps-script/lector publico natura/deployment.json").read_text())
+          endpoint = manifest["endpoint"]
+          callback = "NaturaSmokeConfig"
+          url = endpoint + "?" + urllib.parse.urlencode({"modo":"config","callback":callback})
+          last = None
+          for attempt in range(4):
+              try:
+                  req = urllib.request.Request(url,headers={"User-Agent":"Natura-Deploy-Verification/1.0"})
+                  with urllib.request.urlopen(req,timeout=25) as response:
+                      body=response.read(1024*1024).decode("utf-8")
+                  prefix=callback+"("
+                  assert body.startswith(prefix) and body.endswith(");"), "La respuesta JSONP no es válida"
+                  snapshot=json.loads(body[len(prefix):-2])
+                  assert snapshot.get("ok") is True, "El lector rechaza la configuración pública"
+                  values=snapshot.get("valores",{})
+                  required=["REGISTRAR_VISITAS_PROPIAS","MOSTRAR_CANTIDAD_STOCK",
+                            "MOSTRAR_PRECIOS_PRODUCTO","CARGAR_IMAGENES_CATALOGO",
+                            "ORDEN_NAVEGACION","ORDEN_PRODUCTOS"]
+                  assert all(isinstance(values.get(k),str) for k in required), "Faltan controles públicos"
+                  assert values["CARGAR_IMAGENES_CATALOGO"] in ("ACTIVADO","DESACTIVADO")
+                  print("Configuración pública válida; lectura de productos desbloqueada.")
+                  break
+              except Exception as exc:
+                  last=exc
+                  if attempt==3: raise SystemExit("El lector público no responde correctamente: "+str(last))
+                  time.sleep(3)
+          PY
