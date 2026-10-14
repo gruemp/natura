@@ -98,7 +98,17 @@ function registrarMovimientoInventarioWeb(data){
 function movBarcodeTable(create){
   const book=SpreadsheetApp.openById(MOV_BOOK);
   let sheet=book.getSheetByName("codigos_barras");
-  if(!sheet&&create){sheet=book.insertSheet("codigos_barras");sheet.getRange(1,1,1,3).setValues([["Código de barras","Código interno","Fecha de vinculación"]]);sheet.setFrozenRows(1)}
+  if(!sheet&&create){
+    sheet=book.insertSheet("codigos_barras");
+    sheet.getRange("A:B").setNumberFormat("@");
+    sheet.getRange(1,1,1,3).setValues([["Código de barras","Código interno","Fecha de vinculación"]]);
+    sheet.setFrozenRows(1);
+    sheet.setFrozenColumns(2);
+    sheet.setHiddenGridlines(true);
+    sheet.setColumnWidth(1,210);sheet.setColumnWidth(2,155);sheet.setColumnWidth(3,205);
+    sheet.getRange("A1:C1").setBackground("#1f3d38").setFontColor("#ffffff")
+      .setFontFamily("Calibri").setFontSize(11).setFontWeight("bold");
+  }
   if(sheet){const h=sheet.getRange(1,1,1,2).getDisplayValues()[0];if(movNorm(h[0])!=="codigo de barras"||movNorm(h[1])!=="codigo interno")throw new Error("Encabezados inválidos en códigos de barras")}
   return sheet;
 }
@@ -120,7 +130,9 @@ function vincularCodigoBarrasWeb(input,internal){
     const rows=sheet.getLastRow()>1?sheet.getRange(2,1,sheet.getLastRow()-1,2).getDisplayValues():[];
     const old=rows.find(function(r){return String(r[0]).trim()===barcode});
     if(old){if(movCode(old[1])!==code)throw new Error("Código vinculado a otro producto");return {ok:true,codigoInterno:code,duplicate:true}}
-    sheet.appendRow([barcode,code,Utilities.formatDate(new Date(),"America/Bogota","yyyy-MM-dd HH:mm")]);
+    const next=sheet.getLastRow()+1;
+    sheet.getRange(next,1,1,2).setNumberFormat("@");
+    sheet.getRange(next,1,1,3).setValues([[barcode,code,Utilities.formatDate(new Date(),"America/Bogota","yyyy-MM-dd HH:mm")]]);
     return {ok:true,codigoInterno:code};
   }finally{lock.releaseLock()}
 }
