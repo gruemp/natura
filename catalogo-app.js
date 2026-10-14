@@ -565,6 +565,15 @@ function readCompactGoogleSheetProductRows(table,indices){
       return levels.length === ALL_NAVIGATION_LEVELS.length && new Set(levels).size === levels.length
         && levels.every(level=>ALL_NAVIGATION_LEVELS.includes(level));
     }
+    function normalizePublicConfiguration(values){
+      if(!values || typeof values !== "object" || Array.isArray(values)) return null;
+      // El lector público anterior aún puede entregar cinco opciones durante
+      // un despliegue. El ajuste nuevo es opt-in para no bloquear imágenes.
+      const normalized={...values};
+      if(!Object.prototype.hasOwnProperty.call(normalized,"CARGAR_IMAGENES_CATALOGO"))
+        normalized.CARGAR_IMAGENES_CATALOGO="ACTIVADO";
+      return validatePublicConfiguration(normalized)?normalized:null;
+    }
     function loadRemoteCatalogConfiguration(callbackPrefix){
       return new Promise((resolve,reject)=>{
         const endpoint=String(REMOTE_CONTROL_SOURCE.endpoint||"").trim();
@@ -580,11 +589,12 @@ function readCompactGoogleSheetProductRows(table,indices){
         };
         const timer=setTimeout(()=>finish(new Error("Tiempo de espera agotado en configuración pública.")),25000);
         window[cb]=data=>{
-          if(data?.ok!==true||!validatePublicConfiguration(data.valores)
+          const config=normalizePublicConfiguration(data?.valores);
+          if(data?.ok!==true||!config
             ||!data.publicadoEn||!Number.isFinite(Date.parse(data.publicadoEn))){
             finish(new Error("La configuración pública no pudo verificarse."));return;
           }
-          finish(null,{valores:data.valores,publicadoEn:data.publicadoEn});
+          finish(null,{valores:config,publicadoEn:data.publicadoEn});
         };
         node.onerror=()=>finish(new Error("No se pudo consultar el lector público de configuración."));
         const url=new URL(endpoint);
@@ -647,7 +657,8 @@ function readCompactGoogleSheetProductRows(table,indices){
       notice.textContent = message; notice.hidden = !message;
     }
     function acceptCatalogPublicConfiguration(values, options = {}){
-      if(!validatePublicConfiguration(values)) return false;
+      values=normalizePublicConfiguration(values);
+      if(!values) return false;
       const revision = String(options.revision || "");
       if(!Number.isFinite(Date.parse(revision))) return false;
       if(remoteConfigRevision && Date.parse(revision) < Date.parse(remoteConfigRevision)) return false;

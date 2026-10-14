@@ -19,3 +19,28 @@ test('no recupera configuración ausente desde hojas antiguas y valida JSONP',()
   assert.match(reader(current)({modo:'config',callback:'catalogo_1'}).text,/^catalogo_1\(/);
   assert.equal(JSON.parse(get({modo:'admin'}).text).ok,false);
 });
+
+test('lector público recibe las seis preferencias incluyendo imágenes desactivadas',()=>{
+  const currentV2={...current,configuracion:JSON.stringify([
+    'DESACTIVADO','ACTIVADO','ACTIVADO','DESACTIVADO',
+    'section,category,subcategory,public,line,product','price_asc'
+  ])};
+  const config=JSON.parse(reader(currentV2)({modo:'config'}).text);
+  assert.equal(config.ok,true);
+  assert.equal(config.valores.CARGAR_IMAGENES_CATALOGO,'DESACTIVADO');
+  assert.equal(config.valores.ORDEN_NAVEGACION,'section,category,subcategory,public,line,product');
+  assert.equal(config.valores.ORDEN_PRODUCTOS,'price_asc');
+});
+test('lector público sigue aceptando cinco preferencias durante migración',()=>{
+  const config=JSON.parse(reader(current)({modo:'config'}).text);
+  assert.equal(config.ok,true);
+  assert.equal(config.valores.CARGAR_IMAGENES_CATALOGO,'ACTIVADO');
+  assert.equal(config.valores.ORDEN_PRODUCTOS,'price_asc');
+});
+test('lector público rechaza un sexto control inválido sin exponer propiedades privadas',()=>{
+  const corrupted={...current,configuracion:JSON.stringify([
+    'DESACTIVADO','ACTIVADO','ACTIVADO','ERROR',
+    'section,category,subcategory,public,line,product','price_asc'
+  ])};
+  assert.equal(JSON.parse(reader(corrupted)({modo:'config'}).text).ok,false);
+});
