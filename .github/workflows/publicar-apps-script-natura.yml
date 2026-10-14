@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - "apps-script/administrar precios natura/**"
-      - "apps-script/lector publico natura/**"
       - "apps-script/pedidos natura/**"
       - "apps-script/lectura de carpetas en natura/**"
       - "apps-script/coordenadas de visitantes natura/**"
@@ -60,7 +59,6 @@ jobs:
         run: |
           cat > "$RUNNER_TEMP/projects.tsv" <<'EOF'
           administrar precios natura	apps-script/administrar precios natura	1-wBaemhULEFETfQHJDocPTOjbXnVds27DZfiIU9sMnCYf01qSycs1jc4	AKfycbwAUk8ysr-3k_T5iRxFpbp8KxmvPpYeGRNbL156lp9CsVjNFjQQgg5v7ySaxO7dcP_X
-          lector publico natura	apps-script/lector publico natura	1osm-0ZxL2p5UV041ufVSM2nQZezp2TonkC48wNWIG8EOPWAYMTSVY7DX	AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A
           pedidos natura	apps-script/pedidos natura	12M9b5tq5xV0tqMxoJgJgjPKaOE8Q9PQj5TfyzhFEBtNcJHOijKkByEwt	AKfycby85yLxa9PK8-cbwTk-FVlS3zKE0HqFs3rQf6D7pZPNzylaxDGPagOhfG0rZy_A0cxP
           lectura de carpetas en natura	apps-script/lectura de carpetas en natura	1wN8Cyp7JmJOtIY0etPKyo_3r5y48MYpMrT5PFQeVmoyztPwYO53sWfLf	AKfycbzuHYa9Uf_5v5-FhDXQFu6WRuW49DgxJLUHrm_tq1Vdk539VZjeQeGrlWWqgJj4SzMg2w
           coordenadas de visitantes natura	apps-script/coordenadas de visitantes natura	1T2y1xSKlZueX-SYDU9HxFi6K4ShLbiHRUGY21caNtSv9Gz-6h1aLd5ZN	AKfycbygXijUyDrpyeA8qmheyZpYw9HVWuN_JZPIeYNbqRKKNYhqFFUguEMZmof4yLTtGbVO
