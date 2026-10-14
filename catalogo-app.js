@@ -1825,6 +1825,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       return parts.filter(Boolean).join(" · ");
     }
    function makeAlbumPreview(sources, label){
+      if(!shouldShowProductImages()) return makeNoPhotoPlaceholder("album");
       const img = document.createElement("img");
       img.alt = label ? ("Vista previa " + label) : "Vista previa de la categoría";
       img.loading = "lazy";
