@@ -53,6 +53,8 @@ El proyecto `lectura de carpetas en natura` está dividido por responsabilidades
 
 El servicio sigue siendo de solo lectura sobre Google Drive: no mueve, elimina ni modifica archivos de productos.
 
+`modo=productos&limit=30&offset=0` permite entregar la información por lotes. La respuesta incluye `page.snapshot`, `nextOffset`, `total` y los códigos duplicados de la lectura completa. Los lotes siguientes usan ese mismo `snapshot`; así no se mezclan fichas o precios leídos en momentos diferentes ni se publican provisionalmente códigos duplicados. La caché de cinco minutos contiene solo información pública ya saneada. Sin parámetros, o si falla la caché inicial, se conserva la respuesta completa compatible. El catálogo muestra cada lote recibido antes de solicitar imágenes y mantiene bloqueadas las operaciones que requieren el catálogo completo hasta terminar los datos.
+
 ## Coordenadas de visitantes Natura
 
 El proyecto `coordenadas de visitantes natura` está dividido por responsabilidades sin cambiar sus funciones públicas:

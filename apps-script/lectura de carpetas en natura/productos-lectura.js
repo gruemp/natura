@@ -98,7 +98,7 @@ function responderProductosPublicos_(parameters){
   const callback=String(parameters.callback||'').trim();
   if(callback&&!/^[A-Za-z_$][A-Za-z0-9_$]{0,100}$/.test(callback))return ContentService.createTextOutput(JSON.stringify({ok:false,error:'Callback no válido.'})).setMimeType(ContentService.MimeType.JSON);
   let payload;
-  try{payload=leerProductosPublicos_();}catch(error){payload={ok:false,error:'No se pudo leer la selección comercial del maestro.',code:/permission|authoriz|permiso|autoriz/i.test(String(error&&error.message||''))?'authorization_required':'read_failed'};}
+  try{payload=parameters.limit!==undefined?leerProductosPublicosPorLotes_(parameters):leerProductosPublicos_();}catch(error){payload={ok:false,error:'No se pudo leer la selección comercial del maestro.',code:/permission|authoriz|permiso|autoriz/i.test(String(error&&error.message||''))?'authorization_required':'read_failed'};}
   const text=JSON.stringify(payload);
   return ContentService.createTextOutput(callback?callback+'('+text+');':text).setMimeType(callback?ContentService.MimeType.JAVASCRIPT:ContentService.MimeType.JSON);
 }
