@@ -1,7 +1,7 @@
 // Implementación inmutable, pública y de SOLO LECTURA del catálogo.
 // No contiene el panel administrativo ni métodos de actualización.
 // Lee únicamente propiedades públicas del administrador mediante biblioteca privada versionada.
-const CONFIG_PUBLIC_KEYS = ['REGISTRAR_VISITAS_PROPIAS','MOSTRAR_CANTIDAD_STOCK','MOSTRAR_PRECIOS_PRODUCTO','CARGAR_IMAGENES_CATALOGO','ORDEN_NAVEGACION','ORDEN_PRODUCTOS'];
+const CONFIG_PUBLIC_KEYS = ['REGISTRAR_VISITAS_PROPIAS','MOSTRAR_CANTIDAD_STOCK','MOSTRAR_PRECIOS_PRODUCTO','CARGAR_IMAGENES_CATALOGO','ORDEN_NAVEGACION','ORDEN_PRODUCTOS','ACTUALIZACION_CATALOGO_MINUTOS'];
 const VISIBILIDAD_TIPOS = ['producto','seccion','categoria','subcategoria','publico','linea','familia'];
 
 function doGet(evento) {
@@ -48,15 +48,17 @@ function leerVisibilidadPublica_() {
   return {ok:true,reglas:confirmarReglas_(obj.reglas),actualizadoEn:new Date().toISOString()};
 }
 function confirmarConfiguracion_(valores,revision) {
-  if(!Array.isArray(valores) || ![5,6].includes(valores.length) || !revision || !Number.isFinite(Date.parse(revision)))throw new Error('Configuración incompleta');
+  if(!Array.isArray(valores) || ![5,6,7].includes(valores.length) || !revision || !Number.isFinite(Date.parse(revision)))throw new Error('Configuración incompleta');
   // Una versión anterior del administrador publicaba cinco claves. Completar la
   // nueva preferencia en ACTIVADO conserva fotografías sin bloquear el catálogo.
   const actuales=valores.length===5
     ? [valores[0],valores[1],valores[2],'ACTIVADO',valores[3],valores[4]]
-    : valores;
+    : valores.slice();
+  if(actuales.length===6)actuales.push('30');
   for(let i=0;i<4;i++)if(!['ACTIVADO','DESACTIVADO'].includes(actuales[i]))throw new Error('Configuración de booleanos inválida');
   if(!validarOrdenPublico_(actuales[4]))throw new Error('Orden de navegación inválido');
   if(!['price_asc','price_desc','name_asc','name_desc'].includes(actuales[5]))throw new Error('Orden de productos inválido');
+  if(!/^[1-9]\d{0,4}$/.test(actuales[6])||Number(actuales[6])>10080)throw new Error('Intervalo de actualización inválido');
   const result={};CONFIG_PUBLIC_KEYS.forEach((key,i)=>{result[key]=actuales[i]});return result;
 }
 function validarOrdenPublico_(orden) {

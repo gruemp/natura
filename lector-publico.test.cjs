@@ -44,3 +44,15 @@ test('lector público rechaza un sexto control inválido sin exponer propiedades
   ])};
   assert.equal(JSON.parse(reader(corrupted)({modo:'config'}).text).ok,false);
 });
+test('lector publica el intervalo configurable y usa 30 minutos para las configuraciones anteriores',()=>{
+  assert.equal(JSON.parse(reader(current)({modo:'config'}).text).valores.ACTUALIZACION_CATALOGO_MINUTOS,'30');
+  for(const minutes of ['1','30','90','10080']){
+    const values=['DESACTIVADO','ACTIVADO','ACTIVADO','ACTIVADO','section,category,subcategory,public,line,product','price_asc',minutes];
+    const result=JSON.parse(reader({...current,configuracion:JSON.stringify(values)})({modo:'config'}).text);
+    assert.equal(result.ok,true);assert.equal(result.valores.ACTUALIZACION_CATALOGO_MINUTOS,minutes);
+  }
+  for(const minutes of ['0','-1','1.5','10081','no',null]){
+    const values=['DESACTIVADO','ACTIVADO','ACTIVADO','ACTIVADO','section,category,subcategory,public,line,product','price_asc',minutes];
+    assert.equal(JSON.parse(reader({...current,configuracion:JSON.stringify(values)})({modo:'config'}).text).ok,false);
+  }
+});
