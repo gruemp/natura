@@ -765,7 +765,9 @@ function readCompactGoogleSheetProductRows(table,indices){
         ok:true,
         generatedAt:String(payload.generatedAt || ""),
         products,
-        gifts
+        gifts,
+        ads:payload.ads,
+        source:payload.source
       };
     }
 
@@ -886,45 +888,21 @@ function readCompactGoogleSheetProductRows(table,indices){
       return numberedEntries.length ? [...numberedEntries, ...legacyEntries] : legacyEntries;
     }
 
-    async function loadGoogleSheetCatalog(options = {}){
-      const refreshImages = options.refreshImages !== false;
-      const progressEnabled = options.progressEnabled === true;
+    async function loadGoogleSheetCatalog(){
       let rows = [];
       try{
         rows = await loadGoogleSheetRows();
-        if(progressEnabled) setCatalogLoadingStage(shouldShowProductImages()?"Cargando imágenes…":"Preparando datos del inventario…", 31, 94);
       }catch(error){
         const sheetError = error instanceof Error ? error : new Error(String(error || "No se pudo leer el Google Sheet."));
         sheetError.catalogStage = "sheet";
         throw sheetError;
       }
 
-      let imagePayload = null;
-      try{
-        imagePayload = shouldShowProductImages() ? (refreshImages ? await loadAppsScriptImageIndex() : readAppsScriptImageIndexCache()) : null;
-        if(!shouldShowProductImages()) imagePayload = null;
-      }catch(error){
-        console.warn("Los productos se cargaron desde el Google Sheet, pero no se pudo leer el índice de imágenes de Apps Script. Se usarán imágenes suplentes.", error);
-        imagePayload = null;
-      }
-
+      // La información comercial completa queda disponible antes de consultar imágenes.
       const imagesByCode = new Map();
-      const productsIndex = imagePayload && imagePayload.products && typeof imagePayload.products === "object"
-        ? imagePayload.products
-        : {};
-      for(const row of rows){
-        const code = String(row && row.code || "").trim();
-        const entries = Array.isArray(productsIndex[code]) ? productsIndex[code] : [];
-        if(entries.length) imagesByCode.set(code, orderProductImageEntries(entries));
-      }
-
-      const giftImageUrls = Array.isArray(imagePayload?.gifts)
-        ? imagePayload.gifts.map(entry => String(entry && entry.url || "").trim()).filter(Boolean)
-        : [];
-
       return {
         sheetEntries: rows.map(row => ({ row, imageIndex:imagesByCode })),
-        giftImageUrls
+        giftImageUrls:[]
       };
     }
 
@@ -1156,7 +1134,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       img.loading = "lazy";
       img.decoding = "async";
       img.crossOrigin = "anonymous";
-      img.src = preferredUrl;
+      bindCatalogImage(img, [preferredUrl]);
       img.onerror = ()=>{
         img.onerror = null;
         img.replaceWith(makeNoPhotoPlaceholder());
@@ -1177,7 +1155,8 @@ function readCompactGoogleSheetProductRows(table,indices){
       img.alt = name ? ("Foto " + name) : "Foto del producto";
       img.loading = "lazy";
       img.decoding = "async";
-      img.src = preferredUrl;
+      img.crossOrigin = "anonymous";
+      bindCatalogImage(img, [preferredUrl]);
       img.onerror = ()=>{
         img.onerror = null;
         img.replaceWith(makeNoPhotoPlaceholder("cart"));
@@ -1862,18 +1841,10 @@ function readCompactGoogleSheetProductRows(table,indices){
       const candidates = [...new Set((Array.isArray(sources) ? sources : [sources])
         .map(source => String(source || "").trim())
         .filter(source => /^https:\/\//i.test(source)))];
-      let index = 0;
-      img.onerror = ()=>{
-        index++;
-        if(index < candidates.length){
-          img.src = candidates[index];
-        }else{
-          img.onerror = null;
-          img.replaceWith(makeNoPhotoPlaceholder("album"));
-        }
-      };
-      if(candidates.length) img.src = candidates[0];
-      else img.addEventListener("load",()=>{}, {once:true});
+      if(!candidates.length) return makeNoPhotoPlaceholder("album");
+      img.crossOrigin = "anonymous";
+      img.onerror = ()=>img.replaceWith(makeNoPhotoPlaceholder("album"));
+      bindCatalogImage(img, candidates);
       return img;
     }
 
@@ -1923,7 +1894,6 @@ function readCompactGoogleSheetProductRows(table,indices){
           `${album.label}: ${matchCount} ${matchWord}${matchCount > 0 ? ". Abrir resultados" : ""}`
         );
         btn.title = `${album.label} · ${matchCount} ${matchWord}`;
-        if(badge) badge.textContent = `${matchCount} ${matchWord}`;
         if(meta){
           const giftGalleryMatches = matchingProducts.length > 0 &&
             matchingProducts.every(product => product && product.isGiftGalleryImage);
@@ -1936,13 +1906,14 @@ function readCompactGoogleSheetProductRows(table,indices){
       }else{
         btn.setAttribute("aria-label", isSection ? `Abrir ${album.label}` : `Abrir ${NAV_LEVELS[album.navType]?.label || "nivel"} ${album.label}`);
         btn.title = `${album.label} · ${album.count} ${unitLabel}`;
-        if(badge) badge.textContent = `${album.count} ${unitLabel}`;
         if(meta){
           meta.textContent = isSection
             ? (album.subtitle || "")
             : "";
         }
       }
+
+      setCatalogLoadingCount(badge, searchActive ? matchingProducts : album.products);
 
       if(preview) preview.hidden = true;
       if(icon){
@@ -2927,10 +2898,11 @@ function readCompactGoogleSheetProductRows(table,indices){
 
       const qHas = hasActiveDiscoveryFilters();
       const viewMode=navigationViewMode();
+      if(catalogDirectProductViewActive()) return;
 
       if(viewMode.mode==="empty"){
         if(grid){grid.classList.remove("album-three-column-layout");grid.innerHTML="";grid.appendChild(makeEmptyState("No hay niveles de navegación activos."));}
-        if(countEl){countEl.textContent="0 niveles activos";countEl.classList.remove("search-active");}
+        if(countEl){setCatalogLoadingCount(countEl,[]);countEl.classList.remove("search-active");}
         scheduleJsonLdUpdate([]);
         return;
       }
@@ -2944,20 +2916,7 @@ function readCompactGoogleSheetProductRows(table,indices){
           grid.classList.toggle("album-three-column-layout", visibleAlbumCount >= 5);
         }
         if(countEl){
-          const totalProducts = filteredAlbums.reduce((sum,album)=>sum + (Number(album.count) || 0), 0);
-          const activeCards = filteredAlbums.filter(album => (Number(album.count) || 0) > 0).length;
-          const navTypes=[...new Set(filteredAlbums.map(album=>album.navType).filter(Boolean))];
-          const groupType=navTypes[0]||viewMode.level||"section";
-          const mixedTypes=navTypes.length>1;
-          if(qHas){
-            const productWord = totalProducts === 1 ? "producto encontrado" : "productos encontrados";
-            const groupWord=mixedTypes?"grupos de navegación":(activeCards===1?navigationLevelLabel(groupType,false).toLowerCase():navigationLevelLabel(groupType,true).toLowerCase());
-            countEl.textContent = `${totalProducts} ${productWord} en ${activeCards} ${groupWord}`;
-          }else{
-            const productWord = totalProducts === 1 ? "producto" : "productos";
-            const groupWord=mixedTypes?"grupos de navegación":(filteredAlbums.length===1?navigationLevelLabel(groupType,false).toLowerCase():navigationLevelLabel(groupType,true).toLowerCase());
-            countEl.textContent = `${totalProducts} ${productWord} · ${filteredAlbums.length} ${groupWord}`;
-          }
+          setCatalogLoadingCount(countEl, filteredAlbums.flatMap(album=>qHas ? album.matchingProducts || [] : album.products));
           countEl.classList.toggle("search-active", qHas);
         }
 
@@ -2977,6 +2936,7 @@ function readCompactGoogleSheetProductRows(table,indices){
 
         grid.innerHTML = "";
         grid.appendChild(frag);
+        prioritizeCatalogImages();
         return;
       }
 
@@ -2984,7 +2944,7 @@ function readCompactGoogleSheetProductRows(table,indices){
 
       if(viewMode.mode==="terminal"){
         if(grid){grid.innerHTML="";grid.appendChild(makeEmptyState("No hay un nivel posterior configurado para esta vista."));}
-        if(countEl){countEl.textContent="";countEl.classList.remove("search-active");}
+        if(countEl){setCatalogLoadingCount(countEl,[]);countEl.classList.remove("search-active");}
         scheduleJsonLdUpdate([]);
         return;
       }
@@ -2992,7 +2952,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       const filtered = buildFilteredList();
 
       if(countEl){
-        countEl.textContent = `${filtered.length} ${filtered.length === 1 ? "producto" : "productos"}`;
+        setCatalogLoadingCount(countEl, filtered);
         countEl.classList.toggle("search-active", qHas);
       }
 
@@ -3017,65 +2977,205 @@ function readCompactGoogleSheetProductRows(table,indices){
         const p = productById.get(String(id));
         if(p) refreshCardUI(el, p);
       }
+      prioritizeCatalogImages(filtered);
     }
 
-    let catalogLoadingProgress = 0;
-    let catalogLoadingCeiling = 0;
-    let catalogLoadingLabel = "Cargando productos…";
-    let catalogLoadingTimer = 0;
+    let catalogLoadPhase = "data";
+    let catalogDataGeneration = 0;
+    let catalogImageGeneration = 0;
+    let catalogImageHydration = null;
+    const catalogImageRequests = new Map();
+    const CATALOG_IMAGE_CONCURRENCY = 4;
+    let catalogImagesActive = 0;
+    let catalogImagePumpQueued = false;
     window.CATALOG_INITIAL_LOAD_READY = false;
 
-    function renderCatalogLoadingProgress(){
-      if(!countEl) return;
-      const pct = Math.max(0, Math.min(99, Math.round(catalogLoadingProgress)));
-      countEl.textContent = `${catalogLoadingLabel} ${pct}%`;
+    function catalogLoadedProductCount(products){
+      const unique = new Map((products || []).map(product=>[String(product.id),product]));
+      if(catalogLoadPhase !== "images" || !shouldShowProductImages()) return unique.size;
+      return [...unique.values()].filter(product=>
+        (product.imageUrls?.length ? product.imageUrls : [product.docsImageUrl]).some(url=>catalogImageRequests.get(url)?.status === "loaded")
+      ).length;
     }
 
-    function stopCatalogLoadingProgress(){
-      if(catalogLoadingTimer){
-        window.clearInterval(catalogLoadingTimer);
-        catalogLoadingTimer = 0;
+    function setCatalogLoadingCount(node, products){
+      if(!node) return;
+      node.catalogProducts = products || [];
+      const count = catalogLoadedProductCount(node.catalogProducts);
+      const text = String(count);
+      if(node.textContent !== text) node.textContent = text;
+      const phase = catalogLoadPhase === "images" && shouldShowProductImages() ? "con imagen cargada" : "con información cargada";
+      node.setAttribute("aria-label", `${count} ${count === 1 ? "producto" : "productos"} ${phase}`);
+    }
+
+    function updateCatalogImageCounters(){
+      if(countEl?.catalogProducts) setCatalogLoadingCount(countEl, countEl.catalogProducts);
+      for(const badge of grid?.querySelectorAll(".album-count-badge,.catalog-load-count") || []){
+        setCatalogLoadingCount(badge, badge.catalogProducts);
       }
     }
 
-    function ensureCatalogLoadingTimer(){
-      if(catalogLoadingTimer) return;
-      catalogLoadingTimer = window.setInterval(()=>{
-        if(catalogLoadingProgress >= catalogLoadingCeiling) return;
-        const gap = catalogLoadingCeiling - catalogLoadingProgress;
-        if(gap <= 0) return;
-        catalogLoadingProgress = Math.min(catalogLoadingCeiling, catalogLoadingProgress + 1);
-        renderCatalogLoadingProgress();
-      }, 450);
+    function scheduleCatalogImagePump(){
+      if(catalogImagePumpQueued) return;
+      catalogImagePumpQueued = true;
+      Promise.resolve().then(()=>{
+        catalogImagePumpQueued = false;
+        pumpCatalogImages();
+      });
     }
 
-    function setCatalogLoadingStage(label, floor, ceiling){
-      catalogLoadingLabel = String(label || catalogLoadingLabel || "Cargando productos…");
-      const safeFloor = Math.max(0, Math.min(99, Number(floor) || 0));
-      const safeCeiling = Math.max(safeFloor, Math.min(99, Number(ceiling) || safeFloor));
-      catalogLoadingProgress = Math.max(catalogLoadingProgress, safeFloor);
-      catalogLoadingCeiling = safeCeiling;
-      renderCatalogLoadingProgress();
-      ensureCatalogLoadingTimer();
+    function loadCatalogImage(url, priority = 0, background = false){
+      if(!url || !shouldShowProductImages()) return Promise.resolve(false);
+      const previous = catalogImageRequests.get(url);
+      if(previous){
+        previous.background ||= background;
+        previous.priority = Math.min(previous.priority, priority);
+        scheduleCatalogImagePump();
+        return previous.promise;
+      }
+      const request = {url, priority, background, status:"queued"};
+      request.promise = new Promise(resolve=>{request.resolve = resolve;});
+      catalogImageRequests.set(url, request);
+      scheduleCatalogImagePump();
+      return request.promise;
     }
 
-    function startCatalogLoadingProgress(){
-      stopCatalogLoadingProgress();
-      catalogLoadingProgress = 1;
-      catalogLoadingCeiling = 30;
-      catalogLoadingLabel = "Cargando productos…";
-      renderCatalogLoadingProgress();
-      ensureCatalogLoadingTimer();
+    function pumpCatalogImages(){
+      if(window.CATALOG_INITIAL_LOAD_READY !== true || catalogLoadPhase !== "images" || !shouldShowProductImages()) return;
+      const pending = [...catalogImageRequests.values()].filter(request=>request.status === "queued" || request.status === "loading");
+      const priority = Math.min(...pending.map(request=>request.priority));
+      for(const request of pending){
+        // Esperar a que termine todo el nivel anterior, incluidas las solicitudes en curso.
+        if(catalogImagesActive >= CATALOG_IMAGE_CONCURRENCY) break;
+        if(request.status !== "queued" || request.priority !== priority || !Number.isFinite(priority)) continue;
+        request.status = "loading";
+        catalogImagesActive++;
+        const image = new Image();
+        image.crossOrigin = "anonymous";
+        image.decoding = "async";
+        let finished = false;
+        const finish = loaded=>{
+          if(finished) return;
+          finished = true;
+          window.clearTimeout(timer);
+          image.onload = image.onerror = null;
+          request.status = loaded ? "loaded" : "failed";
+          catalogImagesActive--;
+          request.resolve(loaded);
+          updateCatalogImageCounters();
+          scheduleCatalogImagePump();
+        };
+        const timer = window.setTimeout(()=>finish(false), 20000);
+        image.onload = ()=>finish(true);
+        image.onerror = ()=>finish(false);
+        image.src = request.url;
+      }
     }
 
-    function updateCountTextReady(){
-      stopCatalogLoadingProgress();
-      catalogLoadingProgress = 100;
-      if(countEl) countEl.textContent = "Listo · 100%";
+    async function bindCatalogImage(image, sources){
+      const generation = catalogDataGeneration;
+      for(const source of sources){
+        const loaded = await loadCatalogImage(source);
+        if(image.isConnected === false || generation !== catalogDataGeneration) return;
+        if(loaded){
+          if(shouldShowProductImages()) image.src = source;
+          return;
+        }
+      }
+      image.onerror?.();
+    }
+
+    function catalogDirectProductViewActive(){
+      return window.isCatalogShowAllProductsDirectEnabled?.() === true ||
+        (window.isCatalogQuickImageSearchEnabled?.() === true && !!String(qInp?.value || "").trim());
+    }
+
+    function prioritizeCatalogImages(products = buildFilteredList(), options = {}){
+      if(catalogLoadPhase !== "images" || !shouldShowProductImages()) return;
+      for(const request of catalogImageRequests.values()){
+        if(request.status === "queued" && !request.background) request.priority = Infinity;
+      }
+      const add = (product, priority, allImages=false)=>{
+        const urls = allImages && product.imageUrls?.length ? product.imageUrls : [product.docsImageUrl];
+        for(const url of urls) if(url) loadCatalogImage(url, priority);
+      };
+      if(options.direct || catalogDirectProductViewActive()){
+        for(const product of products) add(product, 0);
+        for(const product of products) add(product, 1, true);
+      }else{
+        const start = navigationLastSelectedIndex() + 1;
+        const pending = [{products, index:start}];
+        for(let next=0; next<pending.length; next++){
+          const branch = pending[next];
+          const view = navigationViewModeForProducts(branch.products, branch.index);
+          if(view.mode === "products"){
+            for(const product of branch.products) add(product, view.index - start, true);
+          }else if(view.mode === "albums"){
+            for(const album of buildAlbumsFromOrder(branch.products, view.index)){
+              const representative = orderedAlbumPreviewProducts(album)[0];
+              if(representative) add(representative, album.navDepth - 1 - start);
+              pending.push({products:album.products, index:album.navDepth});
+            }
+          }
+        }
+      }
+      for(const [url, request] of catalogImageRequests){
+        if(request.status !== "queued" || Number.isFinite(request.priority)) continue;
+        catalogImageRequests.delete(url);
+        request.resolve(false);
+      }
+      scheduleCatalogImagePump();
+    }
+
+    function suspendCatalogImages(){
+      for(const [url, request] of catalogImageRequests){
+        if(request.status !== "queued") continue;
+        catalogImageRequests.delete(url);
+        request.resolve(false);
+      }
+    }
+
+    async function hydrateCatalogImages(options = {}){
+      const generation = catalogDataGeneration;
+      const imageGeneration = ++catalogImageGeneration;
+      if(!shouldShowProductImages()) return false;
+      try{
+        // Dejar que se pinte la información antes de consultar incluso el índice de imágenes.
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        if(generation !== catalogDataGeneration || imageGeneration !== catalogImageGeneration || !shouldShowProductImages()) return false;
+        const payload = options.refreshImages === false ? readAppsScriptImageIndexCache() : await loadAppsScriptImageIndex();
+        if(generation !== catalogDataGeneration || imageGeneration !== catalogImageGeneration || !shouldShowProductImages()) return false;
+        for(const product of allLoadedProducts){
+          if(product.isGiftGalleryImage) continue;
+          const entries = orderProductImageEntries(payload?.products?.[product.id] || []);
+          product.imageUrls = entries.map(entry=>entry.url).filter(Boolean);
+          product.docsImageUrl = product.imageUrls[0] || "";
+          product.hasImage = !!product.docsImageUrl;
+          product.srcFilename = product.imgFilename = entries[0]?.name || entries[0]?.path || `${product.id}.webp`;
+          product.fileExt = extensionOfFilename(product.imgFilename) || "webp";
+        }
+        const gifts = makeGiftGalleryProducts((payload?.gifts || []).map(entry=>entry.url));
+        allLoadedProducts = allLoadedProducts.filter(product=>!product.isGiftGalleryImage).concat(gifts);
+        catalogLoadPhase = "images";
+        rebuildCatalogVisibility();
+        prioritizeCatalogImages(catalogDirectProductViewActive() ? buildFilteredList().filter(product=>!product.isGiftGalleryImage) : buildFilteredList());
+        window.dispatchEvent(new CustomEvent("catalog-images-ready"));
+        return true;
+      }catch(error){
+        console.warn("El catálogo está disponible; no se pudieron preparar sus imágenes.", error);
+        return false;
+      }
+    }
+
+    function startCatalogImageHydration(options){
+      const pending = hydrateCatalogImages(options);
+      catalogImageHydration = pending;
+      pending.finally(()=>{if(catalogImageHydration === pending) catalogImageHydration = null;});
+      return pending;
     }
 
     function updateCountTextError(msg){
-      stopCatalogLoadingProgress();
+      if(countEl) countEl.catalogProducts = null;
       if(countEl) countEl.textContent = msg || "Error al cargar productos.";
     }
     function rebuildCatalogVisibility(){
@@ -3093,36 +3193,32 @@ function readCompactGoogleSheetProductRows(table,indices){
     async function loadProducts(options = {}){
       const silent = options.silent === true;
       const refreshImages = options.refreshImages !== false;
+      const generation = ++catalogDataGeneration;
+      ++catalogImageGeneration;
+      catalogLoadPhase = "data";
+      suspendCatalogImages();
       if(!silent){
         window.CATALOG_INITIAL_LOAD_READY = false;
-        startCatalogLoadingProgress();
+        setCatalogLoadingCount(countEl, []);
       }
 
       let catalogSource;
       try{
-        catalogSource = await loadGoogleSheetCatalog({ refreshImages, progressEnabled:!silent });
+        catalogSource = await loadGoogleSheetCatalog();
       }catch(err){
+        if(generation !== catalogDataGeneration) return false;
         console.error("Error al cargar el Google Sheet oficial.", err);
         if(!silent) updateCountTextError("No se pudieron cargar los productos desde el Google Sheet oficial. Reintenta más tarde.");
         return false;
       }
-
-      if(!silent) setCatalogLoadingStage("Preparando catálogo…", 95, 99);
+      if(generation !== catalogDataGeneration) return false;
 
       const assessment = buildCompatibleGoogleSheetProducts(catalogSource?.sheetEntries);
       const sheetProducts = assessment.products;
       window.CATALOG_COMPATIBILITY_REPORT = assessment.report;
       window.dispatchEvent(new CustomEvent("irenismb:compatibilidad-actualizada", {detail:assessment.report}));
 
-      let giftProducts = [];
-      try{
-        giftProducts = makeGiftGalleryProducts(catalogSource?.giftImageUrls);
-      }catch(err){
-        console.warn("No se pudo preparar la galería de regalos. El inventario continuará disponible.", err);
-        giftProducts = [];
-      }
-
-      allLoadedProducts = [...sheetProducts, ...giftProducts];
+      allLoadedProducts = sheetProducts;
 
       all = filterVisibleProducts(allLoadedProducts);
 
@@ -3150,14 +3246,13 @@ function readCompactGoogleSheetProductRows(table,indices){
 
       try{
         if(!silent){
-          updateCountTextReady();
-          await new Promise(resolve=>window.setTimeout(resolve, 220));
           window.CATALOG_INITIAL_LOAD_READY = true;
         }
         render();
         if(!silent){
           window.dispatchEvent(new CustomEvent("catalog-initial-load-ready"));
         }
+        if(shouldShowProductImages()) startCatalogImageHydration({refreshImages});
       }catch(err){
         console.error("Los productos se cargaron, pero ocurrió un error al renderizar el catálogo.", err);
         if(!silent) updateCountTextError("Los productos se cargaron, pero ocurrió un error al mostrar el catálogo. Revisa la consola para el detalle.");
@@ -3167,9 +3262,15 @@ function readCompactGoogleSheetProductRows(table,indices){
 
     window.addEventListener("natura:image-visibility-changed", event=>{
       if(event.detail?.enabled===true && window.CATALOG_INITIAL_LOAD_READY===true && allLoadedProducts.length){
-        loadProducts({silent:true,refreshImages:true}).catch(error=>console.warn("No se pudieron recargar las imágenes.",error));
+        startCatalogImageHydration({refreshImages:true});
       }
-      if(event.detail?.enabled!==true && imgModal?.classList.contains("open")) closeImgModal();
+      if(event.detail?.enabled!==true){
+        ++catalogImageGeneration;
+        catalogLoadPhase = "data";
+        suspendCatalogImages();
+        updateCatalogImageCounters();
+        if(imgModal?.classList.contains("open")) closeImgModal();
+      }
     });
 
     function initCartButton(){
@@ -3550,6 +3651,10 @@ function makeCard(p){
     renderCatalogFicha(card,p);
     addBarcodeBindingControl(card,p);
   }
+  const loadCount=document.createElement("span");
+  loadCount.className="catalog-load-count";
+  setCatalogLoadingCount(loadCount,[p]);
+  imgBox.appendChild(loadCount);
   refreshCardUI(card,p);
   return card;
 }

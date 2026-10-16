@@ -233,7 +233,7 @@
 
 
 
-  <link rel="stylesheet" href="catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1" />
+  <link rel="stylesheet" href="catalogo.css?actualizacion=contadores-carga-2026-10-15-v2" />
 
 
 
@@ -641,7 +641,7 @@
         <button class="btn-ghost word-clear" id="clearTermsBtn" type="button" hidden>Limpiar todo</button>
       </div>
     <div class="topline" id="topline">
-      <div class="count" id="count" aria-live="polite" hidden>Cargando productos…</div>
+      <div class="count" id="count" aria-live="polite" hidden>0</div>
     </div>
     <p id="bulkAddStatus" role="status" aria-live="polite"></p>
     <div id="albumNavHost">
@@ -1751,11 +1751,11 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo"></script>
- <script src="catalogo-app.js?actualizacion=imagenes-por-vista-v1"></script>
+ <script src="catalogo-app.js?actualizacion=datos-antes-imagenes-v2"></script>
   <script src="catalogo-carrito-pedido.js?actualizacion=administracion-movimientos-2026-10-14-2"></script>
   <script src="catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1"></script>
   <script src="analytics-visitas.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
-  <script src="catalogo-ui.js?actualizacion=pestanas-tres-palabras-2026-10-12-1"></script>
+  <script src="catalogo-ui.js?actualizacion=contadores-reales-v2"></script>
   <script src="precios-admin.js?actualizacion=libros-administrativos-v1"></script>
   <script src="prospectos-admin.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script>
@@ -1820,6 +1820,7 @@
       let displayedUrl = "";
       // El control compartido se resuelve antes de solicitar o mostrar anuncios.
       const imagesAllowed = () => window.CATALOG_PUBLIC_CONFIG_CONFIRMED === true
+        && window.CATALOG_INITIAL_LOAD_READY === true && catalogLoadPhase === "images"
         && typeof shouldShowProductImages === "function" && shouldShowProductImages();
       function render(file) {
         if (!imagesAllowed()) file = null;
@@ -1830,18 +1831,15 @@
           return;
         }
         if (displayedId === file.id && displayedUrl === file.url && !card.hidden) return;
-        const next = new Image();
-        next.onload = () => {
-          if (!imagesAllowed()) return;
+        loadCatalogImage(file.url, ALL_NAVIGATION_LEVELS.length + 1, true).then(loaded => {
+          if (!loaded || !imagesAllowed()) return;
           photo.src = file.url;
           photo.alt = "Anuncio de Natura: " + String(file.name || "promoción");
           photoLink.href = file.url;
           displayedId = file.id;
           displayedUrl = file.url;
           card.hidden = false;
-        };
-        next.onerror = () => { if (card.hidden) photo.removeAttribute("src"); };
-        next.src = file.url;
+        });
       }
       const readSaved = () => {
         try { return JSON.parse(localStorage.getItem(cacheKey) || "null"); }
@@ -1890,14 +1888,8 @@
         if (!imagesAllowed()) { render(null); return; }
         if (pending || document.visibilityState === "hidden") return;
         pending = true;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 25000);
         try {
-          const endpoint = new URL(APPS_SCRIPT_IMAGE_SOURCE.endpoint);
-          endpoint.searchParams.set("_", String(Date.now()));
-          const response = await fetch(endpoint.toString(), {cache:"no-store", signal:controller.signal});
-          if (!response.ok) throw new Error("El índice de anuncios no respondió correctamente.");
-          const payload = await response.json();
+          const payload = await loadAppsScriptImageIndex();
           if (!payload || payload.ok !== true ||
               payload.source?.adsFolderId !== "1QitBAhBjw_tik-qacrAmmx7cKMRJhIoM") {
             throw new Error("Respuesta del índice de anuncios no válida.");
@@ -1910,7 +1902,6 @@
           if (card.hidden) render(readSaved());
           console.warn("No se pudo actualizar el anuncio de Google Drive.", error);
         } finally {
-          clearTimeout(timeout);
           pending = false;
         }
       }
@@ -1918,6 +1909,9 @@
       window.REMOTE_CONFIG_READY?.then(() => {
         if (imagesAllowed()) { render(readSaved()); refreshAds(); }
         else render(null);
+      });
+      window.addEventListener("catalog-images-ready", () => {
+        if (imagesAllowed()) { render(readSaved()); refreshAds(); }
       });
       window.addEventListener("natura:image-visibility-changed", () => {
         if (imagesAllowed()) { render(readSaved()); refreshAds(); }

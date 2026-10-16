@@ -184,7 +184,7 @@ test('La vista directa conserva la explicación y retirada de filtros sin result
   assert.match(empty.children[1].textContent,/selecciones siguen activas/);
   assert.equal(empty.children[2].children[0].dataset.clearSearch,'all');
   assert.equal(env.run('selectedFacetFilters.length'),1);
-  assert.equal(env.document.getElementById('count').textContent,'0 productos');
+  assert.equal(env.document.getElementById('count').textContent,'0');
 });
 
 function environment(){
@@ -201,8 +201,10 @@ function environment(){
     removeChild(node){node.remove();return node;}
     replaceChildren(...nodes){this.children=[];this.append(...nodes);}
     remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
+    replaceWith(node){if(this.parentNode){const parent=this.parentNode,index=parent.children.indexOf(this);parent.children[index]=node;node.parentNode=parent;this.parentNode=null;}}
     setAttribute(name,value){this.attributes[name]=value;}
     getAttribute(name){return this.attributes[name]??null;}
+    removeAttribute(name){delete this.attributes[name];}
     addEventListener(name,fn){this.listeners.set(name,fn);}
     getBoundingClientRect(){return {top:0,width:350,height:350};}
     querySelector(){return null;}
@@ -240,6 +242,146 @@ function environment(){
 function assess(env,table){env.sandbox.inputTable=table;return env.run('buildCompatibleGoogleSheetProducts(readGoogleSheetProductRows(inputTable).map(row=>({row,imageIndex:new Map()})))');}
 async function confirmed(env,table=visibility){env.reply(table);await env.sandbox.CATALOG_PUBLIC_VISIBILITY_READY;}
 function fixture(){return tableFromValues([headers,...samples]);}
+
+function controlledCatalogImages(){
+  const env=environment(),images=[];
+  env.sandbox.Image=class {set src(url){this.url=url;images.push(this);}};
+  env.run('window.CATALOG_INITIAL_LOAD_READY=true;catalogLoadPhase="images"');
+  const products=[
+    ['9901','A','A1','X'],['9902','A','A1','Y'],['9903','A','A2','X'],
+    ['9904','B','B1','Y'],['9905','B','B1','Y']
+  ].map(([id,section,category,audience])=>({id,name:id,section,category,public:audience,price:Number(id),hasPrice:true,
+    hasImage:true,docsImageUrl:`https://ejemplo.invalid/${id}.png`,imageUrls:[`https://ejemplo.invalid/${id}.png`]}));
+  env.sandbox.products=products;
+  env.run('allLoadedProducts=products;all=products;setCatalogNavigationOrder("section,category,public,product")');
+  return {...env,images,products,urls:()=>images.map(image=>image.url)};
+}
+const imageTick=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('La información del catálogo se obtiene sin consultar ni siquiera el índice de imágenes',async()=>{
+  const env=environment();env.sandbox.rows=clone(samples);
+  env.run('loadGoogleSheetRows=async()=>rows;loadAppsScriptImageIndex=()=>{throw new Error("No debe consultarse todavía")}');
+  const result=await env.run('loadGoogleSheetCatalog()');
+  assert.equal(result.sheetEntries.length,samples.length);
+  assert.equal(result.sheetEntries[0].imageIndex.size,0);
+});
+
+test('loadProducts muestra los datos y termina antes de recibir el índice de imágenes',async()=>{
+  const env=environment();await confirmed(env);
+  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;
+    const snapshots=[];let releaseImages;let indexCalls=0;
+    loadAppsScriptImageIndex=()=>{indexCalls++;return new Promise(resolve=>releaseImages=resolve)};
+    render=()=>{setCatalogLoadingCount(countEl,all);snapshots.push({phase:catalogLoadPhase,count:countEl.textContent})};`);
+  const pending=env.run('loadProducts()');await replyProductTable(env,fixture());
+  assert.equal(await pending,true);await imageTick();
+  assert.equal(env.sandbox.CATALOG_INITIAL_LOAD_READY,true);
+  assert.deepEqual(clone(env.run('snapshots')),[{phase:'data',count:'2'}]);
+  assert.equal(env.run('indexCalls'),1);
+  env.run('releaseImages({ok:true,products:{"9997":[{name:"9997.png",path:"9997.png",url:"https://ejemplo.invalid/9997.png"}]},gifts:[]})');
+  await env.run('catalogImageHydration');
+  assert.equal(env.run('snapshots.at(-1).phase'),'images');
+  assert.equal(env.run('all.find(p=>p.id==="9997").price'),194974.5);
+});
+
+test('Las imágenes recorren los niveles por anchura y esperan las descargas del nivel anterior',async()=>{
+  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
+  assert.deepEqual(env.urls(),[env.products[0].docsImageUrl,env.products[3].docsImageUrl]);
+  env.images[0].onload();await imageTick();assert.equal(env.images.length,2);
+  env.images[1].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[2].docsImageUrl);
+  env.images[2].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[1].docsImageUrl);
+  env.images[3].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[4].docsImageUrl);
+  env.images[4].onload();await imageTick();assert.equal(env.images.length,5);
+});
+
+test('La cola respeta niveles reordenados y no precarga Producto cuando está desactivado',async()=>{
+  const env=controlledCatalogImages();
+  env.run('setCatalogNavigationOrder("category,section,!subcategory,!public,!line,!product");prioritizeCatalogImages(products)');
+  await imageTick();assert.deepEqual(env.urls(),[env.products[0].docsImageUrl,env.products[2].docsImageUrl,env.products[3].docsImageUrl]);
+  for(const image of env.images)image.onload();await imageTick();
+  assert.equal(env.images.length,3);
+  env.run('setCatalogNavigationOrder("!section,!category,!subcategory,!public,!line,!product");prioritizeCatalogImages(products)');
+  await imageTick();assert.equal(env.images.length,3);
+});
+
+test('La vista directa limita concurrencia, deduplica imágenes y prioriza las portadas antes de otras fotos',async()=>{
+  const env=controlledCatalogImages();
+  env.run('products[0].imageUrls.push("https://ejemplo.invalid/secundaria.png");prioritizeCatalogImages(products,{direct:true})');
+  await imageTick();assert.equal(env.images.length,4);
+  env.images[0].onload();await imageTick();assert.equal(env.images.length,5);
+  assert.equal(env.images[4].url,env.products[4].docsImageUrl);
+  for(const image of env.images.slice(1))image.onload();await imageTick();
+  assert.equal(env.images[5].url,'https://ejemplo.invalid/secundaria.png');
+  env.images[5].onload();await imageTick();
+  env.run('prioritizeCatalogImages(products,{direct:true})');await imageTick();assert.equal(env.images.length,6);
+});
+
+test('Los contadores por tarjeta usan éxitos reales, no cuentan errores ni duplican productos con varias fotos',async()=>{
+  const env=controlledCatalogImages(),badge=env.document.createElement('span');env.sandbox.badge=badge;
+  env.run('catalogLoadPhase="data";setCatalogLoadingCount(badge,[products[0],products[1],products[0]])');
+  assert.equal(badge.textContent,'2');assert.match(badge.attributes['aria-label'],/información cargada/);
+  env.run('catalogLoadPhase="images";setCatalogLoadingCount(badge,products);prioritizeCatalogImages(products,{direct:true})');
+  assert.equal(badge.textContent,'0');await imageTick();
+  env.images[0].onload();env.images[1].onerror();await imageTick();
+  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'1');
+  env.images[2].onload();env.images[3].onload();env.images[4].onload();await imageTick();
+  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'4');
+  env.run('loadCatalogImage("https://ejemplo.invalid/segunda.png");products[0].imageUrls.push("https://ejemplo.invalid/segunda.png")');
+  await imageTick();env.images[5].onload();await imageTick();
+  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'4');
+  env.run('setCatalogLoadingCount(badge,[products[2]])');assert.equal(badge.textContent,'1');
+  assert.match(badge.attributes['aria-label'],/imagen cargada/);
+});
+
+test('Navegar da prioridad a la vista nueva y retira solicitudes pendientes de otras ramas',async()=>{
+  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
+  env.run('prioritizeCatalogImages([products[4]],{direct:true})');await imageTick();
+  assert.equal(env.images[2].url,env.products[4].docsImageUrl);
+  assert.equal(env.run('catalogImageRequests.has(products[2].docsImageUrl)'),false);
+  env.images[0].onload();env.images[1].onload();env.images[2].onload();await imageTick();
+  assert.equal(env.images.length,3);
+});
+
+test('Una imagen que falla o agota el tiempo no bloquea los niveles siguientes ni suma al contador',async()=>{
+  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
+  env.images[0].onerror();env.timeout(20000);await imageTick();
+  assert.equal(env.images.at(-1).url,env.products[2].docsImageUrl);
+  assert.equal(env.run('catalogLoadedProductCount(products)'),0);
+  env.images[2].onload();await imageTick();assert.equal(env.run('catalogLoadedProductCount(products)'),1);
+});
+
+test('Desactivar imágenes detiene la cola y conserva el recuento de información',async()=>{
+  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
+  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"DESACTIVADO"});syncCatalogImageLoading()');
+  for(const image of env.images)image.onload();await imageTick();
+  assert.equal(env.images.length,2);assert.equal(env.run('catalogLoadedProductCount(products)'),5);
+  assert.equal(env.run('[...catalogImageRequests.values()].some(r=>r.status==="queued")'),false);
+});
+
+test('Cambiar el interruptor no vuelve a consultar datos y descarta un índice que llega después de desactivarlo',async()=>{
+  const env=controlledCatalogImages();
+  env.run(`let dataQueries=0;let releaseLate;loadGoogleSheetRows=()=>{dataQueries++;return Promise.resolve([])};
+    loadAppsScriptImageIndex=()=>new Promise(resolve=>releaseLate=resolve);
+    catalogLoadPhase="data";startCatalogImageHydration()`);
+  const pending=env.run('catalogImageHydration');await imageTick();
+  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"DESACTIVADO"});syncCatalogImageLoading();releaseLate({products:{},gifts:[]})');
+  assert.equal(await pending,false);assert.equal(env.run('dataQueries'),0);
+  assert.equal(env.run('catalogLoadPhase'),'data');assert.equal(env.run('allLoadedProducts.length'),5);
+});
+
+test('Los anuncios esperan la información y todas las imágenes del catálogo antes de descargar su foto',async()=>{
+  const env=controlledCatalogImages();
+  const start=htmlSource.indexOf('    // Se lee el índice de anuncios de Apps Script:');
+  const code=htmlSource.slice(start,htmlSource.indexOf('</script>',start));
+  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;window.CATALOG_INITIAL_LOAD_READY=false;catalogLoadPhase="data";
+    let adQueries=0;loadAppsScriptImageIndex=async()=>{adQueries++;return {ok:true,source:{adsFolderId:"1QitBAhBjw_tik-qacrAmmx7cKMRJhIoM"},
+      ads:{ad:{id:"AAAAAAAAAAAAAAAAAAAA",mimeType:"image/png",url:"https://lh3.googleusercontent.com/d/AAAAAAAAAAAAAAAAAAAA",name:"anuncio.png"}}}};`);
+  env.run(code);env.run('window.dispatchEvent(new CustomEvent("load"))');await imageTick();
+  assert.equal(env.run('adQueries'),0);assert.equal(env.images.length,0);
+  env.run('window.CATALOG_INITIAL_LOAD_READY=true;catalogLoadPhase="images";prioritizeCatalogImages([products[0]],{direct:true});window.dispatchEvent(new CustomEvent("catalog-images-ready"))');
+  await imageTick();assert.equal(env.run('adQueries'),1);assert.equal(env.images.length,1);
+  assert.equal(env.images[0].url,env.products[0].docsImageUrl);
+  env.images[0].onload();await imageTick();assert.match(env.images[1].url,/googleusercontent/);
+});
 
 // DOM acotado para ejecutar las funciones publicadas del editor sin guardar precios.
 function priceEditorEnvironment(){
@@ -446,9 +588,9 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=imagenes-por-vista-v1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=datos-antes-imagenes-v2'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=libros-administrativos-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1198,7 +1340,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
 });
 
 
@@ -1603,5 +1745,5 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
   assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
 });

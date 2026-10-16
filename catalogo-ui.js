@@ -154,9 +154,10 @@
     }
 
     if(count){
-      count.textContent = `${products.length} ${products.length === 1 ? "producto" : "productos"}`;
+      setCatalogLoadingCount(count, products);
       if(window.CATALOG_INITIAL_LOAD_READY === true) count.hidden = false;
     }
+    prioritizeCatalogImages(products, {direct:true});
   }
 
   let directRenderQueued = false;
