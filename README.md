@@ -19,6 +19,8 @@ El catálogo conserva su carga original en una sola lectura. Después de la prim
 
 El botón **Actualizar catálogo** está disponible para visitantes y administradores y solicita una lectura nueva antes de vencer el plazo. Al vencer, la página renueva los datos en segundo plano; una pestaña oculta espera hasta volver a estar visible. La copia anterior permanece visible durante la actualización y se conserva si falla la conexión. Los cambios guardados explícitamente por el administrador se conservan en su copia local sin reiniciar el plazo. Esta copia es propia de cada navegador y no modifica los datos comerciales originales.
 
+Recargar la página restaura la ruta, búsqueda, filtros, orden y posiciones de desplazamiento después de disponer de los productos y las reglas vigentes, antes de mostrar el catálogo. Las actualizaciones manuales y automáticas conservan la navegación actual y la tarjeta visible cuando sigue disponible. Si desaparece una rama, se conserva el nivel superior válido.
+
 ## Recursos técnicos públicos
 
 - `robots.txt`: directivas para buscadores.

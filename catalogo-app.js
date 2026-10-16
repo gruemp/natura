@@ -2511,7 +2511,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       try{
         const collapse = document.querySelector("[data-admin-config-collapse]");
         const snapshot = {
-          version:4,
+          version:5,
           pathname:location.pathname,
           q:qInp ? String(qInp.value || "") : "",
           sort:sortSel ? String(sortSel.value || "") : "",
@@ -2527,6 +2527,7 @@ function readCompactGoogleSheetProductRows(table,indices){
           adminSection:String(window.CATALOG_ADMIN_SECTION || "catalogo"),
           adminConfigExpanded:collapse?.getAttribute("aria-expanded") === "true",
           scrollY:Math.max(0,Math.round(window.scrollY || 0)),
+          scrollStack:uxScrollStack().map(entry=>({scrollY:Math.max(0,Number(entry.scrollY)||0)})),
           savedAt:Date.now()
         };
         sessionStorage.setItem(CATALOG_RELOAD_VIEW_KEY,JSON.stringify(snapshot));
@@ -2551,7 +2552,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         const raw=localStorage.getItem(CATALOG_PERSISTENT_VIEW_KEY);
         if(!raw) return null;
         const snapshot=JSON.parse(raw);
-        if(!snapshot || ![1,2,3,4].includes(snapshot.version) || snapshot.pathname!==location.pathname) return null;
+        if(!snapshot || ![1,2,3,4,5].includes(snapshot.version) || snapshot.pathname!==location.pathname) return null;
         return snapshot;
       }catch(_){
         return null;
@@ -2564,7 +2565,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         const raw=sessionStorage.getItem(CATALOG_RELOAD_VIEW_KEY);
         if(!raw) return null;
         const snapshot=JSON.parse(raw);
-        if(!snapshot || ![1,2,3,4].includes(snapshot.version) || snapshot.pathname!==location.pathname) return null;
+        if(!snapshot || ![1,2,3,4,5].includes(snapshot.version) || snapshot.pathname!==location.pathname) return null;
         return snapshot;
       }catch(_){
         return null;
@@ -2574,7 +2575,13 @@ function readCompactGoogleSheetProductRows(table,indices){
     function applyCatalogReloadViewState(snapshot){
       if(!snapshot) return;
       if(qInp) qInp.value=String(snapshot.q || "");
-      if(sortSel) sortSel.value=PRODUCT_ORDER_MODES.includes(snapshot.sort) ? snapshot.sort : catalogDefaultProductOrder;
+      if(sortSel){
+        sortSel.value=PRODUCT_ORDER_MODES.includes(snapshot.sort) ? snapshot.sort : catalogDefaultProductOrder;
+        if(PRODUCT_ORDER_MODES.includes(snapshot.sort)) productOrderChosen=true;
+      }
+      if(Array.isArray(snapshot.scrollStack)){
+        window.__catalogUxScrollStack=snapshot.scrollStack.map(entry=>({scrollY:Math.max(0,Number(entry?.scrollY)||0)}));
+      }
       selectedSuggestionTerms=uniqueTerms(Array.isArray(snapshot.tags)?snapshot.tags:[]);
       selectedFacetFilters=normalizeFacetFilters(snapshot.facets);
       if(typeof snapshot.wordPanelVisible==="boolean") wordSuggestionsVisible=snapshot.wordPanelVisible;
@@ -3106,13 +3113,15 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
 
     async function publishCatalogSnapshot(snapshot, options = {}){
+      const viewport=window.CATALOG_INITIAL_LOAD_READY===true ? uxCaptureCatalogViewport() : null;
       allLoadedProducts=snapshot.products;
       window.CATALOG_COMPATIBILITY_REPORT=snapshot.report;
       window.dispatchEvent(new CustomEvent("irenismb:compatibilidad-actualizada",{detail:snapshot.report}));
       all=filterVisibleProducts(allLoadedProducts);
       try{
         productById=new Map(all.map(product=>[String(product.id),product]));
-        if(options.readUrl)readStateFromUrl();
+        if(options.viewState)applyCatalogReloadViewState(options.viewState);
+        else if(options.readUrl)readStateFromUrl();
         validateNavigationStateAgainstProducts();refreshNavigationAlbums();
       }catch(error){
         console.warn("Se restablece la navegación del catálogo.",error);
@@ -3125,6 +3134,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         window.CATALOG_INITIAL_LOAD_READY=true;
       }
       render();
+      if(viewport)uxRestoreScrollPosition(viewport);
       if(!options.silent)window.dispatchEvent(new CustomEvent("catalog-initial-load-ready"));
     }
     async function completeCachedCatalogImages(snapshot){
@@ -3154,16 +3164,16 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
     async function loadProductsOnce(options = {}){
       let silent=options.silent===true||window.CATALOG_INITIAL_LOAD_READY===true;
-      const readUrl=window.CATALOG_INITIAL_LOAD_READY!==true&&options.preserveView!==true;
+      const readUrl=window.CATALOG_INITIAL_LOAD_READY!==true&&options.preserveView!==true&&!options.viewState;
       const cached=window.CATALOG_CACHE?.read({allowExpired:true});
       if(cached&&options.force!==true){
-        await publishCatalogSnapshot(cached,{silent,cached:true,readUrl});
+        await publishCatalogSnapshot(cached,{silent,cached:true,readUrl,viewState:options.viewState});
         if(window.CATALOG_CACHE.isFresh()&&shouldShowProductImages()&&!cached.imagesIncluded)await completeCachedCatalogImages(cached);
         return true;
       }
       const previous=window.CATALOG_CACHE?.read({allowExpired:true});
       if(previous&&window.CATALOG_INITIAL_LOAD_READY!==true){
-        await publishCatalogSnapshot(previous,{silent:false,cached:true,readUrl});
+        await publishCatalogSnapshot(previous,{silent:false,cached:true,readUrl,viewState:options.viewState});
         silent=true;
       }
       if(!silent){window.CATALOG_INITIAL_LOAD_READY=false;startCatalogLoadingProgress();}
@@ -3179,7 +3189,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       const assessment=buildCompatibleGoogleSheetProducts(catalogSource?.sheetEntries);
       const products=assessment.products.concat(makeGiftGalleryProducts(catalogSource?.giftImageUrls));
       try{
-        await publishCatalogSnapshot({products,report:assessment.report},{silent,readUrl:readUrl&&!previous});
+        await publishCatalogSnapshot({products,report:assessment.report},{silent,readUrl:readUrl&&!previous,viewState:previous?null:options.viewState});
       }catch(error){
         console.error("Los productos se cargaron, pero no se pudieron mostrar.",error);
         if(!silent)updateCountTextError("Los productos se cargaron, pero ocurrió un error al mostrar el catálogo.");
@@ -3311,10 +3321,35 @@ function uxSaveScrollPosition(){
   },120);
 }
 
-function uxRestoreScrollPosition(){
-  let saved=0;
-  try{saved=Number(sessionStorage.getItem("irenismb_catalog_scroll_position")||0);}catch(_){ }
-  if(saved>0) requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:saved,left:0,behavior:"auto"})));
+function uxCaptureCatalogViewport(){
+  const viewport={scrollY:Math.max(0,window.scrollY||0)};
+  const card=Array.from(grid?.children||[]).find(node=>{
+    const rect=node.getBoundingClientRect();
+    return !node.hidden&&rect.bottom>86&&rect.top<=86;
+  });
+  if(card){
+    viewport.productId=card.dataset.id||"";
+    viewport.albumKey=card.querySelector("[data-album-open]")?.getAttribute("data-album-open")||"";
+    viewport.top=card.getBoundingClientRect().top;
+  }
+  return viewport;
+}
+
+function uxRestoreScrollPosition(viewport=null){
+  if(!viewport){
+    let saved=0;
+    try{saved=Number(sessionStorage.getItem("irenismb_catalog_scroll_position")||0);}catch(_){ }
+    if(!(saved>0))return;
+    viewport={scrollY:saved};
+  }
+  const renderToken=_renderToken;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(renderToken!==_renderToken)return;
+    const card=Array.from(grid?.children||[]).find(node=>
+      viewport.productId ? node.dataset.id===viewport.productId : viewport.albumKey&&node.querySelector("[data-album-open]")?.getAttribute("data-album-open")===viewport.albumKey);
+    const top=card ? window.scrollY+card.getBoundingClientRect().top-viewport.top : viewport.scrollY;
+    window.scrollTo({top:Math.max(0,top),left:0,behavior:"auto"});
+  }));
 }
 
 function uxFlashAdded(card,p){
@@ -3825,11 +3860,11 @@ async function init(){
   const startupViewState=reloadViewState || (catalogUrlHasExplicitViewState() ? null : persistentViewState);
   const startupAdminState=reloadViewState || persistentViewState;
   const shouldForceRestoredHistory=!!persistentViewState && !catalogNavigationIsReload();
-  applyCatalogReloadViewState(startupViewState);
   await initializeRemoteCatalogConfiguration();
   // Las reglas se cargan en paralelo, pero ninguna ficha pública se prepara antes de resolverlas.
   await window.CATALOG_PUBLIC_VISIBILITY_READY;
-  await loadProducts();
+  // La ruta guardada solo se valida cuando ya existen los productos y las reglas actuales.
+  await loadProducts({viewState:startupViewState});
   rebuildCatalogHistoryForRestoredNavigation({force:shouldForceRestoredHistory});
   installCatalogExitGuardIfAtRoot();
   // La copia persistente se actualiza al vencer el plazo configurado o por petición del visitante.

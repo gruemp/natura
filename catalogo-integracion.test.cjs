@@ -220,7 +220,7 @@ function environment(options={}){
   const sandbox={document,localStorage,sessionStorage:localStorage,URL,URLSearchParams,Intl,Date:Clock,console:{info(){},warn(){},error(){}},
     setTimeout(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearTimeout:id=>timers.delete(id),
     setInterval(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearInterval:id=>timers.delete(id),
-    requestAnimationFrame:fn=>{fn();return 1;},MutationObserver:class {observe(){}disconnect(){}},
+    requestAnimationFrame:fn=>{fn();return 1;},scrollTo(){},MutationObserver:class {observe(){}disconnect(){}},
     Image:class {set src(value){this._src=value;queueMicrotask(()=>this.onload?.());}},
     CustomEvent:class {constructor(type,options={}){this.type=type;this.detail=options.detail;}},
     location:{href:'https://gruemp.github.io/natura/catalogo.html',origin:'https://gruemp.github.io',protocol:'https:',search:'',hash:''},
@@ -253,6 +253,99 @@ async function savedCatalogEnvironment(){
   return {...env,clock};
 }
 const cacheTick=()=>new Promise(resolve=>setImmediate(resolve));
+
+function browserNavigation(env,{href='https://gruemp.github.io/natura/catalogo.html',type='navigate',state=null,scrollY=0}={}){
+  const browser={scrolls:[],historyWrites:[]};
+  const locate=url=>{const value=new URL(url,env.sandbox.location.href);for(const key of ['href','origin','protocol','search','hash','pathname'])env.sandbox.location[key]=value[key];};
+  locate(href);env.sandbox.scrollY=scrollY;
+  env.sandbox.performance.getEntriesByType=()=>[{type}];
+  env.sandbox.history.state=state;
+  for(const method of ['replaceState','pushState'])env.sandbox.history[method]=(value,_,url)=>{
+    env.sandbox.history.state=value;if(url)locate(url);browser.historyWrites.push({method,state:clone(value),href:env.sandbox.location.href});
+  };
+  env.sandbox.scrollTo=options=>{env.sandbox.scrollY=options.top;browser.scrolls.push(options.top);};
+  return browser;
+}
+
+async function savedNavigationEnvironment(){
+  const env=await facetEnvironment();browserNavigation(env,{scrollY:850});
+  env.run(`acceptCatalogPublicConfiguration({...REMOTE_CONTROL_DEFAULTS,ORDEN_PRODUCTOS:"price_asc"},{revision:new Date().toISOString(),rebuild:false});
+    setNavigationFromRawState({section:"Belleza y cuidado",category:"Perfumería",subcategory:"Perfumes",public:"Masculinos",line:"Kaiak"});
+    qInp.value="Título";sortSel.value="name_desc";selectedSuggestionTerms=["comercial"];
+    toggleFacetFilter("brand","Natura");wordSuggestionsVisible=true;window.__catalogUxScrollStack=[{scrollY:120},{scrollY:340}];
+    window.CATALOG_CACHE.save(allLoadedProducts,{}, {imagesIncluded:true});window.CATALOG_INITIAL_LOAD_READY=true;
+    writeStateToUrl({index:5});captureCatalogReloadViewState();`);
+  return env;
+}
+
+function prepareNavigationStartup(env){
+  env.run(`function syncAdministrativeToolVisibility(){};function initCatalogFichas(){};
+    refreshCartCount=initCartButton=initShipping=bindFilters=bindGridActions=initFolleto=loadClientFromLS=loadAddressFromLS=()=>{};
+    restoreCatalogAdminAfterReload=async()=>{};
+    let firstRenderedNavigation=null;render=()=>{if(window.CATALOG_INITIAL_LOAD_READY===true)firstRenderedNavigation??={section:selectedSection,category:selectedCategory,line:selectedLine,q:qInp.value};};`);
+}
+
+test('Recargar restaura la ruta completa antes del primer render, junto con búsqueda, filtros, orden y desplazamiento',async()=>{
+  const first=await savedNavigationEnvironment();
+  const reopened=environment({storage:first.storage});
+  const browser=browserNavigation(reopened,{href:first.sandbox.location.href,type:'reload',state:clone(first.sandbox.history.state)});
+  prepareNavigationStartup(reopened);await reopened.run('init()');
+  assert.deepEqual(clone(reopened.run('selectedNavigationTrail().map(crumb=>crumb.label)')),['Belleza y cuidado','Perfumería','Perfumes','Masculinos','Kaiak']);
+  assert.deepEqual(clone(reopened.run('firstRenderedNavigation')),{section:'Belleza y cuidado',category:'Perfumería',line:'Kaiak',q:'Título'});
+  assert.equal(reopened.document.getElementById('q').value,'Título');assert.equal(reopened.document.getElementById('sort').value,'name_desc');
+  assert.deepEqual(clone(reopened.run('selectedSuggestionTerms')),['comercial']);assert.equal(reopened.run('selectedFacetFilters[0].value'),'natura');
+  assert.equal(reopened.run('wordSuggestionsVisible'),true);assert.equal(reopened.run('productOrderChosen'),true);
+  assert.deepEqual(clone(reopened.run('uxScrollStack()')),[{scrollY:120},{scrollY:340}]);assert.equal(browser.scrolls.at(-1),850);
+  assert.equal(new URL(reopened.sandbox.location.href).searchParams.get('line'),'Kaiak');assert.equal(reopened.requests.length,0);
+});
+
+test('Volver a abrir restaura la última vista y reconstruye Atrás, mientras un enlace explícito mantiene su propia ruta',async()=>{
+  const first=await savedNavigationEnvironment(),reopened=environment({storage:first.storage});
+  const browser=browserNavigation(reopened);prepareNavigationStartup(reopened);await reopened.run('init()');
+  assert.equal(reopened.run('selectedLine'),'Kaiak');assert.equal(reopened.run('currentCatalogHistoryIndex()'),5);
+  assert.equal(browser.historyWrites.filter(entry=>entry.method==='pushState').length,6);
+  const linked=environment({storage:first.storage});browserNavigation(linked,{href:'https://gruemp.github.io/natura/catalogo.html?section=Belleza+y+cuidado&category=Perfumer%C3%ADa&subcategory=Perfumes&public=Femeninos&line=Far+Away'});
+  prepareNavigationStartup(linked);await linked.run('init()');
+  assert.equal(linked.run('selectedLine'),'Far Away');assert.equal(linked.document.getElementById('q').value,'');
+  assert.equal(linked.run('selectedFacetFilters.length'),0);
+});
+
+test('Una rama eliminada al recargar conserva el nivel superior disponible y los filtros del visitante',async()=>{
+  const first=await savedNavigationEnvironment(),saved=JSON.parse(first.storage.get('irenismb_catalog_reload_view_v1'));
+  saved.line='Línea retirada';first.storage.set('irenismb_catalog_reload_view_v1',JSON.stringify(saved));
+  const reopened=environment({storage:first.storage});browserNavigation(reopened,{type:'reload'});prepareNavigationStartup(reopened);await reopened.run('init()');
+  assert.equal(reopened.run('selectedLine'),'');assert.equal(reopened.run('selectedPublic'),'Masculinos');assert.equal(reopened.run('selectedSubcategory'),'Perfumes');
+  assert.equal(reopened.document.getElementById('q').value,'Título');assert.equal(reopened.run('selectedFacetFilters[0].value'),'natura');
+});
+
+test('Una vista guardada por la versión anterior se restaura también si hay que descargar todos los productos',async()=>{
+  const first=await savedNavigationEnvironment(),saved=JSON.parse(first.storage.get('irenismb_catalog_reload_view_v1'));
+  saved.version=4;delete saved.scrollStack;first.storage.set('irenismb_catalog_reload_view_v1',JSON.stringify(saved));
+  first.storage.delete('irenismb_catalog_snapshot_v1');
+  const reopened=environment({storage:first.storage});browserNavigation(reopened,{type:'reload'});prepareNavigationStartup(reopened);await confirmed(reopened);
+  reopened.sandbox.freshEntries=clone(first.run('allLoadedProducts')).map(p=>({row:{code:p.id,name:p.name,section:p.section,category:p.category,subcategory:p.subcategory,public:p.public,line:p.line,brand:p.brand,priceValue:123},imageIndex:new Map()}));
+  reopened.run('refreshRemoteCatalogConfiguration=async()=>true;loadGoogleSheetCatalog=async()=>({sheetEntries:freshEntries,giftImageUrls:[],imagesIncluded:true})');
+  const starting=reopened.run('init()');await cacheTick();reopened.timeout(220);await starting;
+  assert.equal(reopened.run('selectedLine'),'Kaiak');assert.equal(reopened.document.getElementById('q').value,'Título');
+  assert.equal(reopened.run('firstRenderedNavigation.line'),'Kaiak');assert.equal(reopened.run('selectedFacetFilters[0].value'),'natura');
+  assert.equal(reopened.sandbox.scrollY,850);
+});
+
+test('Actualizar conserva la navegación más reciente durante la descarga y la tarjeta visible si cambia de posición',async()=>{
+  const env=await savedNavigationEnvironment(),browser=browserNavigation(env,{scrollY:850});
+  env.run(`render=()=>{};let releaseData;refreshRemoteCatalogConfiguration=async()=>true;window.refreshCatalogVisibility=async()=>true;
+    loadGoogleSheetCatalog=()=>new Promise(resolve=>releaseData=resolve);`);
+  const updating=env.run('window.CATALOG_CACHE.refresh()');await cacheTick();
+  env.run('setNavigationFromRawState({section:"Belleza y cuidado",category:"Perfumería",subcategory:"Perfumes",public:"Femeninos",line:"Far Away"});qInp.value="comercial"');
+  const card=env.document.createElement('article');card.dataset.id='9902';let cardTop=-30;
+  card.getBoundingClientRect=()=>({top:cardTop,bottom:cardTop+500});env.document.getElementById('grid').appendChild(card);
+  env.sandbox.scrollY=1250;env.sandbox.moveCard=()=>{cardTop=170;env.sandbox.scrollY=900;};
+  env.run('render=()=>moveCard()');env.sandbox.freshEntries=clone(env.run('allLoadedProducts')).map(p=>({row:{code:p.id,name:p.name,section:p.section,category:p.category,subcategory:p.subcategory,public:p.public,line:p.line,brand:p.brand,priceValue:123},imageIndex:new Map()}));
+  env.run('releaseData({sheetEntries:freshEntries,giftImageUrls:[],imagesIncluded:true})');assert.equal(await updating,true);
+  assert.equal(env.run('selectedLine'),'Far Away');assert.equal(env.document.getElementById('q').value,'comercial');
+  assert.equal(env.run('selectedFacetFilters[0].value'),'natura');assert.equal(env.document.getElementById('sort').value,'name_desc');
+  assert.equal(browser.scrolls.at(-1),1100);assert.equal(env.run('uxScrollStack().length'),2);
+});
 
 test('Recargar y volver a abrir el navegador conserva el catálogo sin consultar Google durante 30 minutos',async()=>{
   const first=await savedCatalogEnvironment(),savedAt=first.run('window.CATALOG_CACHE.read().fetchedAt');
@@ -559,7 +652,7 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=cache-configurable-v1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=conservar-navegacion-v2'));
   assert.ok(htmlSource.includes('catalogo-cache.js?actualizacion=cache-configurable-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
