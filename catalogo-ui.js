@@ -107,7 +107,7 @@
     grid.classList.remove("quick-image-search");
     if(!active) return;
 
-    if(!catalogDataViewReady()){
+    if(window.CATALOG_INITIAL_LOAD_READY !== true){
       count.hidden = true;
       return;
     }
@@ -154,10 +154,9 @@
     }
 
     if(count){
-      setCatalogLoadingCount(count, products);
-      if(catalogDataViewReady()) count.hidden = false;
+      count.textContent = `${products.length} ${products.length === 1 ? "producto" : "productos"}`;
+      if(window.CATALOG_INITIAL_LOAD_READY === true) count.hidden = false;
     }
-    prioritizeCatalogImages(products, {direct:true});
   }
 
   let directRenderQueued = false;
@@ -316,8 +315,7 @@
   }
 
   function ensureLoadingState(message="Cargando productos…"){
-    const rawText = String(message || "").trim();
-    const loadingText = !rawText || rawText === "0" ? "Cargando productos…" : rawText;
+    const loadingText = String(message || "Cargando productos…").trim() || "Cargando productos…";
     const existing = grid.querySelector(".empty-state");
     if(existing){
       const title = existing.querySelector(".empty-state-title");
@@ -339,7 +337,7 @@
 
   function syncLoadingUi(){
     const text = String(count.textContent || "").trim();
-    const catalogReady = catalogDataViewReady();
+    const catalogReady = window.CATALOG_INITIAL_LOAD_READY === true;
 
     if(initialLoading && (catalogReady || isHardError(text))) initialLoading = false;
 
@@ -364,7 +362,6 @@
   observer.observe(count, {childList:true, characterData:true,subtree:true});
   observer.observe(grid, {childList:true, subtree:true});
   window.addEventListener("catalog-initial-load-ready", queueSync, {once:true});
-  window.addEventListener("catalog-data-progress", queueSync);
   syncLoadingUi();
 })();
 

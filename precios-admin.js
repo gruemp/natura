@@ -116,6 +116,7 @@
   window.CATALOG_VISIBILITY_RULES=rules;
   window.CATALOG_PUBLIC_VISIBILITY_CONFIRMED=false;
   window.CATALOG_PUBLIC_VISIBILITY_ERROR="";
+  window.CATALOG_VISIBILITY_SNAPSHOT=null;
   // Lectores de visibilidad para el catálogo y las opciones de exportación.
   function publicVisibilitySignature(p){return JSON.stringify([p?.id||p?.code,p?.section,p?.category,p?.subcategory,p?.public,p?.line,p?.commercialStatus].map(norm))}
   window.isCatalogProductPublic=p=>!!p&&window.CATALOG_PUBLIC_VISIBILITY_CONFIRMED===true&&norm(p.commercialStatus)!=="no a la venta"&&!isHidden(p)&&(!visibilityReadFailed||lastConfirmedPublicSignatures.has(publicVisibilitySignature(p)));
@@ -146,8 +147,8 @@
     // de ventanas y de autenticación en marcos de terceros al recargar.
     if(storageGet(ADMIN_MODE_STORAGE_KEY)==="1") setConnectionStatus("Pulsa Conectar con Google para retomar la administración.");
   });
-  window.refreshCatalogVisibility=()=>{
-    window.CATALOG_PUBLIC_VISIBILITY_READY=loadRules().finally(rebuild);
+  window.refreshCatalogVisibility=(options={})=>{
+    window.CATALOG_PUBLIC_VISIBILITY_READY=loadRules({force:true}).finally(()=>{if(options.rebuild!==false)rebuild()});
     return window.CATALOG_PUBLIC_VISIBILITY_READY;
   };
 
@@ -229,8 +230,20 @@
     }
     return new Set([...states].filter(([,hidden])=>hidden).map(([k])=>k));
   }
-  function loadRules(){
+  function loadRules(options={}){
     if(visibilityInFlight)return visibilityInFlight;
+    if(!options.force){
+      const snapshot=window.CATALOG_CACHE?.read({allowExpired:true});
+      if(snapshot){
+        try{
+          const saved=readVisibilityRules(snapshot.visibilityRules);
+          rules.clear();for(const rule of saved)rules.add(rule);
+          visibilityReadFailed=false;window.CATALOG_PUBLIC_VISIBILITY_CONFIRMED=true;
+          window.CATALOG_VISIBILITY_SNAPSHOT=snapshot.visibilityRules;
+          return Promise.resolve(true);
+        }catch(_){}
+      }
+    }
     visibilityReadFailed=true;
     const pending=new Promise(resolve=>{
       const reader=String(window.REMOTE_CONTROL_SOURCE?.endpoint||"").trim();
@@ -255,7 +268,9 @@
         if(done)return;
         try{
           if(payload?.ok!==true)throw new Error("Respuesta de Visibilidad no válida.");
-          finish(readVisibilityRules(payload.reglas));
+          const confirmed=readVisibilityRules(payload.reglas);
+          window.CATALOG_VISIBILITY_SNAPSHOT=payload.reglas.map(item=>({tipo:item.tipo,identificador:item.identificador,oculto:item.oculto,etiqueta:String(item.etiqueta||"")}));
+          finish(confirmed);
         }catch(error){finish(null,error?.message||"No se pudo interpretar Visibilidad.")}
       };
       s.onerror=()=>finish(null,"No se pudo conectar con Visibilidad.");
@@ -542,9 +557,10 @@
     const adminImageRows=CONFIG_ITEMS.filter(item=>item.scope==="admin").map(configRow).join("");
     const trackingRows=CONFIG_ITEMS.filter(item=>item.key==="REGISTRAR_VISITAS_PROPIAS").map(configRow).join("");
     const adminRows=ADMIN_FILTER_ITEMS.map(item=>`<div class="catalog-admin-config-row" data-admin-filter-key="${item.key}"><div><span class="catalog-admin-config-label">${item.label}</span><span class="catalog-admin-config-help">${item.help}</span></div><div class="catalog-admin-filter-controls"><div class="catalog-admin-scope" role="group" aria-label="Alcance de ${item.label}"><button type="button" class="catalog-admin-scope-btn" data-admin-filter-scope="local" data-admin-filter-scope-label="Solo este dispositivo" data-admin-filter-key="${item.key}" aria-pressed="false"><span class="catalog-admin-scope-check" aria-hidden="true">✓</span><span class="catalog-admin-scope-text">Solo este dispositivo</span></button><button type="button" class="catalog-admin-scope-btn" data-admin-filter-scope="global" data-admin-filter-scope-label="Todos los administradores" data-admin-filter-key="${item.key}" aria-pressed="false"><span class="catalog-admin-scope-check" aria-hidden="true">✓</span><span class="catalog-admin-scope-text">Todos los administradores</span></button></div><button type="button" class="catalog-admin-switch" role="switch" aria-checked="false" data-admin-filter-toggle="${item.key}">DESACTIVADO</button></div></div>`).join("");
+    const refreshRow=`<div class="catalog-admin-config-row"><div><label class="catalog-admin-config-label" for="catalogRefreshMinutes">Actualizar información cada (minutos)</label><span class="catalog-admin-config-help">Se conserva el catálogo durante este plazo, incluso al recargar la página. Cualquier visitante puede actualizarlo antes. De 1 a 10080 minutos.</span></div><div><input id="catalogRefreshMinutes" type="number" min="1" max="10080" step="1" inputmode="numeric" value="30"><button type="button" class="catalog-admin-primary" id="catalogRefreshMinutesSave">Guardar intervalo</button></div></div>`;
     panel.innerHTML=`<button type="button" data-admin-config-collapse aria-expanded="true" hidden></button><h2 class="catalog-admin-page-heading">Configuración</h2><div class="catalog-admin-config-body" id="catalogAdminConfigBody">
       <section class="catalog-admin-card" aria-labelledby="catalogAdminDocumentsHeading"><h3 id="catalogAdminDocumentsHeading">Documentos</h3><p class="catalog-admin-card-copy">Accede al inventario, los pedidos, los prospectos y los registros de visitas.</p><button type="button" class="catalog-admin-secondary" id="catalogAdminDocumentsOpen" aria-haspopup="dialog" aria-controls="catalogAdminDocumentsDialog">Abrir documentos</button></section>
-      <section class="catalog-admin-card" aria-labelledby="catalogSharedSettingsTitle"><h3 class="catalog-admin-scope-title" id="catalogSharedSettingsTitle">Configuración compartida</h3><p class="catalog-admin-card-copy">Estas opciones afectan al catálogo público y al administrativo.</p><h4>Orden de navegación</h4><p class="catalog-admin-card-copy">Define qué niveles aparecen y en qué orden. Puedes mover u omitir cualquiera, incluidos Sección y Producto. Si no dejas ningún nivel activo, el catálogo no mostrará niveles ni productos.</p><div class="catalog-admin-order-list" id="catalogAdminOrderList"></div><p class="catalog-admin-order-help"><span aria-hidden="true">ⓘ</span><span>El mismo orden se aplica al catálogo, Visibilidad y Folleto. Si el último nivel activo no es Producto, al pulsarlo se mantiene esa misma vista.</span></p><div class="catalog-admin-order-preview-title">Vista previa del árbol</div><div class="catalog-admin-order-preview" id="catalogAdminOrderPreview"></div><div class="catalog-admin-order-buttons"><button type="button" class="catalog-admin-primary" id="catalogAdminOrderSave">Guardar orden</button><button type="button" class="catalog-admin-secondary" id="catalogAdminOrderReset">Restablecer orden predeterminado</button></div><h4>Preferencias compartidas</h4><div class="catalog-admin-config-list" id="catalogAdminSharedConfigList"><div class="catalog-admin-config-row"><div><label class="catalog-admin-config-label" for="catalogDefaultProductOrder">Orden predeterminado de los productos</label><span class="catalog-admin-config-help">Se aplica a productos, paletas y miniaturas. Cada visitante puede elegir otro orden.</span></div><div><select id="catalogDefaultProductOrder"><option value="price_asc">Precio: menor a mayor</option><option value="price_desc">Precio: mayor a menor</option><option value="name_asc">Nombre: A–Z</option><option value="name_desc">Nombre: Z–A</option></select><button type="button" class="catalog-admin-primary" id="catalogDefaultProductOrderSave">Guardar</button></div></div>${sharedRows}</div></section>
+      <section class="catalog-admin-card" aria-labelledby="catalogSharedSettingsTitle"><h3 class="catalog-admin-scope-title" id="catalogSharedSettingsTitle">Configuración compartida</h3><p class="catalog-admin-card-copy">Estas opciones afectan al catálogo público y al administrativo.</p><h4>Orden de navegación</h4><p class="catalog-admin-card-copy">Define qué niveles aparecen y en qué orden. Puedes mover u omitir cualquiera, incluidos Sección y Producto. Si no dejas ningún nivel activo, el catálogo no mostrará niveles ni productos.</p><div class="catalog-admin-order-list" id="catalogAdminOrderList"></div><p class="catalog-admin-order-help"><span aria-hidden="true">ⓘ</span><span>El mismo orden se aplica al catálogo, Visibilidad y Folleto. Si el último nivel activo no es Producto, al pulsarlo se mantiene esa misma vista.</span></p><div class="catalog-admin-order-preview-title">Vista previa del árbol</div><div class="catalog-admin-order-preview" id="catalogAdminOrderPreview"></div><div class="catalog-admin-order-buttons"><button type="button" class="catalog-admin-primary" id="catalogAdminOrderSave">Guardar orden</button><button type="button" class="catalog-admin-secondary" id="catalogAdminOrderReset">Restablecer orden predeterminado</button></div><h4>Preferencias compartidas</h4><div class="catalog-admin-config-list" id="catalogAdminSharedConfigList">${refreshRow}<div class="catalog-admin-config-row"><div><label class="catalog-admin-config-label" for="catalogDefaultProductOrder">Orden predeterminado de los productos</label><span class="catalog-admin-config-help">Se aplica a productos, paletas y miniaturas. Cada visitante puede elegir otro orden.</span></div><div><select id="catalogDefaultProductOrder"><option value="price_asc">Precio: menor a mayor</option><option value="price_desc">Precio: mayor a menor</option><option value="name_asc">Nombre: A–Z</option><option value="name_desc">Nombre: Z–A</option></select><button type="button" class="catalog-admin-primary" id="catalogDefaultProductOrderSave">Guardar</button></div></div>${sharedRows}</div></section>
       <section class="catalog-admin-card" aria-labelledby="catalogUserSettingsTitle"><h3 class="catalog-admin-scope-title" id="catalogUserSettingsTitle">Vista del público</h3><p class="catalog-admin-card-copy">Controla las imágenes para visitantes de forma independiente de la vista administrativa. Los datos del inventario y los iconos SVG de navegación permanecen disponibles.</p><div class="catalog-admin-config-list">${publicImageRows}</div></section>
       <section class="catalog-admin-card" aria-labelledby="catalogAdminSettingsTitle"><h3 class="catalog-admin-scope-title" id="catalogAdminSettingsTitle">Vista del administrador</h3><p class="catalog-admin-card-copy">Las imágenes se configuran para todos los administradores, independientemente del público. Los filtros pueden guardarse para este dispositivo o para todos los administradores. El registro de tus propias visitas controla la inclusión de tus navegadores conocidos en las estadísticas.</p><div class="catalog-admin-config-list">${adminImageRows}${trackingRows}${adminRows}</div></section>
       <p class="catalog-admin-config-status" id="catalogAdminConfigStatus" role="status" aria-live="polite"></p></div>`;
@@ -555,6 +571,7 @@
       if(e.target.closest("#catalogAdminOrderSave")){saveNavigationOrder();return}
       if(e.target.closest("#catalogAdminOrderReset")){resetNavigationOrderDraft();return}
       if(e.target.closest("#catalogDefaultProductOrderSave")){saveDefaultProductOrder();return}
+      if(e.target.closest("#catalogRefreshMinutesSave")){saveRefreshMinutes();return}
       const scope=e.target.closest("[data-admin-filter-scope]");if(scope&&!scope.disabled){setAdminFilterScope(scope);return}
       const filterToggle=e.target.closest("[data-admin-filter-toggle]");if(filterToggle&&!filterToggle.disabled){toggleAdminFilter(filterToggle);return}
       const b=e.target.closest("[data-config-toggle]");if(b&&!b.disabled)saveConfigToggle(b)
@@ -585,6 +602,18 @@
     try{const r=await request({tipo:"actualizar-configuracion",clave:item.key,activado:next});applyConfigValues(r?.valores||{[item.key]:r?.estado||(next?"ACTIVADO":"DESACTIVADO")},true,r?.publicadoEn);setConfigStatus("Preferencia compartida guardada.","ok")}catch(e){button.disabled=false;button.textContent=old;setConfigStatus(e.message||"No se pudo guardar la preferencia compartida.","err")}
   }
   function setConfigStatus(text,cls=""){const el=document.getElementById("catalogAdminConfigStatus");if(!el)return;el.textContent=text||"";el.className="catalog-admin-config-status"+(cls?" "+cls:"")}
+  async function saveRefreshMinutes(){
+    const input=document.getElementById("catalogRefreshMinutes"),button=document.getElementById("catalogRefreshMinutesSave");
+    const value=input.value.trim();
+    if(!window.CATALOG_CACHE?.validMinutes(value)){setConfigStatus("Indica un intervalo entero de 1 a 10080 minutos.","err");return;}
+    button.disabled=true;setConfigStatus("Guardando intervalo…");
+    try{
+      const result=await request({tipo:"actualizar-configuracion",clave:"ACTUALIZACION_CATALOGO_MINUTOS",activado:value});
+      applyConfigValues(result.valores,true,result.publicadoEn);
+      setConfigStatus("Intervalo guardado para todos los visitantes.","ok");
+    }catch(error){setConfigStatus(error.message||"No se pudo guardar el intervalo.","err");}
+    finally{button.disabled=false;}
+  }
   async function saveDefaultProductOrder(){
     const select=document.getElementById("catalogDefaultProductOrder");
     const button=document.getElementById("catalogDefaultProductOrderSave");
@@ -601,13 +630,15 @@
     for(const item of CONFIG_ITEMS){const button=document.querySelector(`[data-config-toggle="${item.key}"]`);if(!button)continue;const legacyImages=item.key==="CARGAR_IMAGENES_ADMIN"?(source.CARGAR_IMAGENES_CATALOGO??window.REMOTE_CONTROL_VALUES?.CARGAR_IMAGENES_CATALOGO):"";const raw=String(source[item.key]??window.REMOTE_CONTROL_VALUES?.[item.key]??legacyImages??"");const active=stateBool(raw);button.disabled=false;button.setAttribute("aria-checked",active?"true":"false");button.textContent=active?"ACTIVADO":"DESACTIVADO"}
     const orderSelect=document.getElementById("catalogDefaultProductOrder");
     if(orderSelect) orderSelect.value=source.ORDEN_PRODUCTOS||window.getCatalogDefaultProductOrder?.()||"price_asc";
+    const refreshInput=document.getElementById("catalogRefreshMinutes");
+    if(refreshInput && document.activeElement!==refreshInput)refreshInput.value=source.ACTUALIZACION_CATALOGO_MINUTOS||String(window.CATALOG_CACHE?.minutes()||30);
     navigationOrderDraft=effectiveNavigationConfig(source);renderNavigationOrderEditor();
   }
   function applyConfigValues(values,shouldRebuild=true,revision=""){
     if(!values||typeof values!=="object")return;
     if(revision&&window.acceptCatalogPublicConfiguration&&!window.acceptCatalogPublicConfiguration(values,{revision,rebuild:false}))return;
     window.REMOTE_CONTROL_VALUES=window.REMOTE_CONTROL_VALUES||{};
-    for(const [rawKey,rawState] of Object.entries(values)){const k=String(rawKey||"").trim().toUpperCase();if(!k)continue;window.REMOTE_CONTROL_VALUES[k]=String(rawState??"");if(k==="ORDEN_PRODUCTOS"){window.applyCatalogDefaultProductOrder?.(String(rawState));continue}if(k===NAVIGATION_ORDER_KEY){navigationOrderDraft=normalizeNavigationConfig(rawState);try{window.applyCatalogNavigationOrder?.(serializeNavigationConfig(navigationOrderDraft),{rebuild:false})}catch(e){console.info(e)}continue}if(["MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","CARGAR_IMAGENES_CATALOGO"].includes(k)&&window.INTERRUPTORES)window.INTERRUPTORES[k]=stateBool(rawState);if(ADMIN_FILTER_ITEMS.some(item=>item.key===k))adminGlobalStates.set(k,stateBool(rawState))}
+    for(const [rawKey,rawState] of Object.entries(values)){const k=String(rawKey||"").trim().toUpperCase();if(!k)continue;window.REMOTE_CONTROL_VALUES[k]=String(rawState??"");if(k==="ACTUALIZACION_CATALOGO_MINUTOS"){window.CATALOG_CACHE?.setMinutes(rawState);continue}if(k==="ORDEN_PRODUCTOS"){window.applyCatalogDefaultProductOrder?.(String(rawState));continue}if(k===NAVIGATION_ORDER_KEY){navigationOrderDraft=normalizeNavigationConfig(rawState);try{window.applyCatalogNavigationOrder?.(serializeNavigationConfig(navigationOrderDraft),{rebuild:false})}catch(e){console.info(e)}continue}if(["MOSTRAR_CANTIDAD_STOCK","MOSTRAR_PRECIOS_PRODUCTO","CARGAR_IMAGENES_CATALOGO"].includes(k)&&window.INTERRUPTORES)window.INTERRUPTORES[k]=stateBool(rawState);if(ADMIN_FILTER_ITEMS.some(item=>item.key===k))adminGlobalStates.set(k,stateBool(rawState))}
     if(Object.prototype.hasOwnProperty.call(values,"CARGAR_IMAGENES_ADMIN")) window.applyCatalogAdminImageLoading?.(values.CARGAR_IMAGENES_ADMIN);
     syncEffectiveAdminFilters();renderConfigValues(values);renderAdminFilterRows();
     try{if(typeof syncAdministrativeToolVisibility==="function")syncAdministrativeToolVisibility()}catch(e){console.info(e)}
@@ -680,6 +711,11 @@
       for(const target of targets){
         const r=await request({tipo:"actualizar-visibilidad",tipoRegla:target.tipo,identificador:target.id,etiqueta:target.label||info.label,ocultoNuevo});
         const k=key(target.tipo,r?.identificador||target.id);r?.oculto?rules.add(k):rules.delete(k);
+        const id=r?.identificador||target.id;
+        const saved=window.CATALOG_VISIBILITY_SNAPSHOT||[];
+        window.CATALOG_VISIBILITY_SNAPSHOT=saved.filter(item=>key(item.tipo,item.identificador)!==key(target.tipo,id))
+          .concat({tipo:target.tipo,identificador:id,oculto:r?.oculto===true,etiqueta:target.label||info.label||""});
+        window.CATALOG_CACHE?.updateMetadata();
       }
       rebuild();
     }catch(e){b.disabled=false;b.textContent=old;alert(e.message||"No se pudo guardar la visibilidad.")}
@@ -749,7 +785,7 @@
     if(!ok) throw new Error("El navegador no permitió copiar al portapapeles.");
   }
   function removePrice(card){const p=card.querySelector(".price"),r=card.querySelector(".row");card.querySelector(".price-admin-editor")?.remove();card.querySelector(".catalog-admin-copy-description")?.remove();if(p)p.hidden=false;r?.classList.remove("price-admin-active");const product=productObj(card.dataset.id);if(product&&typeof window.refreshCardUI==="function")window.refreshCardUI(card,product)}
-  async function savePrice(card,price,ed,inp,save,st){const v=priceValue(inp.value);if(inp.value.trim()&&!validPrice(inp.value)){status(st,"Precio inválido","err");return}inp.disabled=save.disabled=true;save.textContent="Guardando…";try{const code=visibilityId("producto",card.dataset.id||""),r=await request({tipo:"actualizar-precio",codigo:code,precioNuevo:v,precioAnterior:ed.dataset.prev===""?"":Number(ed.dataset.prev)});const g=priceValue(r?.precioGuardado);ed.dataset.prev=g;inp.value=editable(g);const p=productObj(code);if(p){p.price=g?Number(g):0;p.priceText=g?new Intl.NumberFormat("es-CO").format(Number(g)):"";p.hasPrice=!!g}price.textContent=(typeof window.shouldShowFichaPrices==="function"?window.shouldShowFichaPrices():window.INTERRUPTORES?.MOSTRAR_PRECIOS_PRODUCTO!==false)?(g?new Intl.NumberFormat("es-CO").format(Number(g)):"Consultar precio"):"";if(p&&typeof window.refreshCardUI==="function")window.refreshCardUI(card,p);status(st,"Precio guardado","ok");if(adminMissingPriceOnly&&p?.hasPrice)setTimeout(rebuild,0)}catch(e){status(st,e.message||"No se pudo guardar","err")}finally{inp.disabled=false;save.textContent="Guardar";save.disabled=priceValue(inp.value)===ed.dataset.prev}}
+  async function savePrice(card,price,ed,inp,save,st){const v=priceValue(inp.value);if(inp.value.trim()&&!validPrice(inp.value)){status(st,"Precio inválido","err");return}inp.disabled=save.disabled=true;save.textContent="Guardando…";try{const code=visibilityId("producto",card.dataset.id||""),r=await request({tipo:"actualizar-precio",codigo:code,precioNuevo:v,precioAnterior:ed.dataset.prev===""?"":Number(ed.dataset.prev)});const g=priceValue(r?.precioGuardado);ed.dataset.prev=g;inp.value=editable(g);const p=productObj(code);if(p){p.price=g?Number(g):0;p.priceText=g?new Intl.NumberFormat("es-CO").format(Number(g)):"";p.hasPrice=!!g}price.textContent=(typeof window.shouldShowFichaPrices==="function"?window.shouldShowFichaPrices():window.INTERRUPTORES?.MOSTRAR_PRECIOS_PRODUCTO!==false)?(g?new Intl.NumberFormat("es-CO").format(Number(g)):"Consultar precio"):"";if(p&&typeof window.refreshCardUI==="function")window.refreshCardUI(card,p);window.CATALOG_CACHE?.rememberCurrent();status(st,"Precio guardado","ok");if(adminMissingPriceOnly&&p?.hasPrice)setTimeout(rebuild,0)}catch(e){status(st,e.message||"No se pudo guardar","err")}finally{inp.disabled=false;save.textContent="Guardar";save.disabled=priceValue(inp.value)===ed.dataset.prev}}
   function validPrice(v){const t=String(v??"").trim();if(!t)return true;if(!/^(?:\d+|\d{1,3}(?:[.\s]\d{3})+)$/.test(t))return false;const n=Number(t.replace(/[.\s]/g,""));return Number.isSafeInteger(n)&&n>0}
   function priceValue(v){const t=String(v??"").trim();if(!t||/^Consultar precio$/i.test(t))return"";const d=t.replace(/[^\d]/g,"");return d?String(Number(d)):""}
   function editable(v){return v?new Intl.NumberFormat("es-CO").format(Number(v)):""} function status(el,t,c){el.textContent=t;el.className="price-admin-status "+(c||"")}

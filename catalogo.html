@@ -233,7 +233,7 @@
 
 
 
-  <link rel="stylesheet" href="catalogo.css?actualizacion=contadores-carga-2026-10-15-v2" />
+  <link rel="stylesheet" href="catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1" />
 
 
 
@@ -447,6 +447,7 @@
     <div class="products-heading"><h2>Productos</h2><div class="count-slot" id="countSlot"></div></div>
       <nav class="catalog-categories" id="catalogCategories" aria-label="Categorías disponibles" hidden></nav>
       <div class="bar" role="group" aria-label="Selección, filtros y orden de productos">
+        <button type="button" class="btn-ghost" id="catalogRefreshBtn">Actualizar catálogo</button>
         <button type="button" class="btn-ghost folleto-clear-selection" id="folletoClearSelectionBtn" hidden title="Quitar todas las marcas para Folleto, sin vaciar el carrito">Deseleccionar todo</button>
 
 
@@ -641,8 +642,9 @@
         <button class="btn-ghost word-clear" id="clearTermsBtn" type="button" hidden>Limpiar todo</button>
       </div>
     <div class="topline" id="topline">
-      <div class="count" id="count" aria-live="polite" hidden>0</div>
+      <div class="count" id="count" aria-live="polite" hidden>Cargando productos…</div>
     </div>
+    <p id="catalogRefreshStatus" role="status" aria-live="polite" hidden></p>
     <p id="bulkAddStatus" role="status" aria-live="polite"></p>
     <div id="albumNavHost">
       <div class="album-nav" id="albumNav" hidden>
@@ -1751,12 +1753,13 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo"></script>
- <script src="catalogo-app.js?actualizacion=datos-progresivos-v3"></script>
+ <script src="catalogo-app.js?actualizacion=cache-configurable-v1"></script>
+  <script src="catalogo-cache.js?actualizacion=cache-configurable-v1"></script>
   <script src="catalogo-carrito-pedido.js?actualizacion=administracion-movimientos-2026-10-14-2"></script>
   <script src="catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1"></script>
   <script src="analytics-visitas.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
-  <script src="catalogo-ui.js?actualizacion=datos-progresivos-v3"></script>
-  <script src="precios-admin.js?actualizacion=libros-administrativos-v1"></script>
+  <script src="catalogo-ui.js?actualizacion=pestanas-tres-palabras-2026-10-12-1"></script>
+  <script src="precios-admin.js?actualizacion=intervalo-catalogo-v1"></script>
   <script src="prospectos-admin.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script>
     // Se lee el índice de anuncios de Apps Script: nunca usa un file ID fijo ni GitHub como almacén.
@@ -1820,7 +1823,6 @@
       let displayedUrl = "";
       // El control compartido se resuelve antes de solicitar o mostrar anuncios.
       const imagesAllowed = () => window.CATALOG_PUBLIC_CONFIG_CONFIRMED === true
-        && window.CATALOG_INITIAL_LOAD_READY === true && catalogLoadPhase === "images"
         && typeof shouldShowProductImages === "function" && shouldShowProductImages();
       function render(file) {
         if (!imagesAllowed()) file = null;
@@ -1831,15 +1833,18 @@
           return;
         }
         if (displayedId === file.id && displayedUrl === file.url && !card.hidden) return;
-        loadCatalogImage(file.url, ALL_NAVIGATION_LEVELS.length + 1, true).then(loaded => {
-          if (!loaded || !imagesAllowed()) return;
+        const next = new Image();
+        next.onload = () => {
+          if (!imagesAllowed()) return;
           photo.src = file.url;
           photo.alt = "Anuncio de Natura: " + String(file.name || "promoción");
           photoLink.href = file.url;
           displayedId = file.id;
           displayedUrl = file.url;
           card.hidden = false;
-        });
+        };
+        next.onerror = () => { if (card.hidden) photo.removeAttribute("src"); };
+        next.src = file.url;
       }
       const readSaved = () => {
         try { return JSON.parse(localStorage.getItem(cacheKey) || "null"); }
@@ -1884,12 +1889,19 @@
 
 
       let pending = false;
-      async function refreshAds() {
+      async function refreshAds(force=false) {
+        if(force!==true && window.CATALOG_CACHE?.isFresh()) { render(readSaved()); return; }
         if (!imagesAllowed()) { render(null); return; }
         if (pending || document.visibilityState === "hidden") return;
         pending = true;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
         try {
-          const payload = await loadAppsScriptImageIndex();
+          const endpoint = new URL(APPS_SCRIPT_IMAGE_SOURCE.endpoint);
+          endpoint.searchParams.set("_", String(Date.now()));
+          const response = await fetch(endpoint.toString(), {cache:"no-store", signal:controller.signal});
+          if (!response.ok) throw new Error("El índice de anuncios no respondió correctamente.");
+          const payload = await response.json();
           if (!payload || payload.ok !== true ||
               payload.source?.adsFolderId !== "1QitBAhBjw_tik-qacrAmmx7cKMRJhIoM") {
             throw new Error("Respuesta del índice de anuncios no válida.");
@@ -1902,6 +1914,7 @@
           if (card.hidden) render(readSaved());
           console.warn("No se pudo actualizar el anuncio de Google Drive.", error);
         } finally {
+          clearTimeout(timeout);
           pending = false;
         }
       }
@@ -1909,9 +1922,6 @@
       window.REMOTE_CONFIG_READY?.then(() => {
         if (imagesAllowed()) { render(readSaved()); refreshAds(); }
         else render(null);
-      });
-      window.addEventListener("catalog-images-ready", () => {
-        if (imagesAllowed()) { render(readSaved()); refreshAds(); }
       });
       window.addEventListener("natura:image-visibility-changed", () => {
         if (imagesAllowed()) { render(readSaved()); refreshAds(); }
@@ -1923,6 +1933,7 @@
         if (document.visibilityState === "visible") refreshAds();
       });
       window.addEventListener("online", refreshAds);
+      window.addEventListener("catalog-updated",()=>refreshAds(true));
       setInterval(refreshAds, 300000);
     })();
   </script>
@@ -1998,7 +2009,7 @@
 
 
 
-      const catalogIsReady = () => catalogDataViewReady();
+      const catalogIsReady = () => window.CATALOG_INITIAL_LOAD_READY === true;
       const catalogHasHardError = () =>
         /error|no se pudieron cargar|no se pudo cargar|reintenta más tarde/i.test(
           String(count.textContent || "")
@@ -2084,10 +2095,6 @@
       });
       guard.observe(grid, {childList:true, subtree:true});
       window.addEventListener("catalog-initial-load-ready", () => {
-        count.hidden = false;
-        guard.disconnect();
-      }, {once:true});
-      window.addEventListener("catalog-data-progress", () => {
         count.hidden = false;
         guard.disconnect();
       }, {once:true});

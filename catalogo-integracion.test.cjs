@@ -8,13 +8,13 @@ const path = require('node:path');
 const vm = require('node:vm');
 const visualSource = fs.readFileSync(path.join(__dirname, 'recursos-visuales.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(__dirname, 'catalogo-app.js'), 'utf8');
+const cacheSource = fs.readFileSync(path.join(__dirname, 'catalogo-cache.js'), 'utf8');
 const adminSource = fs.readFileSync(path.join(__dirname, 'precios-admin.js'), 'utf8');
 const cartSource = fs.readFileSync(path.join(__dirname, 'catalogo-carrito-pedido.js'), 'utf8');
 const htmlSource = fs.readFileSync(path.join(__dirname, 'catalogo.html'), 'utf8');
 const toolsSource = fs.readFileSync(path.join(__dirname, 'catalogo-herramientas.js'), 'utf8');
 const fichaCssSource = fs.readFileSync(path.join(__dirname, 'catalogo.css'), 'utf8');
 const uiSource = fs.readFileSync(path.join(__dirname, 'catalogo-ui.js'), 'utf8');
-const paginationSource = fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','productos-paginacion.js'),'utf8');
 
 const headers = ['Código','Sección','Categoría','Subcategoría','Familia olfativa','Condición','Nombre','Precio','Costo','Stock','Referencia externa','Descripción','Código Natura','Línea','Público','Estado comercial','Marketplace','Nombre anterior','Marca','Tipo de producto','Variante','Característica','Presentación','Contenido','Unidad','Cantidad de unidades'];
 const samples = [
@@ -185,11 +185,11 @@ test('La vista directa conserva la explicación y retirada de filtros sin result
   assert.match(empty.children[1].textContent,/selecciones siguen activas/);
   assert.equal(empty.children[2].children[0].dataset.clearSearch,'all');
   assert.equal(env.run('selectedFacetFilters.length'),1);
-  assert.equal(env.document.getElementById('count').textContent,'0');
+  assert.equal(env.document.getElementById('count').textContent,'0 productos');
 });
 
-function environment(){
-  const elements=new Map(),timers=new Map(),requests=[],events=new Map(),storage=new Map();
+function environment(options={}){
+  const elements=new Map(),timers=new Map(),requests=[],events=new Map(),storage=options.storage||new Map();
   let timerId=0,context;
   class Node {
     set innerHTML(value){this.children=[];this._html=value;}
@@ -202,10 +202,8 @@ function environment(){
     removeChild(node){node.remove();return node;}
     replaceChildren(...nodes){this.children=[];this.append(...nodes);}
     remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
-    replaceWith(node){if(this.parentNode){const parent=this.parentNode,index=parent.children.indexOf(this);parent.children[index]=node;node.parentNode=parent;this.parentNode=null;}}
     setAttribute(name,value){this.attributes[name]=value;}
     getAttribute(name){return this.attributes[name]??null;}
-    removeAttribute(name){delete this.attributes[name];}
     addEventListener(name,fn){this.listeners.set(name,fn);}
     getBoundingClientRect(){return {top:0,width:350,height:350};}
     querySelector(){return null;}
@@ -218,7 +216,8 @@ function environment(){
     createElement(tag){const node=new Node(tag);if(tag==='template')node.content={firstElementChild:new Node()};return node;},
     querySelector(){return null;},querySelectorAll(){return [];},addEventListener(){}};
   const localStorage={getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)};
-  const sandbox={document,localStorage,sessionStorage:localStorage,URL,URLSearchParams,Intl,console:{info(){},warn(){},error(){}},
+  const Clock=options.clock?class extends Date {constructor(...args){super(...(args.length?args:[options.clock.now]));}static now(){return options.clock.now;}}:Date;
+  const sandbox={document,localStorage,sessionStorage:localStorage,URL,URLSearchParams,Intl,Date:Clock,console:{info(){},warn(){},error(){}},
     setTimeout(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearTimeout:id=>timers.delete(id),
     setInterval(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearInterval:id=>timers.delete(id),
     requestAnimationFrame:fn=>{fn();return 1;},MutationObserver:class {observe(){}disconnect(){}},
@@ -233,9 +232,10 @@ function environment(){
   context=vm.createContext(sandbox);
   vm.runInContext(visualSource,context,{filename:'recursos-visuales.js'});
   vm.runInContext(appSource,context,{filename:'catalogo-app.js'});
+  vm.runInContext(cacheSource,context,{filename:'catalogo-cache.js'});
   vm.runInContext(cartSource,context,{filename:'catalogo-carrito-pedido.js'});
   vm.runInContext(adminSource,context,{filename:'precios-admin.js'});
-  return {context,sandbox,document,requests,timers,events,run:source=>vm.runInContext(source,context),
+  return {context,sandbox,document,requests,timers,events,storage,run:source=>vm.runInContext(source,context),
     reply(table,status='ok'){const node=[...requests].reverse().find(n=>n.parentNode);assert.ok(node,'Debe existir una solicitud JSONP');const url=new URL(node.src);const cb=url.searchParams.get('callback')||url.searchParams.get('tqx').split('responseHandler:')[1];sandbox[cb](url.searchParams.has('modo')?table:{status,table});return cb;},
     fail(){const node=[...requests].reverse().find(n=>n.parentNode);assert.ok(node);node.onerror();},
     timeout(ms){const timer=[...timers.values()].find(item=>item.ms===ms);assert.ok(timer);timer.fn();}};
@@ -244,253 +244,114 @@ function assess(env,table){env.sandbox.inputTable=table;return env.run('buildCom
 async function confirmed(env,table=visibility){env.reply(table);await env.sandbox.CATALOG_PUBLIC_VISIBILITY_READY;}
 function fixture(){return tableFromValues([headers,...samples]);}
 
-function controlledCatalogImages(){
-  const env=environment(),images=[];
-  env.sandbox.Image=class {set src(url){this.url=url;images.push(this);}};
-  env.run('window.CATALOG_INITIAL_LOAD_READY=true;catalogLoadPhase="images"');
-  const products=[
-    ['9901','A','A1','X'],['9902','A','A1','Y'],['9903','A','A2','X'],
-    ['9904','B','B1','Y'],['9905','B','B1','Y']
-  ].map(([id,section,category,audience])=>({id,name:id,section,category,public:audience,price:Number(id),hasPrice:true,
-    hasImage:true,docsImageUrl:`https://ejemplo.invalid/${id}.png`,imageUrls:[`https://ejemplo.invalid/${id}.png`]}));
-  env.sandbox.products=products;
-  env.run('allLoadedProducts=products;all=products;setCatalogNavigationOrder("section,category,public,product")');
-  return {...env,images,products,urls:()=>images.map(image=>image.url)};
+async function savedCatalogEnvironment(){
+  const clock={now:Date.now()},env=environment({clock});await confirmed(env);
+  env.run('acceptCatalogPublicConfiguration({...REMOTE_CONTROL_DEFAULTS,ORDEN_PRODUCTOS:"price_asc"},{revision:new Date().toISOString(),rebuild:false});render=()=>{}');
+  const assessment=assess(env,fixture());env.sandbox.savedProducts=assessment.products;env.sandbox.savedReport=assessment.report;
+  assert.equal(env.run('window.CATALOG_CACHE.save(savedProducts,savedReport,{imagesIncluded:true})'),true);
+  env.run('allLoadedProducts=savedProducts;all=filterVisibleProducts(savedProducts);window.CATALOG_INITIAL_LOAD_READY=true');
+  return {...env,clock};
 }
-const imageTick=()=>new Promise(resolve=>setImmediate(resolve));
-const publicSnapshot='12345678-1234-1234-1234-123456789abc';
-function publicPage(table,offset,total,duplicateCodes=[]){
-  const limit=offset===0?30:100;
-  return {ok:true,version:3,table,page:{snapshot:publicSnapshot,offset,limit,total,
-    nextOffset:offset+table.rows.length<total?offset+table.rows.length:null,duplicateCodes}};
-}
-function manyPublicProducts(count){
-  return tableFromValues([headers,...Array.from({length:count},(_,i)=>[
-    9000+i,i<30?'Primera sección':'Segunda sección','Cabello','','','','Producto '+i,100+i
-  ])]);
-}
+const cacheTick=()=>new Promise(resolve=>setImmediate(resolve));
 
-test('Un primer lote queda visible mientras el siguiente sigue pendiente, con contadores reales y sin imágenes',async()=>{
-  const env=environment();await confirmed(env);
-  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;let imageCalls=0;loadAppsScriptImageIndex=()=>{imageCalls++;return new Promise(()=>{})};
-    const visibleBatches=[];render=()=>{if(!catalogDataViewReady())return;setCatalogLoadingCount(countEl,all);visibleBatches.push(countEl.textContent)};`);
-  const table=manyPublicProducts(65),schema={cols:[{id:'A',label:'Descripción completa del producto'},{id:'B',label:'Etiquetas para fichas'}],rows:[]};
-  let finished=false;const pending=env.run('loadProducts()').then(value=>{finished=true;return value});
-  env.reply(schema);await imageTick();
-  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,65));await imageTick();
-  assert.equal(finished,false);assert.equal(env.run('window.CATALOG_INITIAL_LOAD_READY'),false);
-  assert.equal(env.run('window.CATALOG_DATA_VIEW_READY'),true);
-  assert.equal(env.run('all.length'),30);assert.equal(env.document.getElementById('count').textContent,'30');
-  assert.equal(env.run('imageCalls'),0);assert.equal(env.document.getElementById('grid').attributes['aria-busy'],'true');
-  const request=new URL(env.requests.at(-1).src);
-  assert.equal(request.searchParams.get('snapshot'),publicSnapshot);assert.equal(request.searchParams.get('offset'),'30');
-  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,65));assert.equal(await pending,true);
-  await imageTick();assert.equal(env.run('all.length'),65);assert.equal(env.run('imageCalls'),1);
-  assert.deepEqual(clone(env.run('visibleBatches')),['30','65','65']);
-  assert.equal(env.document.getElementById('grid').attributes['aria-busy'],'false');
+test('Recargar y volver a abrir el navegador conserva el catálogo sin consultar Google durante 30 minutos',async()=>{
+  const first=await savedCatalogEnvironment(),savedAt=first.run('window.CATALOG_CACHE.read().fetchedAt');
+  first.clock.now+=29*60000;
+  const reopened=environment({storage:first.storage,clock:first.clock});
+  reopened.run('function syncAdministrativeToolVisibility(){};render=()=>{};let queried=0;loadGoogleSheetCatalog=()=>{queried++;throw new Error("No debe consultar Google")}');
+  await reopened.sandbox.CATALOG_PUBLIC_VISIBILITY_READY;
+  await reopened.run('initializeRemoteCatalogConfiguration()');
+  assert.equal(await reopened.run('loadProducts()'),true);
+  assert.equal(reopened.requests.length,0,'Configuración, Visibilidad y productos se reutilizan al recargar');
+  assert.equal(reopened.run('queried'),0);assert.equal(reopened.run('all.length'),2);
+  assert.equal(reopened.run('window.CATALOG_CACHE.read().fetchedAt'),savedAt,'Abrir la página no renueva el vencimiento');
+  assert.equal(reopened.sandbox.CATALOG_INITIAL_LOAD_READY,true);
+  first.clock.now+=60001;assert.equal(reopened.run('window.CATALOG_CACHE.read()'),null);
+  assert.ok(reopened.run('window.CATALOG_CACHE.read({allowExpired:true})'));
 });
 
-test('La ruta restaurada se conserva si sus productos llegan en el segundo lote',async()=>{
-  const env=environment();await confirmed(env);
-  env.run('window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;setSelectedNavigationValue("section","Segunda sección");render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
-  const table=manyPublicProducts(31);
-  env.run('readStateFromUrl=()=>{}');const pending=env.run('loadProducts()');
-  env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
-  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31));await imageTick();
-  assert.equal(env.run('selectedSection'),'Segunda sección');assert.equal(env.run('currentProductSourceList().length'),0);
-  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,31));assert.equal(await pending,true);
-  assert.equal(env.run('selectedSection'),'Segunda sección');assert.equal(env.run('currentProductSourceList().length'),1);
+test('Una actualización manual omite la copia vigente, conserva la navegación y comparte la solicitud concurrente',async()=>{
+  const env=await savedCatalogEnvironment();env.clock.now+=60000;
+  env.run(`let configCalls=0,visibilityCalls=0,dataCalls=0;let releaseData;
+    refreshRemoteCatalogConfiguration=async()=>{configCalls++;return true};window.refreshCatalogVisibility=async()=>{visibilityCalls++;return true};
+    loadGoogleSheetCatalog=()=>{dataCalls++;return new Promise(resolve=>releaseData=resolve)};
+    setSelectedNavigationValue("section","Belleza y cuidado");readStateFromUrl=()=>{throw new Error("No debe restablecer la navegación")};`);
+  const first=env.run('window.CATALOG_CACHE.refresh()'),second=env.run('window.CATALOG_CACHE.refresh()');
+  assert.equal(first,second);await cacheTick();
+  assert.equal(env.run('dataCalls'),1);assert.equal(env.document.getElementById('catalogRefreshBtn').disabled,true);
+  env.sandbox.freshRows=clone(env.run('savedProducts')).map(product=>({row:{code:product.id,name:'Nombre actualizado',section:product.section,category:product.category,priceValue:123},imageIndex:new Map()}));
+  env.run('releaseData({sheetEntries:freshRows,giftImageUrls:[],imagesIncluded:true})');
+  assert.equal(await first,true);
+  assert.equal(env.run('configCalls'),1);assert.equal(env.run('visibilityCalls'),1);
+  assert.equal(env.run('allLoadedProducts[0].name'),'Nombre actualizado');
+  assert.equal(env.run('selectedSection'),'Belleza y cuidado');
+  assert.equal(env.run('window.CATALOG_CACHE.read().fetchedAt'),env.clock.now);
+  assert.equal(env.document.getElementById('catalogRefreshBtn').disabled,false);
+});
+test('Incluso una copia vencida se muestra al recargar y se renueva después sin una pantalla de espera',async()=>{
+  const first=await savedCatalogEnvironment();first.clock.now+=31*60000;
+  const reopened=environment({storage:first.storage,clock:first.clock});
+  reopened.run('function syncAdministrativeToolVisibility(){};render=()=>{};let calls=0;loadGoogleSheetCatalog=async()=>{calls++;throw new Error("Todavía no debe consultar productos")}');
+  await reopened.sandbox.CATALOG_PUBLIC_VISIBILITY_READY;await reopened.run('initializeRemoteCatalogConfiguration()');
+  assert.equal(await reopened.run('loadProducts()'),true);assert.equal(reopened.requests.length,0);
+  assert.equal(reopened.run('calls'),0);assert.equal(reopened.run('all.length'),2);
+  assert.equal(reopened.sandbox.CATALOG_INITIAL_LOAD_READY,true);
+  assert.ok([...reopened.timers.values()].some(timer=>timer.ms===1000),'La actualización queda programada sin bloquear la vista guardada');
 });
 
-test('Un código duplicado en un lote posterior nunca se publica provisionalmente',async()=>{
-  const env=environment();await confirmed(env);env.run('render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
-  const table=manyPublicProducts(31);table.rows[30].c[0]=clone(table.rows[0].c[0]);
-  const pending=env.run('loadProducts()');env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
-  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31,['9000']));await imageTick();
-  assert.equal(env.run('allLoadedProducts.some(p=>p.id==="9000")'),false);assert.equal(env.run('allLoadedProducts.length'),29);
-  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,31,['9000']));assert.equal(await pending,true);
-  assert.equal(env.run('allLoadedProducts.length'),29);assert.equal(env.sandbox.CATALOG_COMPATIBILITY_REPORT.pending,2);
+test('El vencimiento actualiza automáticamente y cambiar el intervalo no reinicia la antigüedad de los datos',async()=>{
+  const env=await savedCatalogEnvironment(),loadedAt=env.run('window.CATALOG_CACHE.read().fetchedAt');
+  env.clock.now+=10*60000;
+  assert.equal(env.run('window.CATALOG_CACHE.setMinutes("15")'),true);
+  assert.equal(env.run('window.CATALOG_CACHE.read().fetchedAt'),loadedAt);
+  const pair=[...env.timers].find(([,timer])=>timer.ms===5*60000);assert.ok(pair);
+  env.run('let calls=0;refreshRemoteCatalogConfiguration=async()=>true;window.refreshCatalogVisibility=async()=>true;loadProducts=async()=>{calls++;return true}');
+  env.clock.now+=5*60000;env.timers.delete(pair[0]);pair[1].fn();await cacheTick();
+  assert.equal(env.run('calls'),1);
+  for(const bad of ['0','-1','1.5','10081','abc'])assert.equal(env.run(`window.CATALOG_CACHE.setMinutes(${JSON.stringify(bad)})`),false);
 });
 
-test('Un lote de otra lectura se rechaza y conserva únicamente los productos ya confirmados',async()=>{
-  const env=environment();await confirmed(env);env.run('render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
-  const table=manyPublicProducts(31),pending=env.run('loadProducts()');
-  env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
-  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31));await imageTick();
-  const wrong=publicPage({...table,rows:table.rows.slice(30)},30,31);wrong.page.snapshot='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
-  env.reply(wrong);assert.equal(await pending,false);assert.equal(env.run('allLoadedProducts.length'),30);
-  assert.equal(env.run('window.CATALOG_INITIAL_LOAD_READY'),false);
-  assert.match(env.document.getElementById('catalogConfigurationNotice').textContent,/interrumpió/);
+test('Fallar al actualizar conserva los datos y la fecha anterior; volver a abrir no convierte datos vencidos en nuevos',async()=>{
+  const env=await savedCatalogEnvironment(),before=clone(env.run('window.CATALOG_CACHE.read()'));
+  env.clock.now+=31*60000;
+  env.run('refreshRemoteCatalogConfiguration=async()=>true;window.refreshCatalogVisibility=async()=>true;loadGoogleSheetCatalog=async()=>{throw new Error("Sin conexión")}');
+  assert.equal(await env.run('window.CATALOG_CACHE.refresh()'),false);
+  assert.deepEqual(clone(env.run('window.CATALOG_CACHE.read({allowExpired:true}).products')),before.products);
+  assert.equal(env.run('window.CATALOG_CACHE.read({allowExpired:true}).fetchedAt'),before.fetchedAt);
+  assert.equal(env.run('window.CATALOG_CACHE.read()'),null);
+  assert.match(env.document.getElementById('catalogRefreshStatus').textContent,/catálogo anterior/);
+  assert.equal(env.document.getElementById('catalogRefreshBtn').disabled,false);
 });
 
-test('El lector anterior también se presenta en lotes y descarta duplicados antes del primer render',async()=>{
-  const env=environment(),seen=[];await confirmed(env);
-  const table=manyPublicProducts(65);table.rows[64].c[0]=clone(table.rows[0].c[0]);
-  env.sandbox.recordBatch=rows=>seen.push({count:rows.length,
-    duplicate:rows.filter(row=>row.code==='9000').every(row=>row.technicalIssues.some(issue=>issue.reason==='Código duplicado'))});
-  const pending=env.run('loadPublicProductBatches(recordBatch)');env.reply({ok:true,version:3,table});
-  assert.equal((await pending).length,65);assert.deepEqual(seen.map(batch=>batch.count),[30,60,65]);
-  assert.ok(seen.every(batch=>batch.duplicate));
+test('Una pestaña oculta espera a volver a estar visible para actualizar',async()=>{
+  const env=await savedCatalogEnvironment();env.run('let calls=0;refreshRemoteCatalogConfiguration=async()=>true;window.refreshCatalogVisibility=async()=>true;loadProducts=async()=>{calls++;return true};window.CATALOG_CACHE.schedule()');
+  const pair=[...env.timers].find(([,timer])=>timer.ms===30*60000);assert.ok(pair);
+  env.document.visibilityState='hidden';env.clock.now+=30*60000;env.timers.delete(pair[0]);pair[1].fn();await cacheTick();
+  assert.equal(env.run('calls'),0);
+  env.document.visibilityState='visible';env.run('window.CATALOG_CACHE.schedule()');
+  const resumed=[...env.timers].find(([,timer])=>timer.ms===1000);assert.ok(resumed);env.timers.delete(resumed[0]);resumed[1].fn();await cacheTick();
+  assert.equal(env.run('calls'),1);
 });
 
-function pagedReaderEnvironment(payload){
-  const cache=new Map(),saved=[],context=vm.createContext({
-    Utilities:{getUuid:()=>publicSnapshot},
-    CacheService:{getScriptCache:()=>({get:key=>cache.get(key)||null,getAll:keys=>Object.fromEntries(keys.filter(key=>cache.has(key)).map(key=>[key,cache.get(key)])),
-      put(key,value,seconds){cache.set(key,value);saved.push({key,value,seconds})},putAll(entries,seconds){for(const [key,value]of Object.entries(entries)){cache.set(key,value);saved.push({key,value,seconds})}}})}
-  });
-  vm.runInContext(richReaderSource+'\n'+paginationSource,context);
-  context.currentPayload=payload;vm.runInContext('let reads=0;leerProductosPublicos_=()=>{reads++;return currentPayload}',context);
-  return {cache,saved,context,run:source=>vm.runInContext(source,context)};
-}
-
-test('El servicio entrega lotes de una sola lectura saneada y detecta duplicados entre páginas',()=>{
-  const table=pairedTable(Array.from({length:35},(_,i)=>[
-    `Código interno: ${i===34?'9000':String(9000+i)}\nNombre: Producto ${i}\nSección: A\nCategoría: Cabello\nCosto: SECRETO`,
-    `Nombre: Producto ${i}`]));
-  const env=pagedReaderEnvironment({ok:true,version:3,table});
-  const first=env.run('leerProductosPublicosPorLotes_({limit:"30",offset:"0"})');
-  assert.equal(first.table.rows.length,30);assert.equal(first.page.total,35);assert.equal(first.page.nextOffset,30);
-  assert.deepEqual(clone(first.page.duplicateCodes),['9000']);
-  env.run('currentPayload={ok:true,version:3,table:{cols:[],rows:[]}}');
-  const last=env.run(`leerProductosPublicosPorLotes_({limit:"100",offset:"30",snapshot:"${publicSnapshot}"})`);
-  assert.equal(last.table.rows.length,5);assert.equal(last.page.nextOffset,null);assert.equal(env.run('reads'),1);
-  assert.ok(env.saved.every(entry=>entry.seconds===300&&!entry.value.includes('SECRETO')));
-  env.cache.clear();assert.throws(()=>env.run(`leerProductosPublicosPorLotes_({limit:"30",offset:"0",snapshot:"${publicSnapshot}"})`),/EXPIRED/);
-  assert.equal(env.run('reads'),1,'No se debe sustituir una lectura caducada por precios de otra lectura');
+test('Activar fotografías reutiliza la información guardada y no reinicia el plazo',async()=>{
+  const env=await savedCatalogEnvironment();
+  env.run('window.CATALOG_CACHE.save(savedProducts,savedReport,{imagesIncluded:false});let queries=0;loadGoogleSheetCatalog=async()=>{queries++;throw new Error("No debe recargar datos")};loadAppsScriptImageIndex=async()=>({ok:true,products:{"9997":[{name:"9997.png",path:"9997.png",url:"https://ejemplo.invalid/9997.png"}]},gifts:[]})');
+  const stamp=env.run('window.CATALOG_CACHE.read().fetchedAt');env.clock.now+=60000;
+  assert.equal(await env.run('loadProducts({silent:true,refreshImages:true})'),true);
+  assert.equal(env.run('queries'),0);assert.equal(env.run('allLoadedProducts.find(p=>p.id==="9997").hasImage'),true);
+  assert.equal(env.run('window.CATALOG_CACHE.read().fetchedAt'),stamp);
 });
 
-test('El servicio valida paginación y mantiene compatibilidad completa si falla la caché',()=>{
-  const env=pagedReaderEnvironment({ok:true,version:3,table:{cols:[],rows:[]}});
-  for(const args of ['{limit:"101"}','{limit:"30",offset:"-1"}','{limit:"30",offset:"30"}','{limit:"30",snapshot:"ajeno"}'])
-    assert.throws(()=>env.run('leerProductosPublicosPorLotes_('+args+')'),/válida/);
-  env.run('CacheService.getScriptCache=()=>{throw new Error("Caché no disponible")}');
-  assert.equal(env.run('leerProductosPublicosPorLotes_({limit:"30"}).page'),undefined);
-});
-
-test('La información del catálogo se obtiene sin consultar ni siquiera el índice de imágenes',async()=>{
-  const env=environment();env.sandbox.rows=clone(samples);
-  env.run('loadGoogleSheetRows=async()=>rows;loadAppsScriptImageIndex=()=>{throw new Error("No debe consultarse todavía")}');
-  const result=await env.run('loadGoogleSheetCatalog()');
-  assert.equal(result.sheetEntries.length,samples.length);
-  assert.equal(result.sheetEntries[0].imageIndex.size,0);
-});
-
-test('loadProducts muestra los datos y termina antes de recibir el índice de imágenes',async()=>{
-  const env=environment();await confirmed(env);
-  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;
-    const snapshots=[];let releaseImages;let indexCalls=0;
-    loadAppsScriptImageIndex=()=>{indexCalls++;return new Promise(resolve=>releaseImages=resolve)};
-    render=()=>{setCatalogLoadingCount(countEl,all);snapshots.push({phase:catalogLoadPhase,count:countEl.textContent})};`);
-  const pending=env.run('loadProducts()');await replyProductTable(env,fixture());
-  assert.equal(await pending,true);await imageTick();
-  assert.equal(env.sandbox.CATALOG_INITIAL_LOAD_READY,true);
-  assert.deepEqual(clone(env.run('snapshots')),[{phase:'data',count:'2'},{phase:'data',count:'2'}]);
-  assert.equal(env.run('indexCalls'),1);
-  env.run('releaseImages({ok:true,products:{"9997":[{name:"9997.png",path:"9997.png",url:"https://ejemplo.invalid/9997.png"}]},gifts:[]})');
-  await env.run('catalogImageHydration');
-  assert.equal(env.run('snapshots.at(-1).phase'),'images');
-  assert.equal(env.run('all.find(p=>p.id==="9997").price'),194974.5);
-});
-
-test('Las imágenes recorren los niveles por anchura y esperan las descargas del nivel anterior',async()=>{
-  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
-  assert.deepEqual(env.urls(),[env.products[0].docsImageUrl,env.products[3].docsImageUrl]);
-  env.images[0].onload();await imageTick();assert.equal(env.images.length,2);
-  env.images[1].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[2].docsImageUrl);
-  env.images[2].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[1].docsImageUrl);
-  env.images[3].onload();await imageTick();assert.equal(env.images.at(-1).url,env.products[4].docsImageUrl);
-  env.images[4].onload();await imageTick();assert.equal(env.images.length,5);
-});
-
-test('La cola respeta niveles reordenados y no precarga Producto cuando está desactivado',async()=>{
-  const env=controlledCatalogImages();
-  env.run('setCatalogNavigationOrder("category,section,!subcategory,!public,!line,!product");prioritizeCatalogImages(products)');
-  await imageTick();assert.deepEqual(env.urls(),[env.products[0].docsImageUrl,env.products[2].docsImageUrl,env.products[3].docsImageUrl]);
-  for(const image of env.images)image.onload();await imageTick();
-  assert.equal(env.images.length,3);
-  env.run('setCatalogNavigationOrder("!section,!category,!subcategory,!public,!line,!product");prioritizeCatalogImages(products)');
-  await imageTick();assert.equal(env.images.length,3);
-});
-
-test('La vista directa limita concurrencia, deduplica imágenes y prioriza las portadas antes de otras fotos',async()=>{
-  const env=controlledCatalogImages();
-  env.run('products[0].imageUrls.push("https://ejemplo.invalid/secundaria.png");prioritizeCatalogImages(products,{direct:true})');
-  await imageTick();assert.equal(env.images.length,4);
-  env.images[0].onload();await imageTick();assert.equal(env.images.length,5);
-  assert.equal(env.images[4].url,env.products[4].docsImageUrl);
-  for(const image of env.images.slice(1))image.onload();await imageTick();
-  assert.equal(env.images[5].url,'https://ejemplo.invalid/secundaria.png');
-  env.images[5].onload();await imageTick();
-  env.run('prioritizeCatalogImages(products,{direct:true})');await imageTick();assert.equal(env.images.length,6);
-});
-
-test('Los contadores por tarjeta usan éxitos reales, no cuentan errores ni duplican productos con varias fotos',async()=>{
-  const env=controlledCatalogImages(),badge=env.document.createElement('span');env.sandbox.badge=badge;
-  env.run('catalogLoadPhase="data";setCatalogLoadingCount(badge,[products[0],products[1],products[0]])');
-  assert.equal(badge.textContent,'2');assert.match(badge.attributes['aria-label'],/información cargada/);
-  env.run('catalogLoadPhase="images";setCatalogLoadingCount(badge,products);prioritizeCatalogImages(products,{direct:true})');
-  assert.equal(badge.textContent,'0');await imageTick();
-  env.images[0].onload();env.images[1].onerror();await imageTick();
-  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'1');
-  env.images[2].onload();env.images[3].onload();env.images[4].onload();await imageTick();
-  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'4');
-  env.run('loadCatalogImage("https://ejemplo.invalid/segunda.png");products[0].imageUrls.push("https://ejemplo.invalid/segunda.png")');
-  await imageTick();env.images[5].onload();await imageTick();
-  env.run('setCatalogLoadingCount(badge,products)');assert.equal(badge.textContent,'4');
-  env.run('setCatalogLoadingCount(badge,[products[2]])');assert.equal(badge.textContent,'1');
-  assert.match(badge.attributes['aria-label'],/imagen cargada/);
-});
-
-test('Navegar da prioridad a la vista nueva y retira solicitudes pendientes de otras ramas',async()=>{
-  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
-  env.run('prioritizeCatalogImages([products[4]],{direct:true})');await imageTick();
-  assert.equal(env.images[2].url,env.products[4].docsImageUrl);
-  assert.equal(env.run('catalogImageRequests.has(products[2].docsImageUrl)'),false);
-  env.images[0].onload();env.images[1].onload();env.images[2].onload();await imageTick();
-  assert.equal(env.images.length,3);
-});
-
-test('Una imagen que falla o agota el tiempo no bloquea los niveles siguientes ni suma al contador',async()=>{
-  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
-  env.images[0].onerror();env.timeout(20000);await imageTick();
-  assert.equal(env.images.at(-1).url,env.products[2].docsImageUrl);
-  assert.equal(env.run('catalogLoadedProductCount(products)'),0);
-  env.images[2].onload();await imageTick();assert.equal(env.run('catalogLoadedProductCount(products)'),1);
-});
-
-test('Desactivar imágenes detiene la cola y conserva el recuento de información',async()=>{
-  const env=controlledCatalogImages();env.run('prioritizeCatalogImages(products)');await imageTick();
-  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"DESACTIVADO"});syncCatalogImageLoading()');
-  for(const image of env.images)image.onload();await imageTick();
-  assert.equal(env.images.length,2);assert.equal(env.run('catalogLoadedProductCount(products)'),5);
-  assert.equal(env.run('[...catalogImageRequests.values()].some(r=>r.status==="queued")'),false);
-});
-
-test('Cambiar el interruptor no vuelve a consultar datos y descarta un índice que llega después de desactivarlo',async()=>{
-  const env=controlledCatalogImages();
-  env.run(`let dataQueries=0;let releaseLate;loadGoogleSheetRows=()=>{dataQueries++;return Promise.resolve([])};
-    loadAppsScriptImageIndex=()=>new Promise(resolve=>releaseLate=resolve);
-    catalogLoadPhase="data";startCatalogImageHydration()`);
-  const pending=env.run('catalogImageHydration');await imageTick();
-  env.run('applyRemoteControlValues({CARGAR_IMAGENES_CATALOGO:"DESACTIVADO"});syncCatalogImageLoading();releaseLate({products:{},gifts:[]})');
-  assert.equal(await pending,false);assert.equal(env.run('dataQueries'),0);
-  assert.equal(env.run('catalogLoadPhase'),'data');assert.equal(env.run('allLoadedProducts.length'),5);
-});
-
-test('Los anuncios esperan la información y todas las imágenes del catálogo antes de descargar su foto',async()=>{
-  const env=controlledCatalogImages();
-  const start=htmlSource.indexOf('    // Se lee el índice de anuncios de Apps Script:');
-  const code=htmlSource.slice(start,htmlSource.indexOf('</script>',start));
-  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;window.CATALOG_INITIAL_LOAD_READY=false;catalogLoadPhase="data";
-    let adQueries=0;loadAppsScriptImageIndex=async()=>{adQueries++;return {ok:true,source:{adsFolderId:"1QitBAhBjw_tik-qacrAmmx7cKMRJhIoM"},
-      ads:{ad:{id:"AAAAAAAAAAAAAAAAAAAA",mimeType:"image/png",url:"https://lh3.googleusercontent.com/d/AAAAAAAAAAAAAAAAAAAA",name:"anuncio.png"}}}};`);
-  env.run(code);env.run('window.dispatchEvent(new CustomEvent("load"))');await imageTick();
-  assert.equal(env.run('adQueries'),0);assert.equal(env.images.length,0);
-  env.run('window.CATALOG_INITIAL_LOAD_READY=true;catalogLoadPhase="images";prioritizeCatalogImages([products[0]],{direct:true});window.dispatchEvent(new CustomEvent("catalog-images-ready"))');
-  await imageTick();assert.equal(env.run('adQueries'),1);assert.equal(env.images.length,1);
-  assert.equal(env.images[0].url,env.products[0].docsImageUrl);
-  env.images[0].onload();await imageTick();assert.match(env.images[1].url,/googleusercontent/);
+test('El intervalo se guarda en administración, se valida y se publica sin modificar productos',()=>{
+  const server=imageConfigurationServer(true);
+  assert.equal(server.run('obtenerConfiguracionWeb().valores.ACTUALIZACION_CATALOGO_MINUTOS'),'30');
+  const result=server.run('actualizarConfiguracionWeb("ACTUALIZACION_CATALOGO_MINUTOS","45")');
+  assert.equal(result.estado,'45');assert.equal(result.valores.ACTUALIZACION_CATALOGO_MINUTOS,'45');
+  assert.equal(JSON.parse(server.props.CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1).at(-1),'45');
+  assert.equal(imageConfigurationServer(true,server.props).run('obtenerConfiguracionWeb().valores.ACTUALIZACION_CATALOGO_MINUTOS'),'45');
+  for(const value of ['0','-1','1.2','10081','incorrecto'])assert.throws(()=>server.run(`actualizarConfiguracionWeb("ACTUALIZACION_CATALOGO_MINUTOS",${JSON.stringify(value)})`),/intervalo/);
+  assert.match(adminSource,/id="catalogRefreshMinutes" type="number"/);
+  assert.match(htmlSource,/id="catalogRefreshBtn"[^>]*>Actualizar catálogo/);
 });
 
 // DOM acotado para ejecutar las funciones publicadas del editor sin guardar precios.
@@ -698,10 +559,11 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=datos-progresivos-v3'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=cache-configurable-v1'));
+  assert.ok(htmlSource.includes('catalogo-cache.js?actualizacion=cache-configurable-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
-  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=libros-administrativos-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
+  assert.ok(htmlSource.includes('precios-admin.js?actualizacion=intervalo-catalogo-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
 test('Rango oficial opcional: todos los registros conservan nombre, código y valores reales',{skip:!process.env.CATALOG_PRODUCTS_FIXTURE},async()=>{
@@ -1450,7 +1312,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
 });
 
 
@@ -1618,7 +1480,7 @@ test('Los cuatro estados de imágenes se guardan independientemente y la prefere
     assert.equal(server.props.CATALOGO_CONFIG_PUBLIC_REVISION_V1,revision);
     const publicConfig=server.run('obtenerConfiguracionPublicaWeb()');
     assert.equal(Object.hasOwn(publicConfig.valores,'CARGAR_IMAGENES_ADMIN'),false);
-    assert.equal(Object.keys(publicConfig.valores).length,6);
+    assert.equal(Object.keys(publicConfig.valores).length,7);
     assert.throws(()=>server.run('actualizarConfiguracionWeb("CARGAR_IMAGENES_ADMIN","invalido")'),/estado.*no es válido/);
     assert.equal(server.run('obtenerConfiguracionWeb().valores.CARGAR_IMAGENES_ADMIN'),saved.valores.CARGAR_IMAGENES_ADMIN);
   }
@@ -1671,7 +1533,7 @@ test('El administrador arranca y lee configuración aunque Apps Script cargue co
   for(const first of ['admin-configuracion.js','Código.js']){
     const props={
       CATALOGO_CONFIG_MIGRADA_V1:'ok',
-      CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1:JSON.stringify(['DESACTIVADO','DESACTIVADO','ACTIVADO','ACTIVADO','section,category,subcategory,public,line,product','price_asc']),
+      CATALOGO_CONFIG_PUBLIC_SNAPSHOT_V1:JSON.stringify(['DESACTIVADO','DESACTIVADO','ACTIVADO','ACTIVADO','section,category,subcategory,public,line,product','price_asc','30']),
       CATALOGO_CONFIG_PUBLIC_REVISION_V1:revision
     };
     const served=[];
@@ -1855,5 +1717,5 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
   assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
 });

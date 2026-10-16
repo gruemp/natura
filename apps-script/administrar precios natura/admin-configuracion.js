@@ -13,6 +13,7 @@ function obtenerConfiguracionPublicaWeb() {
 function actualizarConfiguracionWeb(clave, activado) {
   const claveSegura = String(clave == null ? "" : clave).trim().toUpperCase();
   if (claveSegura === "ORDEN_PRODUCTOS") return actualizarOrdenProductosWeb(activado);
+  if (claveSegura === "ACTUALIZACION_CATALOGO_MINUTOS") return actualizarIntervaloCatalogoWeb(activado);
   if (CONFIG_KEYS.indexOf(claveSegura) === -1) {
     throw new Error("La clave de configuración no es válida.");
   }
@@ -67,6 +68,7 @@ function leerValoresConfiguracion_() {
     valores[clave] = guardado || CONFIG_DEFAULTS[clave];
   });
   valores.ORDEN_PRODUCTOS = normalizarOrdenProductos_(guardadas[CONFIG_PROPERTY_PREFIX + "ORDEN_PRODUCTOS"]) || "price_asc";
+  valores.ACTUALIZACION_CATALOGO_MINUTOS=normalizarIntervaloCatalogo_(guardadas[CONFIG_PROPERTY_PREFIX+"ACTUALIZACION_CATALOGO_MINUTOS"])||"30";
   valores[NAVIGATION_ORDER_KEY] = normalizarOrdenNavegacion_(
     guardadas[CONFIG_PROPERTY_PREFIX + NAVIGATION_ORDER_KEY]
   ) || NAVIGATION_ORDER_DEFAULT;
@@ -213,6 +215,23 @@ function normalizarBooleanoConfiguracion_(valor) {
 function normalizarOrdenProductos_(valor) {
   const orden = String(valor || "").trim();
   return ["price_asc", "price_desc", "name_asc", "name_desc"].indexOf(orden) !== -1 ? orden : "";
+}
+function normalizarIntervaloCatalogo_(valor){
+  const text=String(valor==null?"":valor).trim();
+  return /^[1-9]\d{0,4}$/.test(text)&&Number(text)<=10080?text:"";
+}
+function actualizarIntervaloCatalogoWeb(valor){
+  const seguro=normalizarIntervaloCatalogo_(valor);
+  if(!seguro)throw new Error("Indica un intervalo entero de 1 a 10080 minutos.");
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    migrarConfiguracionPublicaDesdeHoja_();
+    const props=PropertiesService.getScriptProperties(),key=CONFIG_PROPERTY_PREFIX+"ACTUALIZACION_CATALOGO_MINUTOS";
+    props.setProperty(key,seguro);
+    if(props.getProperty(key)!==seguro)throw new Error("No se pudo confirmar el intervalo.");
+    const values=leerValoresConfiguracion_();
+    return {ok:true,clave:"ACTUALIZACION_CATALOGO_MINUTOS",estado:seguro,valores:values,publicadoEn:publicarConfiguracionPublica_(values)};
+  }finally{lock.releaseLock();}
 }
 function actualizarOrdenProductosWeb(orden) {
   const seguro = normalizarOrdenProductos_(orden);

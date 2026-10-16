@@ -7,12 +7,17 @@ Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://githu
 - `catalogo.html`: entrada principal del catálogo, orden de carga de recursos y arranque de `init()` cuando todos los módulos ya están disponibles.
 - `catalogo.css`: estilos generales y responsive.
 - `catalogo-app.js`: núcleo del catálogo: configuración, datos, productos, filtros, navegación y renderizado.
+- `catalogo-cache.js`: copia persistente por navegador, vencimiento configurable y actualización manual del catálogo.
 - `catalogo-carrito-pedido.js`: carrito, cliente, dirección, resumen PNG, registro de pedido y salida por WhatsApp.
 - `catalogo-herramientas.js`: herramienta única Folleto: snapshot, layout y renderer comunes con salidas PNG y documento PDF. No controla el arranque del catálogo.
 - `catalogo-ui.js`: ajustes de experiencia visual y comportamiento de interfaz.
 - `precios-admin-config.js`: endpoint/configuración del administrador.
 - `precios-admin.js`: interfaz administrativa de precios, visibilidad y controles.
 - `analytics-visitas.js`: registro y lectura de analítica de visitas.
+
+El catálogo conserva su carga original en una sola lectura. Después de la primera descarga correcta, guarda productos, imágenes disponibles, configuración pública y reglas de visibilidad en ese navegador. Recargar la página o volver a abrirla reutiliza la copia sin consultar nuevamente esos datos ni reiniciar su antigüedad. El intervalo comienza en 30 minutos y se cambia en Administración → Configuración → Preferencias compartidas. Los demás navegadores reciben el intervalo nuevo cuando actualizan su catálogo.
+
+El botón **Actualizar catálogo** está disponible para visitantes y administradores y solicita una lectura nueva antes de vencer el plazo. Al vencer, la página renueva los datos en segundo plano; una pestaña oculta espera hasta volver a estar visible. La copia anterior permanece visible durante la actualización y se conserva si falla la conexión. Los cambios guardados explícitamente por el administrador se conservan en su copia local sin reiniciar el plazo. Esta copia es propia de cada navegador y no modifica los datos comerciales originales.
 
 ## Recursos técnicos públicos
 

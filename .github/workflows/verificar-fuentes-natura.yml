@@ -29,6 +29,7 @@ jobs:
           set -euo pipefail
           for archivo in \
             catalogo-app.js \
+            catalogo-cache.js \
             catalogo-carrito-pedido.js \
             catalogo-herramientas.js \
             catalogo-ui.js \
