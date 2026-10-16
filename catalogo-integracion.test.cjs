@@ -14,6 +14,7 @@ const htmlSource = fs.readFileSync(path.join(__dirname, 'catalogo.html'), 'utf8'
 const toolsSource = fs.readFileSync(path.join(__dirname, 'catalogo-herramientas.js'), 'utf8');
 const fichaCssSource = fs.readFileSync(path.join(__dirname, 'catalogo.css'), 'utf8');
 const uiSource = fs.readFileSync(path.join(__dirname, 'catalogo-ui.js'), 'utf8');
+const paginationSource = fs.readFileSync(path.join(__dirname,'apps-script','lectura de carpetas en natura','productos-paginacion.js'),'utf8');
 
 const headers = ['Código','Sección','Categoría','Subcategoría','Familia olfativa','Condición','Nombre','Precio','Costo','Stock','Referencia externa','Descripción','Código Natura','Línea','Público','Estado comercial','Marketplace','Nombre anterior','Marca','Tipo de producto','Variante','Característica','Presentación','Contenido','Unidad','Cantidad de unidades'];
 const samples = [
@@ -257,6 +258,115 @@ function controlledCatalogImages(){
   return {...env,images,products,urls:()=>images.map(image=>image.url)};
 }
 const imageTick=()=>new Promise(resolve=>setImmediate(resolve));
+const publicSnapshot='12345678-1234-1234-1234-123456789abc';
+function publicPage(table,offset,total,duplicateCodes=[]){
+  const limit=offset===0?30:100;
+  return {ok:true,version:3,table,page:{snapshot:publicSnapshot,offset,limit,total,
+    nextOffset:offset+table.rows.length<total?offset+table.rows.length:null,duplicateCodes}};
+}
+function manyPublicProducts(count){
+  return tableFromValues([headers,...Array.from({length:count},(_,i)=>[
+    9000+i,i<30?'Primera sección':'Segunda sección','Cabello','','','','Producto '+i,100+i
+  ])]);
+}
+
+test('Un primer lote queda visible mientras el siguiente sigue pendiente, con contadores reales y sin imágenes',async()=>{
+  const env=environment();await confirmed(env);
+  env.run(`window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;let imageCalls=0;loadAppsScriptImageIndex=()=>{imageCalls++;return new Promise(()=>{})};
+    const visibleBatches=[];render=()=>{if(!catalogDataViewReady())return;setCatalogLoadingCount(countEl,all);visibleBatches.push(countEl.textContent)};`);
+  const table=manyPublicProducts(65),schema={cols:[{id:'A',label:'Descripción completa del producto'},{id:'B',label:'Etiquetas para fichas'}],rows:[]};
+  let finished=false;const pending=env.run('loadProducts()').then(value=>{finished=true;return value});
+  env.reply(schema);await imageTick();
+  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,65));await imageTick();
+  assert.equal(finished,false);assert.equal(env.run('window.CATALOG_INITIAL_LOAD_READY'),false);
+  assert.equal(env.run('window.CATALOG_DATA_VIEW_READY'),true);
+  assert.equal(env.run('all.length'),30);assert.equal(env.document.getElementById('count').textContent,'30');
+  assert.equal(env.run('imageCalls'),0);assert.equal(env.document.getElementById('grid').attributes['aria-busy'],'true');
+  const request=new URL(env.requests.at(-1).src);
+  assert.equal(request.searchParams.get('snapshot'),publicSnapshot);assert.equal(request.searchParams.get('offset'),'30');
+  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,65));assert.equal(await pending,true);
+  await imageTick();assert.equal(env.run('all.length'),65);assert.equal(env.run('imageCalls'),1);
+  assert.deepEqual(clone(env.run('visibleBatches')),['30','65','65']);
+  assert.equal(env.document.getElementById('grid').attributes['aria-busy'],'false');
+});
+
+test('La ruta restaurada se conserva si sus productos llegan en el segundo lote',async()=>{
+  const env=environment();await confirmed(env);
+  env.run('window.CATALOG_PUBLIC_CONFIG_CONFIRMED=true;setSelectedNavigationValue("section","Segunda sección");render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
+  const table=manyPublicProducts(31);
+  env.run('readStateFromUrl=()=>{}');const pending=env.run('loadProducts()');
+  env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
+  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31));await imageTick();
+  assert.equal(env.run('selectedSection'),'Segunda sección');assert.equal(env.run('currentProductSourceList().length'),0);
+  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,31));assert.equal(await pending,true);
+  assert.equal(env.run('selectedSection'),'Segunda sección');assert.equal(env.run('currentProductSourceList().length'),1);
+});
+
+test('Un código duplicado en un lote posterior nunca se publica provisionalmente',async()=>{
+  const env=environment();await confirmed(env);env.run('render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
+  const table=manyPublicProducts(31);table.rows[30].c[0]=clone(table.rows[0].c[0]);
+  const pending=env.run('loadProducts()');env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
+  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31,['9000']));await imageTick();
+  assert.equal(env.run('allLoadedProducts.some(p=>p.id==="9000")'),false);assert.equal(env.run('allLoadedProducts.length'),29);
+  env.reply(publicPage({...table,rows:table.rows.slice(30)},30,31,['9000']));assert.equal(await pending,true);
+  assert.equal(env.run('allLoadedProducts.length'),29);assert.equal(env.sandbox.CATALOG_COMPATIBILITY_REPORT.pending,2);
+});
+
+test('Un lote de otra lectura se rechaza y conserva únicamente los productos ya confirmados',async()=>{
+  const env=environment();await confirmed(env);env.run('render=()=>{};INTERRUPTORES.CARGAR_IMAGENES_CATALOGO=false');
+  const table=manyPublicProducts(31),pending=env.run('loadProducts()');
+  env.reply({cols:[{id:'B',label:'Etiquetas para fichas'}],rows:[]});await imageTick();
+  env.reply(publicPage({...table,rows:table.rows.slice(0,30)},0,31));await imageTick();
+  const wrong=publicPage({...table,rows:table.rows.slice(30)},30,31);wrong.page.snapshot='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  env.reply(wrong);assert.equal(await pending,false);assert.equal(env.run('allLoadedProducts.length'),30);
+  assert.equal(env.run('window.CATALOG_INITIAL_LOAD_READY'),false);
+  assert.match(env.document.getElementById('catalogConfigurationNotice').textContent,/interrumpió/);
+});
+
+test('El lector anterior también se presenta en lotes y descarta duplicados antes del primer render',async()=>{
+  const env=environment(),seen=[];await confirmed(env);
+  const table=manyPublicProducts(65);table.rows[64].c[0]=clone(table.rows[0].c[0]);
+  env.sandbox.recordBatch=rows=>seen.push({count:rows.length,
+    duplicate:rows.filter(row=>row.code==='9000').every(row=>row.technicalIssues.some(issue=>issue.reason==='Código duplicado'))});
+  const pending=env.run('loadPublicProductBatches(recordBatch)');env.reply({ok:true,version:3,table});
+  assert.equal((await pending).length,65);assert.deepEqual(seen.map(batch=>batch.count),[30,60,65]);
+  assert.ok(seen.every(batch=>batch.duplicate));
+});
+
+function pagedReaderEnvironment(payload){
+  const cache=new Map(),saved=[],context=vm.createContext({
+    Utilities:{getUuid:()=>publicSnapshot},
+    CacheService:{getScriptCache:()=>({get:key=>cache.get(key)||null,getAll:keys=>Object.fromEntries(keys.filter(key=>cache.has(key)).map(key=>[key,cache.get(key)])),
+      put(key,value,seconds){cache.set(key,value);saved.push({key,value,seconds})},putAll(entries,seconds){for(const [key,value]of Object.entries(entries)){cache.set(key,value);saved.push({key,value,seconds})}}})}
+  });
+  vm.runInContext(richReaderSource+'\n'+paginationSource,context);
+  context.currentPayload=payload;vm.runInContext('let reads=0;leerProductosPublicos_=()=>{reads++;return currentPayload}',context);
+  return {cache,saved,context,run:source=>vm.runInContext(source,context)};
+}
+
+test('El servicio entrega lotes de una sola lectura saneada y detecta duplicados entre páginas',()=>{
+  const table=pairedTable(Array.from({length:35},(_,i)=>[
+    `Código interno: ${i===34?'9000':String(9000+i)}\nNombre: Producto ${i}\nSección: A\nCategoría: Cabello\nCosto: SECRETO`,
+    `Nombre: Producto ${i}`]));
+  const env=pagedReaderEnvironment({ok:true,version:3,table});
+  const first=env.run('leerProductosPublicosPorLotes_({limit:"30",offset:"0"})');
+  assert.equal(first.table.rows.length,30);assert.equal(first.page.total,35);assert.equal(first.page.nextOffset,30);
+  assert.deepEqual(clone(first.page.duplicateCodes),['9000']);
+  env.run('currentPayload={ok:true,version:3,table:{cols:[],rows:[]}}');
+  const last=env.run(`leerProductosPublicosPorLotes_({limit:"100",offset:"30",snapshot:"${publicSnapshot}"})`);
+  assert.equal(last.table.rows.length,5);assert.equal(last.page.nextOffset,null);assert.equal(env.run('reads'),1);
+  assert.ok(env.saved.every(entry=>entry.seconds===300&&!entry.value.includes('SECRETO')));
+  env.cache.clear();assert.throws(()=>env.run(`leerProductosPublicosPorLotes_({limit:"30",offset:"0",snapshot:"${publicSnapshot}"})`),/EXPIRED/);
+  assert.equal(env.run('reads'),1,'No se debe sustituir una lectura caducada por precios de otra lectura');
+});
+
+test('El servicio valida paginación y mantiene compatibilidad completa si falla la caché',()=>{
+  const env=pagedReaderEnvironment({ok:true,version:3,table:{cols:[],rows:[]}});
+  for(const args of ['{limit:"101"}','{limit:"30",offset:"-1"}','{limit:"30",offset:"30"}','{limit:"30",snapshot:"ajeno"}'])
+    assert.throws(()=>env.run('leerProductosPublicosPorLotes_('+args+')'),/válida/);
+  env.run('CacheService.getScriptCache=()=>{throw new Error("Caché no disponible")}');
+  assert.equal(env.run('leerProductosPublicosPorLotes_({limit:"30"}).page'),undefined);
+});
 
 test('La información del catálogo se obtiene sin consultar ni siquiera el índice de imágenes',async()=>{
   const env=environment();env.sandbox.rows=clone(samples);
@@ -275,7 +385,7 @@ test('loadProducts muestra los datos y termina antes de recibir el índice de im
   const pending=env.run('loadProducts()');await replyProductTable(env,fixture());
   assert.equal(await pending,true);await imageTick();
   assert.equal(env.sandbox.CATALOG_INITIAL_LOAD_READY,true);
-  assert.deepEqual(clone(env.run('snapshots')),[{phase:'data',count:'2'}]);
+  assert.deepEqual(clone(env.run('snapshots')),[{phase:'data',count:'2'},{phase:'data',count:'2'}]);
   assert.equal(env.run('indexCalls'),1);
   env.run('releaseImages({ok:true,products:{"9997":[{name:"9997.png",path:"9997.png",url:"https://ejemplo.invalid/9997.png"}]},gifts:[]})');
   await env.run('catalogImageHydration');
@@ -588,7 +698,7 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=datos-antes-imagenes-v2'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=datos-progresivos-v3'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=contadores-carga-2026-10-15-v2'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=libros-administrativos-v1'));

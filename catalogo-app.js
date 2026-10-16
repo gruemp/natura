@@ -460,7 +460,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         const row = entry?.row;
         const code = String(row?.code || "");
         const issues = Array.isArray(row?.technicalIssues) ? row.technicalIssues.slice() : [];
-        if(occurrences.get(code) > 1) issues.push({reason:"Código duplicado", change:"Resolver la identidad duplicada sin elegir arbitrariamente una fila."});
+        if(occurrences.get(code) > 1 && !issues.some(issue=>issue.reason === "Código duplicado")) issues.push({reason:"Código duplicado", change:"Resolver la identidad duplicada sin elegir arbitrariamente una fila."});
         let product = null;
         if(!issues.length){
           try{
@@ -528,7 +528,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       });
     }
 
-    function queryPublicRichTextProducts(){
+    function queryPublicRichTextProducts(options = {}){
       return new Promise((resolve,reject)=>{
         const callback="__naturaRichText_"+Date.now()+"_"+Math.random().toString(36).slice(2);
         const script=document.createElement("script");let settled=false;
@@ -537,28 +537,83 @@ function readCompactGoogleSheetProductRows(table,indices){
         const timer=window.setTimeout(()=>finish(new Error("No se pudo leer la selección comercial del maestro.")),GOOGLE_SHEET_QUERY_TIMEOUT_MS);
         window[callback]=payload=>{
           if(payload?.ok!==true||![2,3].includes(payload?.version)||!Array.isArray(payload?.table?.rows))return finish(new Error("No se pudieron cargar los productos. Vuelve a intentarlo más tarde."));
-          finish(null,payload.table);
+          finish(null,options.paged ? payload : payload.table);
         };
         script.onerror=()=>finish(new Error("No se pudo conectar con el lector Rich Text."));
-        script.src=APPS_SCRIPT_IMAGE_SOURCE.endpoint+"?"+new URLSearchParams({modo:"productos",callback,_:String(Date.now())});
+        const parameters={modo:"productos",callback,_:String(Date.now())};
+        if(options.paged){
+          parameters.limit=String(options.limit || 30);
+          parameters.offset=String(options.offset || 0);
+          if(options.snapshot) parameters.snapshot=options.snapshot;
+        }
+        script.src=APPS_SCRIPT_IMAGE_SOURCE.endpoint+"?"+new URLSearchParams(parameters);
         script.async=true;document.head.appendChild(script);
       });
     }
-    async function loadGoogleSheetRows(){
+    function markDuplicateCatalogRows(rows, duplicateCodes){
+      for(const row of rows){
+        if(duplicateCodes.has(row.code) && !row.technicalIssues.some(issue=>issue.reason === "Código duplicado")){
+          row.technicalIssues.push({reason:"Código duplicado",change:"Resolver la identidad duplicada sin elegir arbitrariamente una fila."});
+        }
+      }
+      return rows;
+    }
+    function yieldCatalogDataPaint(){
+      return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    }
+    async function publishCatalogRowBatches(rows, onBatch){
+      if(typeof onBatch !== "function") return rows;
+      const counts=new Map();
+      for(const row of rows) if(row.code) counts.set(row.code,(counts.get(row.code)||0)+1);
+      markDuplicateCatalogRows(rows,new Set([...counts].filter(([,count])=>count>1).map(([code])=>code)));
+      for(let end=30;end<rows.length+30;end+=30){
+        await onBatch(rows.slice(0,Math.min(end,rows.length)));
+        await yieldCatalogDataPaint();
+      }
+      return rows;
+    }
+    async function loadPublicProductBatches(onBatch){
+      if(typeof onBatch !== "function") return readGoogleSheetProductRows(await queryPublicRichTextProducts());
+      let offset=0,snapshot="",total=null,columns="",duplicates=null;
+      const rows=[];
+      do{
+        const limit=offset===0?30:100;
+        const payload=await queryPublicRichTextProducts({paged:true,offset,limit,snapshot});
+        // Compatibilidad mientras se publica el lector y cuando su caché no está disponible.
+        if(!payload.page && offset===0) return publishCatalogRowBatches(readGoogleSheetProductRows(payload.table),onBatch);
+        const page=payload.page;
+        if(!page || !/^[a-f0-9-]{36}$/i.test(page.snapshot || "") || page.offset!==offset || page.limit!==limit
+          || !Number.isSafeInteger(page.total) || page.total<offset
+          || payload.table.rows.length!==Math.min(limit,page.total-offset)
+          || page.nextOffset!==(offset+payload.table.rows.length<page.total?offset+payload.table.rows.length:null)
+          || !Array.isArray(page.duplicateCodes) || page.duplicateCodes.some(code=>!/^\d{4}$/.test(code))
+          || (snapshot && (page.snapshot!==snapshot || page.total!==total || JSON.stringify(payload.table.cols)!==columns
+            || JSON.stringify(page.duplicateCodes)!==duplicates))){
+          throw new Error("No se pudo confirmar la continuidad de la carga del catálogo.");
+        }
+        snapshot=page.snapshot;total=page.total;columns=JSON.stringify(payload.table.cols);duplicates=JSON.stringify(page.duplicateCodes);
+        rows.push(...markDuplicateCatalogRows(readGoogleSheetProductRows(payload.table),new Set(page.duplicateCodes)));
+        await onBatch(rows.slice());
+        await yieldCatalogDataPaint();
+        offset=page.nextOffset;
+      }while(offset!==null);
+      return rows;
+    }
+    async function loadGoogleSheetRows(options = {}){
       // Descubrir encabezados sin filas; después leer únicamente datos públicos necesarios.
       const schema = await queryGoogleSheetTable();
       if(Array.isArray(schema.cols)&&schema.cols.some(c=>["Etiquetas para fichas","Informacion del producto para el sistema"].some(label=>catalogHeaderKey(c.label)===catalogHeaderKey(label)))){
         const titles=schema.cols.filter(c=>["Etiquetas para fichas","Informacion del producto para el sistema"].some(label=>catalogHeaderKey(c.label)===catalogHeaderKey(label)));
         if(titles.length!==1)throw new Error("Encabezado de ficha ambiguo.");
         catalogHeaderIndices(schema.cols,[titles[0].label]);
-        return readGoogleSheetProductRows(await queryPublicRichTextProducts());
+        return loadPublicProductBatches(options.onBatch);
       }
       const compact=Array.isArray(schema.cols)&&schema.cols.some(c=>catalogHeaderKey(c.label)===catalogHeaderKey("Descripción integral del producto"));
       if(compact){
         const indices=catalogHeaderIndices(schema.cols,["Descripción integral del producto"]);
         const ids=[indices.get(catalogHeaderKey("Descripción integral del producto")),catalogFichaOrderIndex(indices)].map(index=>schema.cols[index].id);
         if(ids.some(id=>!/^\w+$/.test(id||"")))throw new Error("Identificadores de columnas no válidos.");
-        return readGoogleSheetProductRows(await queryGoogleSheetTable(ids));
+        return publishCatalogRowBatches(readGoogleSheetProductRows(await queryGoogleSheetTable(ids)),options.onBatch);
       }
       const indices = catalogHeaderIndices(schema.cols,["Código","Nombre","Categoría","Precio","Sección","Estado comercial"]);
       const allowed = new Set([
@@ -569,7 +624,7 @@ function readCompactGoogleSheetProductRows(table,indices){
       ].map(catalogHeaderKey));
       const columnIds = [...indices].filter(([key,index])=>allowed.has(key)&&index>=0).map(([,index])=>schema.cols[index].id);
       if(!columnIds.length || columnIds.some(id=>!/^\w+$/.test(id||""))) throw new Error("Identificadores de columnas no válidos.");
-      return readGoogleSheetProductRows(await queryGoogleSheetTable(columnIds));
+      return publishCatalogRowBatches(readGoogleSheetProductRows(await queryGoogleSheetTable(columnIds)),options.onBatch);
     }
 
 
@@ -888,10 +943,10 @@ function readCompactGoogleSheetProductRows(table,indices){
       return numberedEntries.length ? [...numberedEntries, ...legacyEntries] : legacyEntries;
     }
 
-    async function loadGoogleSheetCatalog(){
+    async function loadGoogleSheetCatalog(options = {}){
       let rows = [];
       try{
-        rows = await loadGoogleSheetRows();
+        rows = await loadGoogleSheetRows({onBatch:options.onBatch});
       }catch(error){
         const sheetError = error instanceof Error ? error : new Error(String(error || "No se pudo leer el Google Sheet."));
         sheetError.catalogStage = "sheet";
@@ -2874,9 +2929,8 @@ function readCompactGoogleSheetProductRows(table,indices){
     function render(){
       const token = ++_renderToken;
 
-      // Mientras termina la carga inicial, el progreso es la única vista válida.
-      // Evita renders prematuros, incluso al restaurar automáticamente el modo administrador.
-      if(window.CATALOG_INITIAL_LOAD_READY !== true) return;
+      // Un lote completo de productos ya puede mostrarse aunque falten otros lotes.
+      if(!catalogDataViewReady()) return;
 
       if(!window.CATALOG_PUBLIC_CONFIG_CONFIRMED){
         if(grid){grid.classList.remove("album-three-column-layout");grid.replaceChildren(makeEmptyState("Esperando la configuración del catálogo…"));}
@@ -2989,6 +3043,11 @@ function readCompactGoogleSheetProductRows(table,indices){
     let catalogImagesActive = 0;
     let catalogImagePumpQueued = false;
     window.CATALOG_INITIAL_LOAD_READY = false;
+    window.CATALOG_DATA_VIEW_READY = false;
+
+    function catalogDataViewReady(){
+      return window.CATALOG_INITIAL_LOAD_READY === true || window.CATALOG_DATA_VIEW_READY === true;
+    }
 
     function catalogLoadedProductCount(products){
       const unique = new Map((products || []).map(product=>[String(product.id),product]));
@@ -3199,16 +3258,36 @@ function readCompactGoogleSheetProductRows(table,indices){
       suspendCatalogImages();
       if(!silent){
         window.CATALOG_INITIAL_LOAD_READY = false;
+        window.CATALOG_DATA_VIEW_READY = false;
+        grid?.setAttribute("aria-busy","true");
         setCatalogLoadingCount(countEl, []);
       }
 
+      let progressiveStateRead=false;
+      const publishBatch=rows=>{
+        if(generation !== catalogDataGeneration) return;
+        const assessment=buildCompatibleGoogleSheetProducts(rows.map(row=>({row,imageIndex:new Map()})));
+        allLoadedProducts=assessment.products;
+        all=filterVisibleProducts(allLoadedProducts);
+        productById=new Map(all.map(product=>[String(product.id),product]));
+        if(!progressiveStateRead){readStateFromUrl();progressiveStateRead=true;}
+        // No retirar una ruta restaurada solo porque sus productos estén en un lote posterior.
+        refreshNavigationAlbums();
+        refreshFilterOptionsForScope();
+        window.CATALOG_DATA_VIEW_READY=true;
+        try{render();}catch(error){console.warn("No se pudo mostrar un lote del catálogo.",error);}
+        window.dispatchEvent(new CustomEvent("catalog-data-progress",{detail:{loaded:allLoadedProducts.length}}));
+      };
       let catalogSource;
       try{
-        catalogSource = await loadGoogleSheetCatalog();
+        catalogSource = await loadGoogleSheetCatalog({onBatch:publishBatch});
       }catch(err){
         if(generation !== catalogDataGeneration) return false;
+        grid?.setAttribute("aria-busy","false");
         console.error("Error al cargar el Google Sheet oficial.", err);
-        if(!silent) updateCountTextError("No se pudieron cargar los productos desde el Google Sheet oficial. Reintenta más tarde.");
+        if(window.CATALOG_DATA_VIEW_READY){
+          setConfigurationNotice("La carga se interrumpió. Puedes ver los productos recibidos; recarga para completar el catálogo.");
+        }else if(!silent) updateCountTextError("No se pudieron cargar los productos desde el Google Sheet oficial. Reintenta más tarde.");
         return false;
       }
       if(generation !== catalogDataGeneration) return false;
@@ -3224,7 +3303,7 @@ function readCompactGoogleSheetProductRows(table,indices){
 
       try{
         productById = new Map(all.map(p => [String(p.id), p]));
-        readStateFromUrl();
+        if(!progressiveStateRead) readStateFromUrl();
         validateNavigationStateAgainstProducts();
         refreshNavigationAlbums();
       }catch(err){
@@ -3248,6 +3327,8 @@ function readCompactGoogleSheetProductRows(table,indices){
         if(!silent){
           window.CATALOG_INITIAL_LOAD_READY = true;
         }
+        window.CATALOG_DATA_VIEW_READY=true;
+        grid?.setAttribute("aria-busy","false");
         render();
         if(!silent){
           window.dispatchEvent(new CustomEvent("catalog-initial-load-ready"));
