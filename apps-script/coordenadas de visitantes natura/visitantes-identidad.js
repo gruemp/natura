@@ -12,14 +12,15 @@ function normalizeName_(value){
 
 function getBrowserIdentity_(userId){
   const id = String(userId || "").trim();
-  if (!id) return { id:"", nombre:"", navegador:"" };
+  if (!id) return { id:"", nombre:"", navegador:"", verificada:false };
 
   try{
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sh = ss.getSheetByName(BROWSER_ID_SHEET_NAME);
-    if (!sh || sh.getLastRow() < 2){
-      return { id, nombre:"", navegador:id };
+    if (!sh){
+      return { id, nombre:"", navegador:id, verificada:false };
     }
+    if (sh.getLastRow() < 2) return { id, nombre:"", navegador:id, verificada:true };
 
     const found = sh
       .getRange(2, 1, sh.getLastRow() - 1, 1)
@@ -27,46 +28,44 @@ function getBrowserIdentity_(userId){
       .matchEntireCell(true)
       .findNext();
 
-    if (!found) return { id, nombre:"", navegador:id };
+    if (!found) return { id, nombre:"", navegador:id, verificada:true };
 
     const nombre = String(sh.getRange(found.getRow(), 2).getDisplayValue() || "").trim();
-    return { id, nombre, navegador:nombre || id };
+    return { id, nombre, navegador:nombre || id, verificada:true };
   }catch(error){
     console.error("No se pudo consultar id_navegador: " + error);
-    return { id, nombre:"", navegador:id };
+    return { id, nombre:"", navegador:id, verificada:false };
   }
 }
 
-function getConfigValueByKey_(key){
+function ownVisitRegistrationEnabled_(){
   try{
-    const ss = SpreadsheetApp.openById(CONFIG_SPREADSHEET_ID);
-    const sh = ss.getSheetByName(CONFIG_SHEET_NAME);
-    if (!sh) return "";
-
-    const lastRow = sh.getLastRow();
-    if (lastRow < 1) return "";
-
-    const values = sh
-      .getRange(1, 1, lastRow, Math.min(5, sh.getLastColumn()))
-      .getDisplayValues();
-
-    const wanted = String(key || "").trim().toUpperCase();
-    for (const row of values){
-      const current = String(row[4] || "").trim().toUpperCase();
-      if (current === wanted) return String(row[1] || "").trim();
-    }
+    // El administrador publica su estado desde Propiedades del script. La hoja
+    // Configuracion es un espejo opcional y no autoriza registrar visitas propias.
+    const response = UrlFetchApp.fetch(PUBLIC_CONFIG_ENDPOINT, {
+      method:"get",
+      muteHttpExceptions:true,
+      headers:{"Cache-Control":"no-cache"}
+    });
+    if (response.getResponseCode() !== 200) return false;
+    const config = JSON.parse(response.getContentText());
+    if (!config || config.ok !== true || !config.valores
+      || !Number.isFinite(Date.parse(config.publicadoEn))) return false;
+    return config.valores[OWN_VISITS_CONTROL_KEY] === "ACTIVADO";
   }catch(error){
-    console.error("No se pudo leer Configuracion: " + error);
+    console.error("No se pudo confirmar el control público de visitas propias.");
   }
-  return "";
+  return false;
 }
 
 function shouldSkipOwnVisit_(identity){
+  const id = String(identity && identity.id || "").trim().toLowerCase();
   const normalizedName = normalizeName_(identity && identity.nombre);
-  if (!OWN_VISITOR_NAMES.has(normalizedName)) return false;
+  const ownBrowser = OWN_BROWSER_IDS.has(id) || OWN_VISITOR_NAMES.has(normalizedName);
+  if (!ownBrowser && identity && identity.verificada === true) return false;
 
-  const state = normalizeName_(getConfigValueByKey_(OWN_VISITS_CONTROL_KEY));
-  return state === "DESACTIVADO";
+  // Una consulta fallida tampoco permite tratar como ajeno un navegador propio.
+  return !ownVisitRegistrationEnabled_();
 }
 
 function isPrivateIpv4_(value){

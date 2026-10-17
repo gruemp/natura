@@ -65,6 +65,8 @@ El proyecto `coordenadas de visitantes natura` está dividido por responsabilida
 
 Las funciones públicas y nombres externos se conservan; la separación solo redistribuye funciones internas entre archivos del mismo proyecto Apps Script.
 
+Las visitas propias se reconocen por los siete IDs de respaldo compartidos con `analytics-visitas.js` y por los alias MARTIN/IRENIS de `id_navegador`. El servidor consulta el lector público vigente antes de registrar una visita propia, independientemente de la copia del catálogo del navegador. Solo `REGISTRAR_VISITAS_PROPIAS=ACTIVADO`, confirmado por ese lector, permite registrarla y avisar por Telegram. Si falta esa confirmación, o no se puede identificar el navegador y tampoco confirmar ese permiso, se omite la visita. La hoja opcional `Configuracion` no decide este control. Las pruebas de analítica simulan los servicios y no envían avisos reales.
+
 ## Administración de precios
 
 El proyecto `administrar precios natura` está dividido por responsabilidades sin cambiar sus funciones públicas ni los HTML existentes:

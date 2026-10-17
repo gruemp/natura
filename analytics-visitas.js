@@ -13,6 +13,7 @@
     "481dd00a-2810-4e7f-b371-d303a4a468a5",
     "dfd7a7e8-cf33-43d6-9ae3-a99309fe9508"
   ]);
+  let ownBrowserIdsPromise = null;
 
   iniciarRegistroVisita();
 
@@ -385,6 +386,9 @@
         cb: Math.random().toString(36).slice(2)
       });
 
+      // La configuración puede haber cambiado durante las consultas de ubicación.
+      if (!(await obtenerPoliticaRegistroVisitas(userId)).registrar) return false;
+
       await fetch(GPS_LOG_ENDPOINT, {
         method: "POST",
         mode: "no-cors",
@@ -462,8 +466,12 @@
     const valores = window.REMOTE_CONTROL_VALUES || {};
     const registrarPropias = parsearBooleanoRemoto(valores[OWN_VISITS_KEY], false);
 
-    if (!registrarPropias && await esNavegadorPropio(userId)) {
-      return { registrar: false, modo: "TODAS" };
+    if (!registrarPropias) {
+      try {
+        if (await esNavegadorPropio(userId)) return { registrar: false, modo: "TODAS" };
+      } catch (_) {
+        return { registrar: false, modo: "TODAS" };
+      }
     }
 
     return { registrar: true, modo: "TODAS" };
@@ -486,19 +494,17 @@
   }
 
   async function esNavegadorPropio(userId) {
-    if (!userId) return false;
-    if (OWN_BROWSER_IDS_FALLBACK.has(userId)) return true;
+    const id = String(userId || "").trim().toLowerCase();
+    if (!id) return false;
+    if (OWN_BROWSER_IDS_FALLBACK.has(id)) return true;
 
-    try {
-      const ids = await cargarIdsNavegadoresPropios();
-      return ids.has(userId);
-    } catch (_) {
-      return false;
-    }
+    const ids = await cargarIdsNavegadoresPropios();
+    return ids.has(id);
   }
 
   function cargarIdsNavegadoresPropios() {
-    return new Promise((resolve, reject) => {
+    if (ownBrowserIdsPromise) return ownBrowserIdsPromise;
+    ownBrowserIdsPromise = new Promise((resolve, reject) => {
       const callbackName = `__irenismbOwnBrowsers_${Date.now()}_${Math.random().toString(36).slice(2)}`;
       const script = document.createElement("script");
       let settled = false;
@@ -529,7 +535,7 @@
         const ids = new Set(OWN_BROWSER_IDS_FALLBACK);
         for (const row of payload.table.rows) {
           const cells = Array.isArray(row && row.c) ? row.c : [];
-          const id = valorCelda(cells[0]).trim();
+          const id = valorCelda(cells[0]).trim().toLowerCase();
           const nombre = normalizarClave(valorCelda(cells[1]));
           if (id && ["MARTIN", "IRENIS"].includes(nombre)) ids.add(id);
         }
@@ -555,6 +561,7 @@
       script.async = true;
       document.head.appendChild(script);
     });
+    return ownBrowserIdsPromise;
   }
 
   function valorCelda(cell) {
@@ -566,7 +573,7 @@
 
   function obtenerIdLocal() {
     try {
-      let id = localStorage.getItem(USER_ID_KEY);
+      let id = String(localStorage.getItem(USER_ID_KEY) || "").trim();
       if (id) return id;
 
       id = window.crypto && typeof window.crypto.randomUUID === "function"

@@ -34,6 +34,18 @@ const ADDRESS_CACHE_DECIMALS = 6;          // <- antes era “más preciso”: 6
 const BROWSER_ID_SHEET_NAME = "id_navegador";
 const OWN_VISITS_CONTROL_KEY = "REGISTRAR_VISITAS_PROPIAS";
 const OWN_VISITOR_NAMES = new Set(["MARTIN", "IRENIS"]);
+const PUBLIC_CONFIG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec?modo=config";
+// La exclusión debe funcionar también si el navegador conserva una configuración
+// anterior o la hoja de alias no está disponible.
+const OWN_BROWSER_IDS = new Set([
+  "461e0283-5358-4400-a31e-d8d74866d660",
+  "7aa54b29-d9db-4d17-a8dd-56bdc11c1f74",
+  "747d377e-20e4-423e-bed1-463b3154eb72",
+  "bdfc4faf-9f3b-4b27-867d-538ab2392c60",
+  "a2542505-3211-4970-885b-30dbeb5e43ee",
+  "481dd00a-2810-4e7f-b371-d303a4a468a5",
+  "dfd7a7e8-cf33-43d6-9ae3-a99309fe9508"
+]);
 
 // ✅ SOLO estas columnas se crearán/escribirán
 // ✅ 'navegador' guardará el alias (si existe) o el user_id

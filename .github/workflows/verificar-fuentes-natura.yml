@@ -67,4 +67,4 @@ jobs:
           PY
 
       - name: Ejecutar pruebas del catalogo
-        run: node --test catalogo-integracion.test.cjs lector-publico.test.cjs
+        run: node --test catalogo-integracion.test.cjs lector-publico.test.cjs analytics-visitas.test.cjs

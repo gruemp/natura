@@ -92,7 +92,7 @@ jobs:
           node --check "apps-script/administrar precios natura/admin-configuracion.js"
           node --check "apps-script/administrar precios natura/admin-contextos.js"
           node --check "apps-script/lector publico natura/Lector.js"
-          node --test catalogo-integracion.test.cjs lector-publico.test.cjs
+          node --test catalogo-integracion.test.cjs lector-publico.test.cjs analytics-visitas.test.cjs
 
       - name: Validar identidad y publicar
         env:
@@ -168,3 +168,27 @@ jobs:
 
             echo "Publicado automáticamente: $project_name -> $deployment_id"
           done < "$RUNNER_TEMP/selected.tsv"
+
+      - name: Comprobar el servicio de visitas y su control público sin registrar visitas
+        run: |
+          if ! cut -f1 "$RUNNER_TEMP/selected.tsv" | grep -Fqx "coordenadas de visitantes natura"; then
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, urllib.request
+
+          def leer(url):
+              request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return json.load(response)
+
+          # Solo GET de estado: no ejecuta doPost, no escribe hojas ni envía Telegram.
+          visitas = leer("https://script.google.com/macros/s/AKfycbygXijUyDrpyeA8qmheyZpYw9HVWuN_JZPIeYNbqRKKNYhqFFUguEMZmof4yLTtGbVO/exec")
+          if visitas.get("ok") is not True or visitas.get("status") != "ready":
+              raise SystemExit("El despliegue oficial de visitas no confirmó disponibilidad")
+          control = leer("https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec?modo=config")
+          estado = (control.get("valores") or {}).get("REGISTRAR_VISITAS_PROPIAS")
+          if control.get("ok") is not True or estado not in ("ACTIVADO", "DESACTIVADO"):
+              raise SystemExit("El lector público no confirmó el control vigente de visitas propias")
+          print("Servicio de visitas: ready. REGISTRAR_VISITAS_PROPIAS=" + estado)
+          PY
