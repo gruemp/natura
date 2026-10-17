@@ -2331,6 +2331,11 @@ function readCompactGoogleSheetProductRows(table,indices){
     const CATALOG_PERSISTENT_VIEW_KEY = "irenismb_catalog_last_view_v1";
     let lastCatalogHistoryIndex = 0;
 
+    function catalogUsesDirectoryBackNavigation(){
+      try{return new URL(location.href).searchParams.get("desde")==="directorio";}
+      catch(_){return false;}
+    }
+
     function catalogNavigationIsReload(){
       try{
         const navEntry = performance.getEntriesByType?.("navigation")?.[0];
@@ -2523,6 +2528,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
 
     function installCatalogExitGuardIfAtRoot(){
+      if(catalogUsesDirectoryBackNavigation()) return;
       if(!isCatalogRootNavigation()) return;
       const guardType = catalogExitGuardType();
       if(guardType === "guard") return;
@@ -2575,6 +2581,7 @@ function readCompactGoogleSheetProductRows(table,indices){
 
     function rebuildCatalogHistoryForRestoredNavigation({force=false}={}){
       validateNavigationStateAgainstProducts();
+      if(catalogUsesDirectoryBackNavigation()) return false;
       const trail=selectedNavigationTrail();
       if(!trail.length) return false;
       if(!force && currentCatalogHistoryIndex() > 0) return false;
@@ -2618,9 +2625,11 @@ function readCompactGoogleSheetProductRows(table,indices){
       if(tags) u.searchParams.set("tags",tags); else u.searchParams.delete("tags");
       if(selectedFacetFilters.length) u.searchParams.set("facets",JSON.stringify(selectedFacetFilters)); else u.searchParams.delete("facets");
 
-      const safeIndex=Number.isInteger(index)&&index>=0?index:0;
+      const directoryBack=catalogUsesDirectoryBackNavigation();
+      const safeIndex=directoryBack?0:(Number.isInteger(index)&&index>=0?index:0);
       const state=makeCatalogHistoryState(safeIndex,{preserveExitGuard:!push});
-      if(push) history.pushState(state,"",u.toString()); else history.replaceState(state,"",u.toString());
+      // Al venir del directorio, conservar una única entrada para volver allí con Atrás.
+      if(push&&!directoryBack) history.pushState(state,"",u.toString()); else history.replaceState(state,"",u.toString());
       lastCatalogHistoryIndex=safeIndex;
     }
 

@@ -1420,3 +1420,8 @@ body.catalog-admin-mode .catalog-navigation>nav,body.catalog-admin-mode .catalog
   .site-footer .footer-products-card .footer-product-benefits{display:grid;grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:14px 0 0;border-left:0;border-top:1px solid #ead4dc}
   .site-footer .footer-products-card .footer-product-benefits>li{min-width:0;justify-content:center;gap:10px}
 }
+/* Acceso al directorio y los tres beneficios en una sola fila de escritorio. */
+@media(min-width:1024px){
+  .site-footer .footer-products-card .footer-product-benefits{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+

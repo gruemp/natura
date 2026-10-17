@@ -15,12 +15,15 @@ test('El HTML contiene cada producto, su nombre y su ID sin cargar datos externo
   assert.equal(new Set(entries.map(m=>m[1])).size,entries.length);
   for(const [index,entry] of entries.entries()){
     const code=entry[1];
-    assert.match(entry[0],new RegExp(`href="catalogo.html\\?producto=${code}&amp;imagen=1"`));
-    assert.match(entry[0],new RegExp(`href="catalogo.html\\?producto=${code}"`));
+    assert.match(entry[0],new RegExp(`href="catalogo.html\\?producto=${code}&amp;desde=directorio&amp;imagen=1"`));
+    assert.match(entry[0],new RegExp(`href="catalogo.html\\?producto=${code}&amp;desde=directorio"`));
     assert.ok(entry[0].includes('<h5><a '));
     assert.equal(structured.mainEntity.itemListElement[index].url,'https://gruemp.github.io/natura/catalogo.html?producto='+code);
   }
   assert.doesNotMatch(html,/script.google.com|spreadsheets\/d\/|wa.me|tel:|Costo:|Stock:|Precio:/i);
+  const catalogLinks=[...html.matchAll(/href="(catalogo\.html[^"]*)"/g)];
+  assert.ok(catalogLinks.length>entries.length);
+  for(const link of catalogLinks)assert.equal(new URL(link[1].replaceAll('&amp;','&'),'https://gruemp.github.io/natura/').searchParams.get('desde'),'directorio');
 });
 
 test('La generación excluye ocultos y otras secciones y protege los datos internos',()=>{

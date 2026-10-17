@@ -121,7 +121,7 @@ def render(products):
                 sections.append('<section class="directorio-subcategoria">' + (f'<h4>{esc(subcategory)}</h4>' if subcategory else '') + '<ul class="directorio-items">')
                 for p in sub_items:
                     code = p["id"]
-                    url = "catalogo.html?producto=" + code
+                    url = "catalogo.html?producto=" + code + "&amp;desde=directorio"
                     photo = url + "&amp;imagen=1"
                     attrs = {"marca":p["brand"],"categoria":p["category"],"subcategoria":p["subcategory"],"linea":p["line"],"publico":p["public"]}
                     attributes = " ".join('data-' + k + '="' + esc(v) + '"' for k,v in attrs.items())

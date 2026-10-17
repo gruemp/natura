@@ -345,6 +345,34 @@ test('Volver a abrir restaura la última vista y reconstruye Atrás, mientras un
   assert.equal(linked.run('selectedFacetFilters.length'),0);
 });
 
+test('Desde el directorio, buscar y navegar mantienen una sola entrada y no instalan el aviso de salida',async()=>{
+  const env=await facetEnvironment();
+  const browser=browserNavigation(env,{href:'https://gruemp.github.io/natura/catalogo.html?producto=9901&desde=directorio&imagen=1'});
+  env.run('readStateFromUrl();render=()=>{};');
+  assert.equal(env.run('catalogUsesDirectoryBackNavigation()'),true);
+  assert.equal(env.run('rebuildCatalogHistoryForRestoredNavigation({force:true})'),false);
+  assert.equal(env.run('selectedLine'),'Kaiak');
+  env.run('pushNavigationStateToUrl();qInp.value="Perfume";writeStateToUrl();clearSelectedNavigationValues();pushNavigationStateToUrl();installCatalogExitGuardIfAtRoot();');
+  assert.equal(browser.historyWrites.filter(entry=>entry.method==='pushState').length,0);
+  assert.ok(browser.historyWrites.length>0);
+  assert.equal(env.run('currentCatalogHistoryIndex()'),0);
+  assert.equal(env.run('catalogExitGuardType()'),'');
+  assert.equal(new URL(env.sandbox.location.href).searchParams.get('desde'),'directorio');
+});
+
+test('El regreso interno del catálogo funciona desde el directorio y las visitas normales conservan su historial',async()=>{
+  const env=await facetEnvironment();
+  const browser=browserNavigation(env,{href:'https://gruemp.github.io/natura/catalogo.html?producto=9901&desde=directorio'});
+  env.run('readStateFromUrl();render=()=>{};pushNavigationStateToUrl();closeAlbum({keepFilters:true});');
+  assert.equal(env.run('selectedLine'),'');
+  assert.equal(env.run('selectedPublic'),'Masculinos');
+  assert.equal(browser.historyWrites.filter(entry=>entry.method==='pushState').length,0);
+  browserNavigation(env,{href:'https://gruemp.github.io/natura/catalogo.html'});
+  env.run('clearSelectedNavigationValues();installCatalogExitGuardIfAtRoot();');
+  assert.equal(env.run('catalogUsesDirectoryBackNavigation()'),false);
+  assert.equal(env.run('catalogExitGuardType()'),'guard');
+});
+
 test('Una rama eliminada al recargar conserva el nivel superior disponible y los filtros del visitante',async()=>{
   const first=await savedNavigationEnvironment(),saved=JSON.parse(first.storage.get('irenismb_catalog_reload_view_v1'));
   saved.line='Línea retirada';first.storage.set('irenismb_catalog_reload_view_v1',JSON.stringify(saved));
@@ -687,12 +715,12 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=directorio-productos-v1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=retorno-directorio-v1'));
   assert.ok(htmlSource.includes('catalogo-cache.js?actualizacion=cache-configurable-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.ok(htmlSource.includes('catalogo-ui.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.doesNotMatch(htmlSource,/id="catalogHomeBtn"/);
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=depuracion-integral-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=depuracion-integral-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1442,7 +1470,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=depuracion-integral-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
 });
 
 
@@ -1847,6 +1875,7 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
   assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=depuracion-integral-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
+  assert.match(layer,/@media\(min-width:1024px\)\{\s*\.site-footer \.footer-products-card \.footer-product-benefits\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
 });
 
