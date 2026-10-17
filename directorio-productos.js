@@ -6,22 +6,16 @@
   const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es").trim();
   if (form && items.length) {
     const search = document.getElementById("directorio-buscar");
-    const fields = ["marca", "categoria", "subcategoria", "linea", "publico"];
-    const selects = Object.fromEntries(fields.map(field => [field, document.getElementById("directorio-" + field)]));
     const text = new Map(items.map(item => [item, normalize([item.textContent,...Object.values(item.dataset)].join(" "))]));
     const accordions = Array.from(document.querySelectorAll("details.directorio-marca,details.directorio-categoria"));
     let previousOpen = null;
-    for (const field of fields) {
-      const values = [...new Set(items.map(item => item.dataset[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,"es",{sensitivity:"base"}));
-      for (const value of values) { const option = document.createElement("option"); option.value = value; option.textContent = value; selects[field].appendChild(option); }
-    }
     function filter() {
       const terms = normalize(search.value).split(/\s+/).filter(Boolean);
-      const active = terms.length > 0 || fields.some(field => selects[field].value);
+      const active = terms.length > 0;
       if (active && previousOpen === null) previousOpen = new Map(accordions.map(group => [group, group.open]));
       let count = 0;
       for (const item of items) {
-        item.hidden = !terms.every(term => text.get(item).includes(term)) || fields.some(field => selects[field].value && item.dataset[field] !== selects[field].value);
+        item.hidden = !terms.every(term => text.get(item).includes(term));
         if (!item.hidden) count++;
       }
       for (const group of document.querySelectorAll(".directorio-subcategoria,.directorio-categoria,.directorio-marca")) group.hidden = !Array.from(group.querySelectorAll(".directorio-item")).some(item => !item.hidden);
@@ -38,7 +32,6 @@
     form.addEventListener("input", filter);
     form.addEventListener("change", filter);
     form.addEventListener("submit", event => event.preventDefault());
-    form.addEventListener("reset", () => setTimeout(filter, 0));
     const controls = document.getElementById("directorio-desplegables");
     if (controls) {
       controls.hidden = false;
@@ -47,12 +40,6 @@
           for (const group of accordions) if (!group.hidden) group.open = open;
         });
       }
-    }
-    for (const link of document.querySelectorAll(".directorio-marcas a")) {
-      link.addEventListener("click", () => {
-        const group = document.getElementById(link.hash.slice(1));
-        if (group) group.open = true;
-      });
     }
   }
 

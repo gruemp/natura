@@ -21,6 +21,7 @@ test('El HTML contiene cada producto, su nombre y su ID sin cargar datos externo
     assert.equal(structured.mainEntity.itemListElement[index].url,'https://gruemp.github.io/natura/catalogo.html?producto='+code);
   }
   assert.doesNotMatch(html,/script.google.com|spreadsheets\/d\/|wa.me|tel:|Costo:|Stock:|Precio:/i);
+  assert.doesNotMatch(html,/<select\b|class="directorio-marcas"|Limpiar filtros/);
   const catalogLinks=[...html.matchAll(/href="(catalogo\.html[^"]*)"/g)];
   assert.ok(catalogLinks.length>entries.length);
   for(const link of catalogLinks)assert.equal(new URL(link[1].replaceAll('&amp;','&'),'https://gruemp.github.io/natura/').searchParams.get('desde'),'directorio');
@@ -86,7 +87,6 @@ test('La búsqueda abre coincidencias y al limpiar restaura los grupos; abrir y 
   const categories=items.map(item=>group([item],false));
   const accordions=[...brands,...categories];
   const ids=Object.fromEntries(['filtros','buscar','contador','vacio','desplegables','abrir','cerrar'].map(id=>['directorio-'+id,node()]));
-  for(const field of ['marca','categoria','subcategoria','linea','publico'])ids['directorio-'+field]=node({appendChild(){}});
   const document={getElementById:id=>ids[id],createElement:()=>({}),visibilityState:'visible',querySelectorAll:selector=>selector==='.directorio-item'?items:selector.startsWith('details.')?accordions:selector.startsWith('.directorio-subcategoria')?accordions:[]};
   vm.runInNewContext(read('directorio-productos.js'),{document,location:{hostname:'localhost'},setTimeout:fn=>fn()});
   assert.equal(ids['directorio-desplegables'].hidden,false);
@@ -96,9 +96,9 @@ test('La búsqueda abre coincidencias y al limpiar restaura los grupos; abrir y 
   assert.equal(ids['directorio-contador'].textContent,'1 producto');
   assert.equal(items[0].hidden,false);assert.equal(items[1].hidden,true);
   assert.equal(brands[0].open,true);assert.equal(categories[0].open,true);assert.equal(brands[1].hidden,true);
-  ids['directorio-buscar'].value='';ids['directorio-filtros'].events.reset();
+  ids['directorio-buscar'].value='';ids['directorio-filtros'].events.input();
   assert.ok(accordions.every(g=>!g.open));assert.ok(items.every(item=>!item.hidden));
-  ids['directorio-marca'].value='Avon';ids['directorio-filtros'].events.change();
+  ids['directorio-buscar'].value='Avon';ids['directorio-filtros'].events.input();
   assert.equal(brands[1].open,true);assert.equal(categories[2].open,true);assert.equal(brands[0].hidden,true);
   ids['directorio-buscar'].value='inexistente';ids['directorio-filtros'].events.input();
   assert.equal(ids['directorio-contador'].textContent,'0 productos');assert.equal(ids['directorio-vacio'].hidden,false);
