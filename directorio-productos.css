@@ -1,30 +1,40 @@
 /* Estilos exclusivos del directorio; el catálogo conserva su propia presentación. */
 .directorio-page [hidden]{display:none!important}
-.directorio-page .site-header-inner{grid-template-columns:minmax(0,1fr) auto}
-.directorio-page .brand{color:#582e46}
-.directorio-page .directorio-brand-name{display:block;font-family:Georgia,"Times New Roman",serif;font-size:clamp(21px,2.15vw,29px);font-weight:700;line-height:1.14}
-.directorio-page .directorio-main{max-width:1100px;padding-top:32px;padding-bottom:44px}
-.directorio-page .directorio-intro h1{margin:0 0 12px;color:#582e46;font-family:Georgia,"Times New Roman",serif;font-size:clamp(26px,4.5vw,38px);line-height:1.16;text-wrap:balance}
-.directorio-page .directorio-intro p{margin:0;color:#594652;font-size:16px}
+.directorio-page .site-header{padding:8px 0;border-top-width:4px}
+.directorio-page .site-header-inner{grid-template-columns:minmax(0,1fr) auto;gap:12px}
+.directorio-page .brand{color:#582e46;gap:10px}
+.directorio-page .site-header .brand>img{width:48px;height:48px}
+.directorio-page .site-header .brand>div{gap:2px}
+.directorio-page .site-header .brand .tagline{font-size:12px;line-height:1.25}
+.directorio-page .directorio-brand-name{display:block;font-family:Georgia,"Times New Roman",serif;font-size:clamp(19px,2vw,25px);font-weight:700;line-height:1.14}
+.directorio-page .directorio-main{max-width:1100px;padding-top:14px;padding-bottom:16px}
+.directorio-page .directorio-intro h1{margin:0 0 6px;color:#582e46;font-family:Georgia,"Times New Roman",serif;font-size:clamp(22px,3vw,30px);line-height:1.12;text-wrap:balance}
+.directorio-page .directorio-intro p{margin:0;color:#594652;font-size:14px;line-height:1.35}
 .directorio-page .directorio-cta{display:inline-flex;align-items:center;justify-content:center;gap:14px;min-height:48px;padding:12px 20px;border:1px solid #784b63;border-radius:13px;background:#784b63;color:#fff;text-align:center;text-decoration:none;font-weight:700;line-height:1.3;box-shadow:0 3px 10px #85516b18}
 .directorio-page .directorio-cta:hover{background:#603b4f}
 .directorio-page a:focus-visible,.directorio-page input:focus-visible,.directorio-page select:focus-visible,.directorio-page button:focus-visible,.directorio-page summary:focus-visible{outline:3px solid #9b647a;outline-offset:4px}
-.directorio-page .directorio-marcas{display:flex;gap:12px;flex-wrap:wrap;margin:23px 0}
-.directorio-page .directorio-marcas a{padding:10px 18px;border:1px solid #d2a0b2;border-radius:999px;background:#fff4f7;text-decoration:none;color:#582e46;font-weight:700}
-.directorio-page .directorio-filtros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;background:#fff9f8;border:1px solid #e8cdd5;border-radius:16px;padding:20px}
-.directorio-page .directorio-filtros label{display:grid;gap:6px;font-size:14px;color:#594652;font-weight:700;min-width:0}
+.directorio-page .directorio-marcas{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.directorio-page .directorio-marcas a{display:flex;align-items:center;gap:4px;min-height:34px;padding:6px 12px;border:1px solid #d2a0b2;border-radius:999px;background:#fff4f7;text-decoration:none;color:#582e46;font-size:14px;font-weight:700}
+.directorio-page .directorio-filtros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:#fff9f8;border:1px solid #e8cdd5;border-radius:16px;padding:12px}
+.directorio-page .directorio-filtros label{display:grid;gap:4px;font-size:12px;line-height:1.2;color:#594652;font-weight:700;min-width:0}
 .directorio-page .directorio-filtros .directorio-buscar{grid-column:span 2}
-.directorio-page .directorio-filtros input,.directorio-page .directorio-filtros select{width:100%;min-width:0;min-height:46px;border:1px solid #b9879a;border-radius:9px;padding:10px;background:#fff;color:#30202b;font:400 16px Calibri,Carlito,Arial,sans-serif}
-.directorio-page .directorio-filtros button{align-self:end;min-height:46px;cursor:pointer}
-.directorio-page .directorio-contador{color:#594652;font-size:14px;margin:18px 0}
-.directorio-page .directorio-marca{scroll-margin-top:20px;margin:32px 0 44px}
-.directorio-page .directorio-desplegables{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
-.directorio-page .directorio-desplegables button{min-height:44px;padding:10px 16px;cursor:pointer}
+.directorio-page .directorio-filtros input,.directorio-page .directorio-filtros select{width:100%;min-width:0;min-height:40px;border:1px solid #b9879a;border-radius:9px;padding:7px;background:#fff;color:#30202b;font:400 16px Calibri,Carlito,Arial,sans-serif}
+.directorio-page .directorio-filtros button{align-self:end;min-height:40px;padding:7px;font-size:13px;cursor:pointer}
+.directorio-page .directorio-herramientas{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:10px 0}
+.directorio-page .directorio-contador{color:#594652;font-size:13px;margin:0}
+.directorio-page #directorio-listado{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start}
+.directorio-page .directorio-marca{min-width:0;scroll-margin-top:20px;margin:0}
+.directorio-page .directorio-marca[open]{grid-column:1/-1}
+.directorio-page .directorio-desplegables{display:flex;gap:6px;flex-wrap:wrap;margin:0}
+.directorio-page .directorio-desplegables button{min-height:36px;padding:7px 10px;font-size:13px;cursor:pointer}
 .directorio-page .directorio-marca>summary,.directorio-page .directorio-categoria>summary{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid #e8cdd5;border-radius:13px;background:#fff0f5;color:#582e46;cursor:pointer;list-style:none}
 .directorio-page summary::-webkit-details-marker{display:none}
 .directorio-page .directorio-marca>summary::before,.directorio-page .directorio-categoria>summary::before{content:"";flex:0 0 8px;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);margin-right:3px}
 .directorio-page details[open]>summary::before{transform:rotate(45deg)}
-.directorio-page .directorio-marca>summary>h2{font-family:Georgia,"Times New Roman",serif;font-size:30px;color:inherit;margin:0;overflow-wrap:anywhere}
+.directorio-page .directorio-marca>summary{display:grid;grid-template-columns:10px minmax(0,1fr);gap:2px 10px;padding:10px 14px;min-height:66px}
+.directorio-page .directorio-marca>summary::before{grid-row:1/3;align-self:center}
+.directorio-page .directorio-marca>summary>h2{font-family:Georgia,"Times New Roman",serif;font-size:26px;line-height:1.1;color:inherit;margin:0;overflow-wrap:anywhere}
+.directorio-page .directorio-marca>summary>.directorio-total{grid-column:2;margin-left:0;font-size:12px;line-height:1.2}
 .directorio-page .directorio-total{font-size:13px;font-weight:400;margin-left:auto;white-space:nowrap}
 .directorio-page .directorio-categoria{margin:24px 0 30px}
 .directorio-page .directorio-categoria>summary{color:#265478;background:#f2f7fb;border-color:#cbdce9}
@@ -41,7 +51,34 @@
 .directorio-page .directorio-acciones{display:grid;gap:8px;text-align:center;min-width:170px;max-width:205px}
 .directorio-page .directorio-acciones>a{font-size:14px;line-height:1.3;min-height:42px;display:flex;align-items:center;justify-content:center;padding:8px 11px;border:1px solid #d2a0b2;border-radius:9px;color:#693e53;text-decoration:none;background:#fff9f8;font-weight:700}
 .directorio-page .directorio-acciones>a:last-child{background:#784b63;color:#fff;border-color:#784b63}
-.directorio-page .directorio-cta-final{display:flex;width:fit-content;margin:30px auto 0}
+.directorio-page .directorio-cta-final{display:flex;width:fit-content;min-height:42px;margin:12px auto 0;padding:9px 16px;font-size:14px}
 .directorio-page .directorio-compra-movil{display:none}
-@media(max-width:760px){.directorio-page .site-header-inner{grid-template-columns:1fr;gap:16px}.directorio-page .site-header-inner>.directorio-cta{width:100%}.directorio-page .directorio-filtros{grid-template-columns:1fr 1fr;padding:15px;gap:12px}.directorio-page .directorio-item{grid-template-columns:1fr;gap:13px;padding:16px}.directorio-page .directorio-acciones{grid-template-columns:1fr 1fr;max-width:none;min-width:0}.directorio-page .directorio-main{padding-bottom:105px;padding-top:24px}.directorio-page .directorio-compra-movil{position:fixed;bottom:0;left:0;right:0;display:block;padding:10px 14px calc(10px + env(safe-area-inset-bottom));border-top:1px solid #e8cdd5;background:#fffdfbf5;z-index:20;box-shadow:0 -4px 18px #64435410}.directorio-page .directorio-compra-movil>a{display:flex;width:100%}.directorio-page .directorio-item,.directorio-page .directorio-marca{scroll-margin-top:16px}}
-@media(max-width:400px){.directorio-page .directorio-filtros{grid-template-columns:1fr}.directorio-page .directorio-filtros .directorio-buscar{grid-column:auto}.directorio-page .directorio-acciones{grid-template-columns:1fr}.directorio-page .directorio-intro h1{font-size:27px}}
+@media(max-width:760px){.directorio-page .site-header-inner{grid-template-columns:1fr}.directorio-page .directorio-item{grid-template-columns:1fr;gap:13px;padding:16px}.directorio-page .directorio-acciones{grid-template-columns:1fr 1fr;max-width:none;min-width:0}.directorio-page .directorio-item,.directorio-page .directorio-marca{scroll-margin-top:16px}}
+@media(max-width:400px){.directorio-page .directorio-acciones{grid-template-columns:1fr}}
+/* Controles completos en la vista móvil; el enlace final evita una barra superpuesta. */
+@media(max-width:760px){
+  .directorio-page .site-header{padding:6px 0}
+  .directorio-page .site-header-inner{gap:0}
+  .directorio-page .site-header .brand>img{width:38px;height:38px}
+  .directorio-page .site-header .brand .tagline{font-size:11px}
+  .directorio-page .site-header-inner>.directorio-cta{display:none}
+  .directorio-page .directorio-brand-name{font-size:20px}
+  .directorio-page .directorio-main{padding-top:10px;padding-bottom:12px}
+  .directorio-page .directorio-intro h1{font-size:22px}
+  .directorio-page .directorio-intro p{font-size:13px}
+  .directorio-page .directorio-marcas{margin:8px 0}
+  .directorio-page .directorio-filtros{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px;gap:7px}
+  .directorio-page .directorio-filtros .directorio-buscar{grid-column:1/-1}
+  .directorio-page .directorio-herramientas{gap:4px;margin:8px 0}
+  .directorio-page .directorio-desplegables button{padding:7px 8px}
+  .directorio-page .directorio-marca>summary{padding:9px 10px;min-height:60px}
+  .directorio-page .directorio-marca>summary>h2{font-size:24px}
+  .directorio-page .directorio-compra-movil{display:none}
+}
+@media(max-width:760px) and (max-height:720px){
+  .directorio-page .directorio-filtros{grid-template-columns:repeat(3,minmax(0,1fr));padding:8px;gap:6px}
+  .directorio-page .directorio-filtros label{font-size:11px;gap:3px}
+  .directorio-page .directorio-filtros input,.directorio-page .directorio-filtros select{min-height:38px;padding:6px}
+  .directorio-page .directorio-filtros button{font-size:12px;min-height:38px}
+  .directorio-page .directorio-intro h1{font-size:21px}
+}

@@ -16,7 +16,7 @@
   <meta property="og:image" content="https://gruemp.github.io/natura/logo_empresa.png">
   <link rel="icon" href="logo_empresa.png">
   <link rel="stylesheet" href="catalogo.css?actualizacion=depuracion-integral-v1">
-  <link rel="stylesheet" href="directorio-productos.css?v=2">
+  <link rel="stylesheet" href="directorio-productos.css?v=3">
   <script src="directorio-productos.js?v=2" defer></script>
   <script type="application/ld+json">{{structured_data}}</script>
 </head>
@@ -43,10 +43,12 @@
       <label>Público objetivo<select id="directorio-publico"><option value="">Todos los públicos</option></select></label>
       <button type="reset" class="btn-ghost">Limpiar filtros</button>
     </form>
+    <div class="directorio-herramientas">
     <p class="directorio-contador" id="directorio-contador" role="status" aria-live="polite">{{product_count}} productos</p>
     <div class="directorio-desplegables" id="directorio-desplegables" hidden>
       <button type="button" class="btn-ghost" id="directorio-abrir" aria-controls="directorio-listado">Abrir todo</button>
       <button type="button" class="btn-ghost" id="directorio-cerrar" aria-controls="directorio-listado">Cerrar todo</button>
+    </div>
     </div>
     <p id="directorio-vacio" hidden>No hay productos que coincidan con tu búsqueda. Prueba con otro nombre o limpia los filtros.</p>
     <div id="directorio-listado">{{product_list}}</div>
