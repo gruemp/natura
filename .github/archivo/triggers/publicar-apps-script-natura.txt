@@ -1,3 +1,0 @@
-Control de despliegue de Apps Script Natura desde GitHub a Google e implementación.
-Solicitud automática de publicación: 2026-09-12.
-Motivo: registrar Pedido desde WhatsApp y Venta desde Generar factura usando la columna Tipo movimiento.

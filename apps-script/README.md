@@ -21,7 +21,7 @@ Esta carpeta reúne las fuentes de los cinco proyectos Apps Script de Natura en 
 - Su publicación conserva `Código.gs` y el manifiesto, sin sobrescribir el administrador. El despliegue inicial fue la versión 1; la publicación posterior de la versión 2 consta en `entrega.md`. El campo `version` de `deployment.json` registra la verificación inicial, no una consulta actual del despliegue remoto.
 - Endpoint vigente: https://script.google.com/macros/s/AKfycbzVQGki8PkioPQL1bbsm3_z-yVBuG02PZ0kNkiQXbtP8Dp2wamppiXQgmBLEEAEVFde4A/exec .
 - La carpeta de anuncios y el proyecto nativo de lectura se trasladaron a la carpeta vigente conservando IDs y permisos. Las hojas comerciales y los despliegues mantienen sus identidades.
-- `google-projects.json` registra los cinco proyectos y no habilita sincronización con Drive. Los auxiliares históricos están en `.github/archivo/` y sus referencias no deben utilizarse como fuentes actuales.
+- `google-projects.json` registra los cinco proyectos y no habilita sincronización con Drive. Los auxiliares retirados se consultan en el historial Git y no deben utilizarse como fuentes actuales.
 - El titular autoriza a los agentes a corregir y actualizar por iniciativa propia el código remoto de estos proyectos oficiales y publicar sus despliegues existentes, sin confirmación adicional por corrección, según el README de la raíz. Verificar pruebas, identidades y resultado; conservar IDs, enlaces y permisos. Las operaciones con datos comerciales, inventario, precios y pedidos requieren autorización específica.
 
 ## Pedidos Natura

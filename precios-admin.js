@@ -185,7 +185,6 @@
       hasRule("familia",i.legacyFamily);
   }
   function isDirectProduct(p){return rules.has(key("producto",p?.id||p?.code||""))}
-  function cell(c){return !c?"":c.f!=null?String(c.f):c.v!=null?String(c.v):""}
   function stateBool(v){return ["activado","activo","true","verdadero","si","1","on"].includes(norm(v))}
 
   function storageGet(key){try{return localStorage.getItem(key)}catch(_){return null}}

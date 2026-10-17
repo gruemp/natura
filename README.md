@@ -42,7 +42,7 @@ Recargar la página restaura la ruta, búsqueda, filtros, orden y posiciones de 
 - Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
 - El lector público utiliza un proyecto independiente y consulta tres propiedades públicas vigentes mediante la biblioteca privada del administrador, fijada en la versión 35. Su publicación conserva el archivo original Código.gs y no modifica el administrador.
 - Carpeta vigente de Google Drive: https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los archivos de código conciliados conservan sus IDs. La carpeta de anuncios y el proyecto nativo de lectura se trasladaron conservando sus identificadores y permisos; las hojas comerciales y los despliegues mantienen sus identidades.
-- `.github/archivo/workflows/migrar-natura.yml` conserva el proceso histórico de extracción. Está archivado y no es un workflow operativo.
+- Los procedimientos retirados de migración y sincronización se consultan en el historial Git; no forman parte del código vigente.
 
 ## Sincronizar solo diferencias con Google Drive
 
@@ -65,4 +65,4 @@ Toda opción administrativa que escriba en un libro externo debe ofrecer en esa 
 
 ## Archivo
 
-Los recursos históricos se conservan en `.github/archivo/`, con guía en `.github/archivo/leeme.md`. Los workflows retirados están en `.github/archivo/workflows/`; los operativos permanecen en `.github/workflows/`. Los IDs de recursos archivados son evidencia histórica, no referencias vigentes. No ejecutar auxiliares archivados sin revisar referencias, permisos y autorización.
+`.github/archivo/recursos-visuales/` conserva los originales gráficos reemplazados por los SVG del sitio, con su guía de procedencia. Los scripts, workflows, activadores y solicitudes retirados se recuperan del historial Git. Los workflows operativos permanecen en `.github/workflows/`.

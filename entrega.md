@@ -33,6 +33,6 @@ Validación técnica: https://github.com/gruemp/natura/actions/runs/38121936301 
 
 ## Pendientes
 
-La carpeta vigente de Natura es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Las fuentes fueron conciliadas y los cambios posteriores se actualizan manualmente, conservando los IDs; no hay sincronización automática con GitHub. Los recursos retirados están en `.github/archivo/` y sus workflows en `.github/archivo/workflows/`.
+La carpeta vigente de Natura es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Las fuentes fueron conciliadas y los cambios posteriores se actualizan manualmente, conservando los IDs; no hay sincronización automática con GitHub. Los originales gráficos retirados están en `.github/archivo/recursos-visuales/`; los antiguos scripts y workflows se consultan en el historial Git.
 
 Siguen pendientes la revisión de Search Console (nat-003) y la renovación segura de la autorización de publicación Google (nat-010). Los enlaces de stock anteriores documentan la extracción histórica y no identifican la fuente actual. El sitio anterior se conserva; cualquier retirada o redirección debe coordinarse con sus enlaces y restantes proyectos.

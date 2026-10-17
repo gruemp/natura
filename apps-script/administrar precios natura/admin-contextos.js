@@ -9,9 +9,6 @@ function catalogFieldKey(label){
   }
   return key;
 }
-function catalogPrivateField(label){
-  return /^(?:costo|coste|numero de serie|serie|serial|mac|direccion mac|p\/n|numero de parte|identificadores?|ubicacion interna|proveedor|margen|rentabilidad|precio de compra|codigo natura|referencia|placa|factura|notas? internas?)(?:\b|$)/.test(catalogFieldKey(label));
-}
 function catalogDescriptionRecord(text){
   const fields=[],byKey=new Map(),duplicates=new Set();let current=null;
   for(const line of String(text||"").split(/\r?\n/)){
@@ -33,17 +30,6 @@ function catalogCompactNumber(text){
   else if(/^\d+(?:,\d+)?$/.test(value))value=value.replace(",",".");
   if(!/^\d+(?:\.\d+)?$/.test(value))return {value:null,valid:false};
   const number=Number(value);return {value:Number.isFinite(number)?number:null,valid:Number.isFinite(number)&&number>=0};
-}
-function catalogOrderedFields(record,selection){
-  const seen=new Set(),fields=[];
-  for(const title of String(selection||"").split(/[\n;|,]+/)){
-    const label=title.trim().replace(/:\s*$/,""),key=catalogFieldKey(label);
-    if(!label||seen.has(key))continue;seen.add(key);
-    const field=record.byKey.get(key);
-    if(field&&!record.duplicates.has(key)&&!catalogPrivateField(key)&&field.value)
-      fields.push({key,label,value:field.value});
-  }
-  return fields;
 }
 
 

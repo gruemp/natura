@@ -1,7 +1,7 @@
 # Archivo
 
-Recursos históricos de migración, sincronización descartada, adaptaciones puntuales, solicitudes de imágenes atendidas y activadores retirados. Los archivos se conservan íntegros con historial Git y la jerarquía de su origen.
+Esta carpeta conserva únicamente los recursos visuales originales reemplazados por los SVG del sitio. Su procedencia está documentada en `recursos-visuales/leeme.md`.
 
-GitHub Actions solo reconoce los workflows de .github/workflows. Los YAML de esta carpeta no son workflows activos. Los scripts y configuraciones aquí conservados pueden contener IDs y enlaces históricos: no usarlos como fuentes vigentes ni ejecutarlos para modificar Drive, Google o publicaciones. Su reutilización requiere revisar referencias, permisos y alcance y una orden expresa.
+Los workflows, scripts de migración, activadores retirados y solicitudes ya atendidas se eliminaron de la rama activa. Se pueden consultar en el historial Git anterior a la depuración; no son fuentes ni procedimientos vigentes.
 
 La sincronización automática de GitHub y Drive está descartada. La carpeta vigente de Natura es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los recursos operativos y sus workflows permanecen fuera de esta carpeta.

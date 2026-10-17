@@ -1891,10 +1891,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     const albumBackBtn = document.getElementById("albumBackBtn");
     const albumPath = document.getElementById("albumPath");
 
-    const searchWrap = document.getElementById("searchWrap");
-
     const countSlot = document.getElementById("countSlot");
-    const topline = document.getElementById("topline");
 
     const wordPanel = document.getElementById("wordPanel");
     const wordChips = document.getElementById("wordChips");
@@ -2703,7 +2700,6 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
 
     function buildFilteredAlbums(){
-      const terms=getCombinedWordTerms();
       let filtered=albums.map(album=>{
         if(!hasActiveDiscoveryFilters()) return album;
         const searchableProducts=filterSearchExcludedProducts(album.products||[]);
