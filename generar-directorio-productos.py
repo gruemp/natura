@@ -116,7 +116,7 @@ def render(products):
         sections.append(f'<details class="directorio-marca" id="{brand_id}" open><summary><h2>{esc(brand)}</h2><span class="directorio-total">{len(brand_items)} productos</span></summary>')
         for category, category_items in groupby(brand_items,key=lambda p:p["category"]):
             category_items = list(category_items)
-            sections.append(f'<details class="directorio-categoria"><summary><h3>{esc(category)}</h3><span class="directorio-total">{len(category_items)} productos</span></summary>')
+            sections.append(f'<details class="directorio-categoria"><summary><h3>{esc(category)}</h3><span class="directorio-total">{len(category_items)} {"producto" if len(category_items) == 1 else "productos"}</span></summary>')
             for subcategory, sub_items in groupby(category_items,key=lambda p:p["subcategory"]):
                 sections.append('<section class="directorio-subcategoria">' + (f'<h4>{esc(subcategory)}</h4>' if subcategory else '') + '<ul class="directorio-items">')
                 for p in sub_items:
