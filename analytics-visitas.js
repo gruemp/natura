@@ -18,6 +18,8 @@
   iniciarRegistroVisita();
 
   async function iniciarRegistroVisita() {
+    // Las comprobaciones explícitas del sitio no son visitas comerciales.
+    try { if (new URL(window.location.href).searchParams.has("verificacion")) return; } catch (_) {}
     const configuracionDisponible = await esperarConfiguracionSegura();
     if (!configuracionDisponible) {
       console.info("No se registra la visita porque la configuración remota de privacidad no estuvo disponible.");
@@ -615,3 +617,4 @@
     return String(valor || "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, 180);
   }
 })();
+

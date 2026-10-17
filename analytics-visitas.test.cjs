@@ -98,6 +98,7 @@ function browser(options = {}) {
   let timerId = 0;
   const context = {
     console:silentConsole, URL, URLSearchParams, AbortController, navigator:{},
+    location:{href:options.url || 'https://gruemp.github.io/natura/catalogo.html'},
     setTimeout(fn, delay){timers.set(++timerId, {fn,delay});return timerId;},
     clearTimeout(id){timers.delete(id);},
     localStorage:{getItem:()=>options.id || otherId,setItem(){}},
@@ -173,6 +174,11 @@ test('Solo activar explícitamente el control vigente permite registrar visitas 
 test('Un visitante ajeno se registra normalmente con la hoja de alias vacía',()=>{
   const env=server();assert.equal(env.post(otherId).status,'registered');
   assert.equal(env.writes.length,1);assert.equal(env.telegram.length,1);assert.equal(env.configReads.length,0);
+});
+test('La verificación explícita del catálogo no consulta ubicaciones ni genera avisos',async()=>{
+  const env=browser({url:'https://gruemp.github.io/natura/catalogo.html?producto=0383&imagen=1&verificacion=1'});
+  await env.settle();
+  assert.equal(env.requests.length,0);assert.equal(env.scripts.length,0);
 });
 test('Una visita al directorio llega a Telegram con su página, conservando la exclusión propia',()=>{
   const page={pagina:'productos_natura_y_avon_en_santa_marta.html',categoria:'Productos Natura y Avon en Santa Marta'};
