@@ -113,9 +113,10 @@ def render(products):
         brand_items = list(brand_items)
         brand_id = "marca-" + norm(brand)
         links.append(f'<a href="#{brand_id}">{esc(brand)} <span>({len(brand_items)})</span></a>')
-        sections.append(f'<section class="directorio-marca" id="{brand_id}"><h2>{esc(brand)}</h2>')
+        sections.append(f'<details class="directorio-marca" id="{brand_id}" open><summary><h2>{esc(brand)}</h2><span class="directorio-total">{len(brand_items)} productos</span></summary>')
         for category, category_items in groupby(brand_items,key=lambda p:p["category"]):
-            sections.append(f'<section class="directorio-categoria"><h3>{esc(category)}</h3>')
+            category_items = list(category_items)
+            sections.append(f'<details class="directorio-categoria"><summary><h3>{esc(category)}</h3><span class="directorio-total">{len(category_items)} productos</span></summary>')
             for subcategory, sub_items in groupby(category_items,key=lambda p:p["subcategory"]):
                 sections.append('<section class="directorio-subcategoria">' + (f'<h4>{esc(subcategory)}</h4>' if subcategory else '') + '<ul class="directorio-items">')
                 for p in sub_items:
@@ -128,8 +129,8 @@ def render(products):
                     specs = " · ".join(label + ": " + value for label,value in p["specifications"])
                     sections.append(f'<li class="directorio-item" id="producto-{code}" data-product-id="{code}" {attributes}><div><h5><a href="{photo}">{esc(p["name"])}</a></h5><p class="directorio-meta">{esc(meta)}</p><p class="directorio-especificaciones">{esc(specs)}</p></div><div class="directorio-acciones"><a href="{photo}" aria-label="Ver foto de {esc(p["name"])}">Ver foto del producto</a><a href="{url}" aria-label="Ver {esc(p["name"])} y comprar en el catálogo">Ver y comprar en el catálogo <span aria-hidden="true">→</span></a></div></li>')
                 sections.append('</ul></section>')
-            sections.append('</section>')
-        sections.append('</section>')
+            sections.append('</details>')
+        sections.append('</details>')
     structured = {"@context":"https://schema.org","@type":"CollectionPage","name":"Productos Natura y Avon en Santa Marta","url":PAGE_URL,"inLanguage":"es-CO","mainEntity":{"@type":"ItemList","numberOfItems":len(products),"itemListElement":[{"@type":"ListItem","position":i+1,"name":p["name"],"url":"https://gruemp.github.io/natura/catalogo.html?producto="+p["id"]} for i,p in enumerate(products)]}}
     values = {"brand_links":"\n".join(links),"product_list":"\n".join(sections),"product_count":str(len(products)),"structured_data":json.dumps(structured,ensure_ascii=False,separators=(",",":")).replace("<","\\u003c")}
     document = (ROOT / "directorio-productos.plantilla.html").read_text(encoding="utf-8")

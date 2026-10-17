@@ -1,4 +1,4 @@
-/* La lista se entrega completa en HTML; este archivo solo filtra y registra la visita. */
+/* La lista se entrega completa en HTML; este archivo mejora su navegación y registra la visita. */
 (() => {
   "use strict";
   const form = document.getElementById("directorio-filtros");
@@ -9,18 +9,28 @@
     const fields = ["marca", "categoria", "subcategoria", "linea", "publico"];
     const selects = Object.fromEntries(fields.map(field => [field, document.getElementById("directorio-" + field)]));
     const text = new Map(items.map(item => [item, normalize([item.textContent,...Object.values(item.dataset)].join(" "))]));
+    const accordions = Array.from(document.querySelectorAll("details.directorio-marca,details.directorio-categoria"));
+    let previousOpen = null;
     for (const field of fields) {
       const values = [...new Set(items.map(item => item.dataset[field]).filter(Boolean))].sort((a,b) => a.localeCompare(b,"es",{sensitivity:"base"}));
       for (const value of values) { const option = document.createElement("option"); option.value = value; option.textContent = value; selects[field].appendChild(option); }
     }
     function filter() {
       const terms = normalize(search.value).split(/\s+/).filter(Boolean);
+      const active = terms.length > 0 || fields.some(field => selects[field].value);
+      if (active && previousOpen === null) previousOpen = new Map(accordions.map(group => [group, group.open]));
       let count = 0;
       for (const item of items) {
         item.hidden = !terms.every(term => text.get(item).includes(term)) || fields.some(field => selects[field].value && item.dataset[field] !== selects[field].value);
         if (!item.hidden) count++;
       }
       for (const group of document.querySelectorAll(".directorio-subcategoria,.directorio-categoria,.directorio-marca")) group.hidden = !Array.from(group.querySelectorAll(".directorio-item")).some(item => !item.hidden);
+      if (active) {
+        for (const group of accordions) group.open = !group.hidden;
+      } else if (previousOpen !== null) {
+        for (const group of accordions) group.open = previousOpen.get(group);
+        previousOpen = null;
+      }
       document.getElementById("directorio-contador").textContent = count + (count === 1 ? " producto" : " productos");
       document.getElementById("directorio-vacio").hidden = count > 0;
     }
@@ -29,6 +39,21 @@
     form.addEventListener("change", filter);
     form.addEventListener("submit", event => event.preventDefault());
     form.addEventListener("reset", () => setTimeout(filter, 0));
+    const controls = document.getElementById("directorio-desplegables");
+    if (controls) {
+      controls.hidden = false;
+      for (const [id, open] of [["directorio-abrir", true], ["directorio-cerrar", false]]) {
+        document.getElementById(id).addEventListener("click", () => {
+          for (const group of accordions) if (!group.hidden) group.open = open;
+        });
+      }
+    }
+    for (const link of document.querySelectorAll(".directorio-marcas a")) {
+      link.addEventListener("click", () => {
+        const group = document.getElementById(link.hash.slice(1));
+        if (group) group.open = true;
+      });
+    }
   }
 
   // El servicio existente aplica la exclusión de visitas propias y sus límites.

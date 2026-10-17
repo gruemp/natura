@@ -42,6 +42,65 @@ print('ok')`;
   assert.equal(result.status,0,result.stderr);
 });
 
+test('Los desplegables nativos conservan los productos y muestran cantidades correctas',()=>{
+  const python=`from html.parser import HTMLParser
+from pathlib import Path
+class Check(HTMLParser):
+ def __init__(self):
+  super().__init__();self.groups=[];self.stack=[];self.reading_count=False
+ def handle_starttag(self,tag,attrs):
+  a=dict(attrs)
+  if tag=='details':
+   brand=a.get('class')=='directorio-marca'
+   assert ('open' in a)==brand
+   g={'items':0,'count':''};self.groups.append(g);self.stack.append(g)
+  if tag=='span' and a.get('class')=='directorio-total':self.reading_count=True
+  if tag=='li' and a.get('class')=='directorio-item':
+   assert len(self.stack)==2
+   for g in self.stack:g['items']+=1
+ def handle_data(self,data):
+  if self.reading_count:self.stack[-1]['count']+=data
+ def handle_endtag(self,tag):
+  if tag=='span':self.reading_count=False
+  if tag=='details':self.stack.pop()
+c=Check();c.feed(Path('productos_natura_y_avon_en_santa_marta.html').read_text())
+assert len(c.groups)>2 and not c.stack
+for g in c.groups:assert g['items']==int(g['count'].split()[0])
+print('ok')`;
+  const result=spawnSync('python3',['-c',python],{cwd:__dirname,encoding:'utf8'});
+  assert.equal(result.status,0,result.stderr);
+});
+
+test('La búsqueda abre coincidencias y al limpiar restaura los grupos; abrir y cerrar todo funcionan',()=>{
+  const node=(extra={})=>({hidden:false,value:'',events:{},addEventListener(type,fn){this.events[type]=fn;},...extra});
+  const items=[
+    node({textContent:'Champú 300 ml',dataset:{marca:'Natura',categoria:'Cabello',subcategoria:'Champú',linea:'Lumina',publico:'Adultos'}}),
+    node({textContent:'Perfume 100 ml',dataset:{marca:'Natura',categoria:'Perfumería',subcategoria:'Perfume',linea:'Kaiak',publico:'Adultos'}}),
+    node({textContent:'Crema 200 ml',dataset:{marca:'Avon',categoria:'Cuerpo',subcategoria:'Crema',linea:'Care',publico:'Adultos'}})
+  ];
+  const group=(children,open)=>node({open,querySelectorAll:()=>children});
+  const brands=[group(items.slice(0,2),true),group(items.slice(2),true)];
+  const categories=items.map(item=>group([item],false));
+  const accordions=[...brands,...categories];
+  const ids=Object.fromEntries(['filtros','buscar','contador','vacio','desplegables','abrir','cerrar'].map(id=>['directorio-'+id,node()]));
+  for(const field of ['marca','categoria','subcategoria','linea','publico'])ids['directorio-'+field]=node({appendChild(){}});
+  const document={getElementById:id=>ids[id],createElement:()=>({}),visibilityState:'visible',querySelectorAll:selector=>selector==='.directorio-item'?items:selector.startsWith('details.')?accordions:selector.startsWith('.directorio-subcategoria')?accordions:[]};
+  vm.runInNewContext(read('directorio-productos.js'),{document,location:{hostname:'localhost'},setTimeout:fn=>fn()});
+  assert.equal(ids['directorio-desplegables'].hidden,false);
+  ids['directorio-abrir'].events.click();assert.ok(accordions.every(g=>g.open));
+  ids['directorio-cerrar'].events.click();assert.ok(accordions.every(g=>!g.open));
+  ids['directorio-buscar'].value='champu 300';ids['directorio-filtros'].events.input();
+  assert.equal(ids['directorio-contador'].textContent,'1 producto');
+  assert.equal(items[0].hidden,false);assert.equal(items[1].hidden,true);
+  assert.equal(brands[0].open,true);assert.equal(categories[0].open,true);assert.equal(brands[1].hidden,true);
+  ids['directorio-buscar'].value='';ids['directorio-filtros'].events.reset();
+  assert.ok(accordions.every(g=>!g.open));assert.ok(items.every(item=>!item.hidden));
+  ids['directorio-marca'].value='Avon';ids['directorio-filtros'].events.change();
+  assert.equal(brands[1].open,true);assert.equal(categories[2].open,true);assert.equal(brands[0].hidden,true);
+  ids['directorio-buscar'].value='inexistente';ids['directorio-filtros'].events.input();
+  assert.equal(ids['directorio-contador'].textContent,'0 productos');assert.equal(ids['directorio-vacio'].hidden,false);
+});
+
 test('El navegador envía solo un aviso de la página al servicio existente, sin GPS ni IP',async()=>{
   const requests=[];
   const storage=new Map();
