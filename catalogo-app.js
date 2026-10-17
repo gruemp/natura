@@ -32,15 +32,6 @@
       state.failures = successful ? 0 : Math.min((state.failures || 0) + 1, 3);
       state.nextAt = Date.now() + IMAGE_INDEX_MIN_RETRY_MS * Math.pow(2, state.failures);
     }
-    // GitHub Pages se conserva únicamente para recursos web fijos del sitio (logos, iconos y archivos publicados).
-    // Las imágenes dinámicas de productos y regalos NO se obtienen de GitHub.
-    const GITHUB_CATALOG_SOURCE = {
-      owner: "gruemp",
-      repo: "natura",
-      branch: "main",
-      catalogDir: ""
-    };
-
     // Servicio público vigente que indexa directamente la carpeta productos de Google Drive.
     // Devuelve products, gifts, ads y assets con id, name y url para cada imagen.
     const APPS_SCRIPT_IMAGE_SOURCE = {
@@ -139,10 +130,6 @@
       const form=document.querySelector("#folletoOptions");
       if(form)form.elements.prices.checked=shouldShowFolletoPrices();
     }
-    // Compatibilidad para consumidores antiguos del control del folleto.
-    function setCatalogFichaPriceVisibility(value){
-      setFolletoPriceVisibility(value);
-    }
     function shouldShowProductCodes(){
       return true;
     }
@@ -160,8 +147,6 @@
       return true;
     }
     const fmtCOP = new Intl.NumberFormat("es-CO", { maximumFractionDigits:0 });
-
-    const SITE_BASE = `https://${GITHUB_CATALOG_SOURCE.owner}.github.io/${GITHUB_CATALOG_SOURCE.repo}/`;
 
     function normalizeText(t){
       return (t || "")
@@ -842,14 +827,6 @@ function readCompactGoogleSheetProductRows(table,indices){
       }
     }
 
-    function encodeRepoPath(path){
-      return String(path || "")
-        .split("/")
-        .filter(Boolean)
-        .map(segment => encodeURIComponent(segment))
-        .join("/");
-    }
-
     function extensionOfFilename(filename){
       const name = String(filename || "");
       const dot = name.lastIndexOf(".");
@@ -1313,7 +1290,6 @@ function readCompactGoogleSheetProductRows(table,indices){
     let selectedSubcategory = "";   // Subcategoría
     let selectedPublic = "";       // Público
     let selectedLine = "";         // Línea
-    let selectedAlbumKey = "";
 
     const NAV_LEVELS = Object.freeze({
       section:{label:"Sección"},
@@ -1491,36 +1467,14 @@ function readCompactGoogleSheetProductRows(table,indices){
       return {changed,order:navigationOrderedLevels(),config:window.getCatalogNavigationConfig()};
     };
 
-    function productsForSection(sectionLabel, list = all){
-      return (Array.isArray(list) ? list : []).filter(p => productMatchesSection(p, sectionLabel));
-    }
-
-    function isDirectProductSection(sectionLabel){
-      const products = productsForSection(sectionLabel);
-      if(!products.length) return false;
-      return !products.some(p => navigationOrderedLevels().some(level=>Boolean(navigationValueForProduct(p,level))));
-    }
-
-    function collectAlbumPreview(found, p){
-      if(!found.cover) found.cover = p;
-      const previewImage = String((p && p.docsImageUrl) || (p && p.imgFilename) || "").trim();
-      if(p && (p.hasImage || p.docsImageUrl) && previewImage && !found.previewImages.includes(previewImage)){
-        if(p.isDocumentFirst) found.previewImages.unshift(previewImage);
-        else found.previewImages.push(previewImage);
-      }
-    }
-
     function navAlbumBase({key,navType,navValue,label,subtitle="",icon="•",iconImage="",products=[],extra={}}){
-      const album={
+      return {
         key,navType,navValue,label,subtitle,icon,iconImage,
         navDepth:navigationDepthForType(navType),
-        products,cover:null,previewImages:[],
+        products,
         searchKey:normalizeText([label,subtitle,...Object.values(extra)].filter(Boolean).join(" ")),
-        hasStructuredProducts:true,hasUnstructuredProducts:false,onlyUnstructured:false,
         ...extra
       };
-      for(const p of products) collectAlbumPreview(album,p);
-      return album;
     }
 
     function finalizeAlbums(values, orderMap=null){
@@ -1535,99 +1489,6 @@ function readCompactGoogleSheetProductRows(table,indices){
           return a.label.localeCompare(b.label,"es",{sensitivity:"base"});
         })
         .map((album,index)=>({ ...album, colorIndex:index % ALBUM_COLORS.length }));
-    }
-
-    function buildRootAlbums(list){
-      const byGroup=new Map();
-      for(const p of (Array.isArray(list)?list:[])){
-        const label=String(navigationSectionForProduct(p)||"").trim();
-        if(!label) continue;
-        const key=cleanNavKey(label);
-        const item=byGroup.get(key)||{label,products:[]};
-        item.products.push(p);byGroup.set(key,item);
-      }
-      const preferredOrder=new Map(NAV_SECTIONS.map((item,index)=>[cleanNavKey(item.label),index]));
-      const rootAlbums=Array.from(byGroup.values()).map(group=>{
-        const config=NAV_SECTIONS.find(item=>cleanNavKey(item.label)===cleanNavKey(group.label))||{};
-        return navAlbumBase({
-          key:`section::${cleanNavKey(group.label)}`,navType:"section",navValue:group.label,
-          label:group.label,subtitle:String(config.subtitle||`Productos disponibles en ${group.label}.`).trim(),
-          icon:config.icon||"•",iconImage:config.iconImage||"",products:group.products,
-          extra:{theme:config.theme||""}
-        });
-      });
-      return finalizeAlbums(rootAlbums,preferredOrder);
-    }
-
-    function buildCategoryAlbums(list,sectionLabel){
-      const byValue=new Map();
-      for(const p of (Array.isArray(list)?list:[])){
-        if(!productMatchesSection(p,sectionLabel)) continue;
-        const value=navigationCategoryForProduct(p); if(!value) continue;
-        const key=cleanNavKey(value); const visual=CATEGORY_VISUALS[key]||{icon:"•"};
-        const found=byValue.get(key)||navAlbumBase({
-          key:`category::${cleanNavKey(sectionLabel)}::${key}`,navType:"category",navValue:value,label:categoryDisplayLabel(value),
-          icon:visual.icon||"•",iconImage:visual.iconImage||"",products:[],extra:{section:sectionLabel}
-        });
-        found.products.push(p); collectAlbumPreview(found,p); byValue.set(key,found);
-      }
-      return finalizeAlbums(Array.from(byValue.values()));
-    }
-
-    function buildSubcategoryAlbums(list,sectionLabel,categoryLabel){
-      const byValue=new Map();
-      for(const p of (Array.isArray(list)?list:[])){
-        if(!productMatchesSection(p,sectionLabel)) continue;
-        if(cleanNavKey(navigationCategoryForProduct(p))!==cleanNavKey(categoryLabel)) continue;
-        const value=navigationSubcategoryForProduct(p); if(!value) continue;
-        const key=cleanNavKey(value); const visual=CATEGORY_VISUALS[key]||{icon:"•"};
-        const found=byValue.get(key)||navAlbumBase({
-          key:`subcategory::${cleanNavKey(sectionLabel)}::${cleanNavKey(categoryLabel)}::${key}`,
-          navType:"subcategory",navValue:value,label:categoryDisplayLabel(value),icon:visual.icon||"•",iconImage:visual.iconImage||"",products:[],
-          extra:{section:sectionLabel,category:categoryLabel}
-        });
-        found.products.push(p); collectAlbumPreview(found,p); byValue.set(key,found);
-      }
-      return finalizeAlbums(Array.from(byValue.values()));
-    }
-
-    function buildPublicAlbums(list,sectionLabel,categoryLabel,subcategoryLabel=""){
-      const byValue=new Map();
-      for(const p of (Array.isArray(list)?list:[])){
-        if(!productMatchesSection(p,sectionLabel)) continue;
-        if(cleanNavKey(navigationCategoryForProduct(p))!==cleanNavKey(categoryLabel)) continue;
-        if(subcategoryLabel && cleanNavKey(navigationSubcategoryForProduct(p))!==cleanNavKey(subcategoryLabel)) continue;
-        const value=navigationPublicForProduct(p); if(!value) continue;
-        const key=cleanNavKey(value);
-        const found=byValue.get(key)||navAlbumBase({
-          key:`public::${cleanNavKey(sectionLabel)}::${cleanNavKey(categoryLabel)}::${cleanNavKey(subcategoryLabel)}::${key}`,
-          navType:"public",navValue:value,label:value,
-          icon:key===cleanNavKey("Femeninos")?"♀":(key===cleanNavKey("Masculinos")?"♂":"•"),products:[],
-          extra:{section:sectionLabel,category:categoryLabel,subcategory:subcategoryLabel}
-        });
-        found.products.push(p); collectAlbumPreview(found,p); byValue.set(key,found);
-      }
-      const order=new Map([[cleanNavKey("Femeninos"),0],[cleanNavKey("Masculinos"),1],[cleanNavKey("Unisex"),2]]);
-      return finalizeAlbums(Array.from(byValue.values()),order);
-    }
-
-    function buildLineAlbums(list,sectionLabel,categoryLabel,subcategoryLabel="",publicLabel=""){
-      const byValue=new Map();
-      for(const p of (Array.isArray(list)?list:[])){
-        if(!productMatchesSection(p,sectionLabel)) continue;
-        if(cleanNavKey(navigationCategoryForProduct(p))!==cleanNavKey(categoryLabel)) continue;
-        if(subcategoryLabel && cleanNavKey(navigationSubcategoryForProduct(p))!==cleanNavKey(subcategoryLabel)) continue;
-        if(publicLabel && cleanNavKey(navigationPublicForProduct(p))!==cleanNavKey(publicLabel)) continue;
-        const value=navigationLineForProduct(p); if(!value) continue;
-        const key=cleanNavKey(value); const visual=CATEGORY_VISUALS[key]||{icon:"•"};
-        const found=byValue.get(key)||navAlbumBase({
-          key:`line::${cleanNavKey(sectionLabel)}::${cleanNavKey(categoryLabel)}::${cleanNavKey(subcategoryLabel)}::${cleanNavKey(publicLabel)}::${key}`,
-          navType:"line",navValue:value,label:categoryDisplayLabel(value),icon:visual.icon||"•",iconImage:visual.iconImage||"",products:[],
-          extra:{section:sectionLabel,category:categoryLabel,subcategory:subcategoryLabel,public:publicLabel}
-        });
-        found.products.push(p); collectAlbumPreview(found,p); byValue.set(key,found);
-      }
-      return finalizeAlbums(Array.from(byValue.values()));
     }
 
     function navigationLastSelectedIndex(){
@@ -1669,7 +1530,7 @@ function readCompactGoogleSheetProductRows(table,indices){
           subtitle:level==="section"?String(visual.subtitle||"").trim():"",
           extra:{...context,theme:level==="section"?(visual.theme||""):""}
         });
-        found.products.push(p); collectAlbumPreview(found,p); byValue.set(keyValue,found);
+        found.products.push(p); byValue.set(keyValue,found);
       }
       let preferredOrder=null;
       if(level==="public") preferredOrder=new Map([[cleanNavKey("Femeninos"),0],[cleanNavKey("Masculinos"),1],[cleanNavKey("Unisex"),2]]);
@@ -1718,9 +1579,6 @@ function readCompactGoogleSheetProductRows(table,indices){
     function refreshNavigationAlbums(){
       albums=buildAlbums(all);
       albumByKey=new Map(albums.map(album=>[album.key,album]));
-      const trail=selectedNavigationTrail();
-      const current=trail.at(-1);
-      selectedAlbumKey=current?`${current.level}::${cleanNavKey(current.label)}`:"";
     }
 
     window.getCatalogAlbumByKey=key=>albumByKey.get(String(key||""))||null;
@@ -2069,17 +1927,6 @@ function readCompactGoogleSheetProductRows(table,indices){
       countEl.classList.toggle("search-active", hasQuery);
     }
 
-    const SUGGESTION_STOPWORDS = new Set([
-      "a","al","algo","alguna","algunas","alguno","algunos","ante","bajo","cabe","con","contra",
-      "cual","cuales","como","cuando","de","del","desde","donde","dos","el","ella","ellas","ellos",
-      "en","entre","era","eres","es","esa","esas","ese","eso","esos","esta","estas","este","esto","estos",
-      "ha","hacia","hasta","la","las","le","les","lo","los","mas","mi","mis","muy","ni","no","nos","o",
-      "otra","otro","otros","para","pero","por","que","se","segun","ser","si","sin","sobre","su","sus",
-      "te","tu","tus","u","un","una","uno","unos","unas","y","ya","kit","ml","gr","kg","oz","cm","mm",
-      "x","und","unds","unidad","unidades","ref","tipo"
-    ]);
-    const SUGGESTION_MIN_LEN = 3;
-    // Sin límite de cantidad: las sugerencias no se recortan por número.
     let selectedSuggestionTerms = [];
     // La búsqueda histórica y los atributos conservan estados independientes.
     let selectedFacetFilters = [];
@@ -2300,19 +2147,6 @@ function readCompactGoogleSheetProductRows(table,indices){
       element.replaceChildren(fragment);
     }
 
-    function parseSuggestionTokens(text){
-      return normalizeText(text)
-        .split(/[^a-z0-9]+/g)
-        .map(t => t.trim())
-        .filter(token => {
-          if(!token) return false;
-          if(token.length < SUGGESTION_MIN_LEN) return false;
-          if(/^\d+$/.test(token)) return false;
-          if(SUGGESTION_STOPWORDS.has(token)) return false;
-          return true;
-        });
-    }
-
     function uniqueTerms(list){
       const out = [];
       const seen = new Set();
@@ -2340,29 +2174,6 @@ function readCompactGoogleSheetProductRows(table,indices){
         if(br && p.brand !== br) return false;
         return true;
       });
-    }
-
-    function getSuggestionBlockedTerms(list){
-      const blocked = new Set();
-
-      for(const p of (Array.isArray(list) ? list : [])){
-        for(const token of parseSuggestionTokens(p && p.category ? p.category : "")) blocked.add(token);
-        for(const token of parseSuggestionTokens(p && p.section ? p.section : "")) blocked.add(token);
-      }
-
-      return blocked;
-    }
-
-    function addSuggestionCountsFromText(counts, text, blockedTerms){
-      const unique = new Set(parseSuggestionTokens(text));
-      for(const token of unique){
-        if(blockedTerms && blockedTerms.has(token)) continue;
-        counts.set(token, (counts.get(token) || 0) + 1);
-      }
-    }
-
-    function getSuggestionMatchedProducts(){
-      return filterDiscoveryProducts(getSuggestionScopeProducts());
     }
 
     function buildSuggestionEntries(){
@@ -3125,7 +2936,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         validateNavigationStateAgainstProducts();refreshNavigationAlbums();
       }catch(error){
         console.warn("Se restablece la navegación del catálogo.",error);
-        clearSelectedNavigationValues();selectedAlbumKey="";refreshNavigationAlbums();
+        clearSelectedNavigationValues();refreshNavigationAlbums();
       }
       try{scheduleJsonLdUpdate();refreshFilterOptionsForScope();sanitizeCartWithStock();}catch(error){console.warn("No se pudieron actualizar todos los controles del catálogo.",error);}
       if(!options.silent){
@@ -3495,22 +3306,6 @@ function refreshCardUI(card,p){
     const label=incBtn.querySelector(".cart-action-label");
     if(label) label.textContent=enforce&&!hasKnownStock?"Stock por confirmar":enforce&&maxStock<=0?"Sin stock":q>0?"Agregar otro":"Agregar al carrito";
   }
-}
-
-async function copyProductText(text){
-  if(navigator.clipboard?.writeText){
-    try{await navigator.clipboard.writeText(text);return}catch(_){}
-  }
-  const area=document.createElement("textarea");
-  area.value=text;
-  area.setAttribute("readonly","");
-  area.style.cssText="position:fixed;left:-9999px;top:0";
-  const focused=document.activeElement;
-  document.body.appendChild(area);
-  area.focus();area.select();
-  let ok=false;
-  try{ok=document.execCommand("copy")}finally{area.remove();focused?.focus?.({preventScroll:true})}
-  if(!ok)throw new Error("El navegador no permitió copiar al portapapeles.");
 }
 
 function catalogProductDisplayName(value){

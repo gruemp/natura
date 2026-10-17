@@ -188,6 +188,21 @@ test('La vista directa conserva la explicación y retirada de filtros sin result
   assert.equal(env.document.getElementById('count').textContent,'0 productos');
 });
 
+test('Todos vuelve a la raíz sin depender del botón Inicio eliminado y conserva los filtros por atributos',async()=>{
+  const env=await facetEnvironment();browserNavigation(env);
+  const getElementById=env.document.getElementById;
+  env.document.getElementById=id=>id==='catalogHomeBtn'?null:getElementById(id);
+  env.run('window.CATALOG_INITIAL_LOAD_READY=true;render=()=>{};setSelectedNavigationValue("section","Belleza y cuidado");refreshNavigationAlbums();qInp.value="inexistente";toggleFacetFilter("brand","Natura")');
+  env.run(uiSource);
+  const todos=env.document.getElementById('catalogCategories').children[0];
+  assert.equal(todos.textContent,'Todos');assert.equal(env.document.getElementById('count').textContent,'0 productos');
+  todos.listeners.get('click')();
+  assert.equal(env.run('selectedNavigationTrail().length'),0);assert.equal(env.document.getElementById('q').value,'');
+  assert.equal(env.run('selectedFacetFilters[0].value'),'natura');
+  assert.equal(env.document.getElementById('count').textContent,'3 productos');
+  assert.equal(new URL(env.sandbox.location.href).searchParams.has('section'),false);
+});
+
 function environment(options={}){
   const elements=new Map(),timers=new Map(),requests=[],events=new Map(),storage=options.storage||new Map();
   let timerId=0,context;
@@ -652,9 +667,11 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=conservar-navegacion-v2'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.ok(htmlSource.includes('catalogo-cache.js?actualizacion=cache-configurable-v1'));
-  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=imagenes-por-vista-v1'));
+  assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=depuracion-sin-inicio-v1'));
+  assert.ok(htmlSource.includes('catalogo-ui.js?actualizacion=depuracion-sin-inicio-v1'));
+  assert.doesNotMatch(htmlSource,/id="catalogHomeBtn"/);
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=composicion-exterior-2026-10-14-v1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=intervalo-catalogo-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));

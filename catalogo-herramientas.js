@@ -391,7 +391,6 @@ function measureFicha(ctx,ficha){
   }
   throw lastError||new Error("No se pudo acomodar el producto sin recortar información.");
 }
-function measureFichaPriced(ctx,ficha){return measureFicha(ctx,ficha);}
 function folletoAttributeLines(ctx,attributes,width,size){
   const lines=[];
   for(const attribute of attributes){

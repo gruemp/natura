@@ -33,8 +33,7 @@
   });
 })();
 
-// Vistas directas de productos. Las dos opciones de administrador son independientes:
-// 1) mostrar tarjetas completas al buscar; 2) mostrar los productos del nivel actual y sus descendientes, conservando los filtros.
+// Vista directa del nivel actual y sus descendientes; búsqueda directa configurable en administración.
 (() => {
   const SEARCH_DIRECT_STORAGE_KEY = "irenismb_quick_image_search_v1";
   const SHOW_ALL_STORAGE_KEY = "irenismb_catalog_product_view_v2";
@@ -104,7 +103,6 @@
   function renderDirectProducts(){
     const active = isActive();
     document.body.classList.toggle("direct-product-search-active", active);
-    grid.classList.remove("quick-image-search");
     if(!active) return;
 
     if(window.CATALOG_INITIAL_LOAD_READY !== true){
@@ -198,7 +196,10 @@
     const allButton=document.createElement("button");
     allButton.type="button";allButton.textContent="Todos";
     allButton.setAttribute("aria-current",trail.length?"false":"page");
-    allButton.addEventListener("click",()=>document.getElementById("catalogHomeBtn")?.click());
+    allButton.addEventListener("click",()=>{
+      clearSelectedNavigationValues();resetDiscoveryFilters();
+      refreshNavigationAlbums();refreshFilterOptionsForScope();writeStateToUrl();render();
+    });
     host.appendChild(allButton);
     for(const album of items){
       const button=document.createElement("button");
@@ -227,12 +228,6 @@
     syncAdminToggles();
   }
 
-  // Se conservan los nombres públicos anteriores para no romper integraciones existentes.
-  window.setCatalogQuickImageSearchEnabled = setSearchDirectEnabled;
-  window.isCatalogQuickImageSearchEnabled = () => searchDirectEnabled;
-  window.setCatalogShowAllProductsDirectEnabled = setShowAllEnabled;
-  window.isCatalogShowAllProductsDirectEnabled = () => showAllEnabled;
-
   document.getElementById("showProductsBtn")?.addEventListener("click", () => {
     setShowAllEnabled(false);
   });
@@ -254,7 +249,6 @@
     if(button){
       button.setAttribute("aria-pressed", showAllEnabled ? "false" : "true");
       button.setAttribute("aria-label","Explorar las categorías del nivel actual");
-      document.getElementById("catalogHomeBtn")?.setAttribute("aria-current",showAllEnabled?"page":"false");
     }
   }
 
@@ -301,7 +295,7 @@
   syncView();
 })();
 
-// Inicio compacto y estado de carga sin mensajes contradictorios.
+// Estado de carga sin mensajes contradictorios.
 (() => {
   const count = document.getElementById("count");
   const grid = document.getElementById("grid");
@@ -398,11 +392,3 @@
   menu.addEventListener("toggle", syncOrder);
   syncOrder();
 })();
-
-
-// Inicio usa la misma navegación y filtros del catálogo.
-document.getElementById("catalogHomeBtn")?.addEventListener("click",()=>{
-  clearSelectedNavigationValues();resetDiscoveryFilters();
-  window.setCatalogShowAllProductsDirectEnabled(true);
-  refreshNavigationAlbums();refreshFilterOptionsForScope();writeStateToUrl();render();
-});
