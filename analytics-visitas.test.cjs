@@ -88,8 +88,8 @@ function server(options = {}) {
   }
   headers = vm.runInContext('Array.from(REQUIRED_HEADERS)', context);
   return {writes,telegram,configReads,legacyReads,
-    post(id) {
-      return JSON.parse(context.doPost({parameter:{user_id:id,load_id:'visita-simulada-12345',fuente:'SIN_UBICACION'}}).text);
+    post(id,extra={}) {
+      return JSON.parse(context.doPost({parameter:{user_id:id,load_id:'visita-simulada-12345',fuente:'SIN_UBICACION',...extra}}).text);
     }};
 }
 
@@ -174,6 +174,16 @@ test('Un visitante ajeno se registra normalmente con la hoja de alias vacía',()
   const env=server();assert.equal(env.post(otherId).status,'registered');
   assert.equal(env.writes.length,1);assert.equal(env.telegram.length,1);assert.equal(env.configReads.length,0);
 });
+test('Una visita al directorio llega a Telegram con su página, conservando la exclusión propia',()=>{
+  const page={pagina:'productos_natura_y_avon_en_santa_marta.html',categoria:'Productos Natura y Avon en Santa Marta'};
+  const env=server();
+  assert.equal(env.post(otherId,page).status,'registered');
+  assert.equal(env.telegram.length,1);
+  assert.match(env.telegram[0].text,/Nueva visita · Productos Natura y Avon en Santa Marta/);
+  const own=server();
+  assert.equal(own.post(ownIds[0],page).status,'skipped');
+  assert.equal(own.telegram.length,0);
+});
 test('Un fallo de identidad no puede convertir un alias propio en una visita ajena',()=>{
   for (const aliasOptions of [{aliasMissing:true},{aliasFailure:true}]) {
     const env=server(aliasOptions);
@@ -216,3 +226,4 @@ test('Sin configuración pública confirmada la página no inicia el registro',a
   const env=browser({confirmed:false});await env.settle();
   assert.equal(env.requests.length,0);assert.equal(env.scripts.length,0);
 });
+

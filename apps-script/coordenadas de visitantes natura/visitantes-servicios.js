@@ -92,7 +92,11 @@ function sendVisitToTelegram_(data){
 
   const blocks = [
     [
-      "🔔 Nueva visita · Catálogo Natura",
+      data.categoria === "Productos Natura y Avon en Santa Marta"
+        ? "🔔 Nueva visita · Productos Natura y Avon en Santa Marta"
+        : "🔔 Nueva visita · Catálogo Natura",
+      data.categoria === "Productos Natura y Avon en Santa Marta"
+        ? "https://gruemp.github.io/natura/productos_natura_y_avon_en_santa_marta.html" : "",
       `👤 Visitante: ${visibleName} · ${visitLabel}`,
       dateTime ? `🕒 ${dateTime}` : ""
     ].filter(Boolean).join("\n"),
@@ -213,3 +217,4 @@ function reverseGeocodeCached_(lat, lng){
     return { status: "EXCEPTION", address: "" };
   }
 }
+

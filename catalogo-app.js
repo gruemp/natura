@@ -1613,7 +1613,9 @@ function readCompactGoogleSheetProductRows(table,indices){
     }
 
     function currentProductSourceList(){
-      return scopedProductsForCurrentNavigation(all);
+      const source=scopedProductsForCurrentNavigation(all);
+      const linkedId=catalogLinkedProductId();
+      return linkedId && qInp?.value.trim()===linkedId ? source.filter(product=>String(product.id)===linkedId) : source;
     }
 
     function refreshFilterOptionsForScope(){
@@ -2281,7 +2283,8 @@ function readCompactGoogleSheetProductRows(table,indices){
 
     function readStateFromUrl({preserveFacets=false}={}){
       const u = new URL(location.href);
-      const q = (u.searchParams.get("q") || "").trim();
+      const linkedId = catalogLinkedProductId(u);
+      const q = (u.searchParams.get("q") || linkedId || "").trim();
       const sort = (u.searchParams.get("sort") || "").trim();
       const section = (u.searchParams.get("section") || u.searchParams.get("audience") || "").trim();
       const category = (u.searchParams.get("category") || "").trim();
@@ -2294,8 +2297,31 @@ function readCompactGoogleSheetProductRows(table,indices){
       selectedSuggestionTerms = uniqueTerms(tags ? tags.split(",") : []);
       if(!preserveFacets) selectedFacetFilters=parseFacetFilters(u.searchParams.get("facets"));
       setNavigationFromRawState({section,category,subcategory,public:publicValue,line});
+      const linkedProduct = linkedId ? all.find(product=>String(product.id)===linkedId) : null;
+      if(linkedProduct){
+        clearSelectedNavigationValues();
+        for(const level of navigationOrderedLevels()){
+          if(level==="product")break;
+          setSelectedNavigationValue(level,navigationValueForProduct(linkedProduct,level));
+        }
+      }
       validateNavigationStateAgainstProducts();
       if(PRODUCT_ORDER_MODES.includes(sort) && sortSel){sortSel.value=sort;productOrderChosen=true;}
+    }
+
+    function catalogLinkedProductId(url=new URL(location.href)){
+      const id=String(url.searchParams.get("producto")||"");
+      return /^\d{4}$/.test(id)?id:"";
+    }
+    let catalogLinkedImageOpenedFor="";
+    function openCatalogLinkedProductImage(){
+      const url=new URL(location.href),id=catalogLinkedProductId(url);
+      if(!id||url.searchParams.get("imagen")!=="1"||catalogLinkedImageOpenedFor===id||!shouldShowProductImages())return;
+      const product=productById.get(id);
+      const src=String(product?.docsImageUrl||"");
+      if(!product||!/^https:\/\//i.test(src)||window.isCatalogProductPublic?.(product)!==true)return;
+      catalogLinkedImageOpenedFor=id;
+      openImgModal(src,product.name);
     }
 
     let _urlTimer = null;
@@ -2347,7 +2373,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     function catalogUrlHasExplicitViewState(){
       try{
         const params=new URL(location.href).searchParams;
-        return ["q","sort","tags","facets","section","category","subcategory","public","line","audience","gender","family","cat","brand","album"]
+        return ["producto","q","sort","tags","facets","section","category","subcategory","public","line","audience","gender","family","cat","brand","album"]
           .some(key=>params.has(key));
       }catch(_){
         return false;
@@ -2537,7 +2563,7 @@ function readCompactGoogleSheetProductRows(table,indices){
     function catalogUrlForRestoredNavigation(section="", category="", subcategory="", publicValue="", line="", {preserveDiscovery=false,baseHref=location.href}={}){
       const u = new URL(baseHref, location.href);
       if(!preserveDiscovery){
-        for(const key of ["q","cat","brand","sort","tags","facets","album"]) u.searchParams.delete(key);
+        for(const key of ["producto","imagen","q","cat","brand","sort","tags","facets","album"]) u.searchParams.delete(key);
       }else u.searchParams.delete("album");
       if(section) u.searchParams.set("section", section); else u.searchParams.delete("section");
       if(category) u.searchParams.set("category", category); else u.searchParams.delete("category");
@@ -2570,6 +2596,9 @@ function readCompactGoogleSheetProductRows(table,indices){
     function writeStateToUrl({push=false,index=currentCatalogHistoryIndex()}={}){
       const u = new URL(location.href);
       const q = qInp.value.trim();
+      if(catalogLinkedProductId(u) && q!==catalogLinkedProductId(u)){
+        u.searchParams.delete("producto");u.searchParams.delete("imagen");
+      }
       const cat = catSel.value;
       const br = brandSel.value;
       const sort = sortSel ? sortSel.value : "";
@@ -2941,6 +2970,7 @@ function readCompactGoogleSheetProductRows(table,indices){
         window.CATALOG_INITIAL_LOAD_READY=true;
       }
       render();
+      openCatalogLinkedProductImage();
       if(viewport)uxRestoreScrollPosition(viewport);
       if(!options.silent)window.dispatchEvent(new CustomEvent("catalog-initial-load-ready"));
     }
@@ -3662,5 +3692,6 @@ async function init(){
   await restoreCatalogAdminAfterReload(startupAdminState);
   uxRestoreScrollPosition();
 }
+
 
 

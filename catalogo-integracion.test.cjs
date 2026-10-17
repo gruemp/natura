@@ -22,6 +22,26 @@ const samples = [
   [9998,'Belleza y cuidado','Cabello','','','','Segundo producto ficticio',''],
   [9999,'Otros productos','Medicamentos','','','','Registro ficticio oculto',10]
 ];
+
+test('Los enlaces del directorio resuelven el código exacto y la imagen pública de Drive',async()=>{
+  const env=await facetEnvironment();
+  env.sandbox.location.href='https://gruemp.github.io/natura/catalogo.html?producto=9901&imagen=1';
+  env.run('readStateFromUrl();productById=new Map(products.map(p=>[String(p.id),p]));');
+  assert.equal(env.run('catalogUrlHasExplicitViewState()'),true);
+  assert.equal(env.run('navigationViewMode().mode'),'products');
+  assert.deepEqual(clone(env.run('currentProductSourceList().map(p=>p.id)')),['9901']);
+  env.run('productById.get("9901").docsImageUrl="https://drive.google.com/thumbnail?id=imagen-publica-de-prueba";');
+  const opened=[];
+  env.sandbox.opened=opened;
+  env.run('openImgModal=(src,alt)=>opened.push({src,alt});openCatalogLinkedProductImage();openCatalogLinkedProductImage();');
+  assert.equal(opened.length,1);
+  assert.match(opened[0].src,/imagen-publica-de-prueba/);
+  const root=env.run('catalogUrlForRestoredNavigation("","","","","",{preserveDiscovery:false})');
+  assert.equal(new URL(root).searchParams.has('producto'),false);
+  env.sandbox.location.href='https://gruemp.github.io/natura/catalogo.html?producto=9904&imagen=1';
+  env.run('readStateFromUrl();openCatalogLinkedProductImage();');
+  assert.equal(opened.length,1,'No debe abrir una imagen de un producto no publicado');
+});
 const visibility = {ok:true,reglas:[{tipo:'seccion',identificador:'otros productos',oculto:true,etiqueta:'Otros productos'}]};
 function columnId(index){let result="";for(let n=index+1;n>0;n=Math.floor((n-1)/26))result=String.fromCharCode(65+(n-1)%26)+result;return result;}
 function tableFromValues(values){
@@ -667,7 +687,7 @@ test('Nombre con error de fórmula queda pendiente y no se reconstruye desde atr
 test('La entrada conserva canonical, SEO y versiones coherentes de los dos scripts',()=>{
   assert.match(htmlSource,/<link rel="canonical" href="https:\/\/gruemp\.github\.io\/natura\/catalogo\.html"/);
   assert.match(htmlSource,/id="ld-products"/);
-  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=depuracion-integral-v1'));
+  assert.ok(htmlSource.includes('catalogo-app.js?actualizacion=directorio-productos-v1'));
   assert.ok(htmlSource.includes('catalogo-cache.js?actualizacion=cache-configurable-v1'));
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.ok(htmlSource.includes('catalogo-ui.js?actualizacion=depuracion-sin-inicio-v1'));
@@ -1829,3 +1849,4 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
   assert.ok(htmlSource.includes('catalogo.css?actualizacion=depuracion-integral-v1'));
 });
+
