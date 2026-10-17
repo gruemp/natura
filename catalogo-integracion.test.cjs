@@ -720,7 +720,7 @@ test('La entrada conserva canonical, SEO y versiones coherentes de los dos scrip
   assert.ok(htmlSource.includes('catalogo-herramientas.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.ok(htmlSource.includes('catalogo-ui.js?actualizacion=depuracion-sin-inicio-v1'));
   assert.doesNotMatch(htmlSource,/id="catalogHomeBtn"/);
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=seo-local-almendros-v1'));
   assert.ok(htmlSource.includes('precios-admin.js?actualizacion=depuracion-integral-v1'));
   for(const id of ['grid','q','priceAdminBtn','btn-cart'])assert.ok(htmlSource.includes('id="'+id+'"'));
 });
@@ -1470,7 +1470,7 @@ test('El estilo editorial del carrito no altera fichas ni lógica de productos y
   for(const id of ['cartItems','shippingCop','invoicePaymentMethod','cartSubtotal','cartShippingTotal','cartTotal','cartBuyBtn','cartClearBtn']){
     assert.ok(htmlSource.includes('id="'+id+'"'));
   }
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=seo-local-almendros-v1'));
 });
 
 
@@ -1875,7 +1875,7 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
   assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));
-  assert.ok(htmlSource.includes('catalogo.css?actualizacion=retorno-directorio-v1'));
+  assert.ok(htmlSource.includes('catalogo.css?actualizacion=seo-local-almendros-v1'));
   assert.match(layer,/@media\(min-width:1024px\)\{\s*\.site-footer \.footer-products-card \.footer-product-benefits\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
 });
 
