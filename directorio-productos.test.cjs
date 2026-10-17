@@ -27,13 +27,13 @@ test('La generación excluye ocultos y otras secciones y protege los datos inter
   const python=`import importlib.util,json
 s=importlib.util.spec_from_file_location('directorio','generar-directorio-productos.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
 def row(code,extra=''):
- return {'c':[{'v':'Código interno: '+code+'\\nNombre: Producto de prueba\\nMarca: Natura\\nSección: Belleza y cuidado\\nCategoría: Cabello\\nContenido: 300\\nUnidad: ml\\n'+extra},{'v':'Nombre: Producto <seguro>\\nCosto: SECRETO\\nTeléfono: PRIVADO'}]}
+ return {'c':[{'v':'Código interno: '+code+'\\nNombre: Producto <seguro>\\nMarca: Natura\\nSección: Belleza y cuidado\\nCategoría: Cabello\\nContenido: 300\\nUnidad: ml\\nComponente 1: Acondicionador 300 ml\\n'+extra},{'v':'Nombre: Título resumido\\nComponentes: Acond…\\nCosto: SECRETO\\nTeléfono: PRIVADO'}]}
 p={'ok':True,'version':3,'table':{'cols':[{'label':'Datos operativos del producto'},{'label':'Etiquetas para fichas'}],'rows':[row('0012'),row('0013'),row('0014','Disponibilidad: No a la venta')]}}
 v={'ok':True,'reglas':[{'tipo':'producto','identificador':'0013','oculto':True}]}
 products=m.products_from_payload(p,v)
 assert len(products)==1 and products[0]['id']=='0012'
 h=m.render(products)
-assert 'Producto &lt;seguro&gt; — 300 ml' in h and 'SECRETO' not in h and 'PRIVADO' not in h
+assert 'Producto &lt;seguro&gt; — 300 ml' in h and 'Acondicionador 300 ml' in h and 'Título resumido' not in h and 'Acond…' not in h and 'SECRETO' not in h and 'PRIVADO' not in h
 p['table']['rows'].append(row('0012'))
 try:m.products_from_payload(p,v);raise AssertionError('Se admitió un ID duplicado')
 except ValueError:pass

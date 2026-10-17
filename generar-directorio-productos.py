@@ -68,7 +68,7 @@ def products_from_payload(payload, visibility):
         if code in seen:
             raise ValueError("Código duplicado: " + code)
         seen.add(code)
-        name = pick(b, "Nombre", "Nombre completo para publicar") or pick(a, "Nombre", "Nombre comercial del producto", "Nombre completo para publicar")
+        name = pick(a, "Nombre completo para publicar", "Nombre", "Nombre comercial del producto") or pick(b, "Nombre", "Nombre completo para publicar")
         p = {"id": code, "name": name, "brand": "Natura" if norm(brand) == "natura" else "Avon", "section": section,
              "category": pick(a,"Categoría","Categoría del producto"), "subcategory": pick(a,"Subcategoría","Subcategoría del producto"),
              "line": pick(a,"Línea","Línea comercial"), "public": pick(a,"Público","Público destinatario")}
@@ -80,16 +80,16 @@ def products_from_payload(payload, visibility):
         # precios, stock, referencias, contactos, instrucciones ni notas internas.
         specifications = []
         candidates = [
-            ("Contenido", pick(b,"Contenido","Contenido y presentación") or " ".join(filter(None,[pick(a,"Contenido","Cantidad de contenido"),pick(a,"Unidad","Unidad de medida del contenido")]))),
-            ("Presentación",pick(b,"Presentación","Presentación verificada","Formato de presentación") or pick(a,"Presentación","Formato de presentación","Tipo de presentación")),
-            ("Unidades",pick(b,"Unidades incluidas") or pick(a,"Cantidad de unidades")),
-            ("Componentes",pick(b,"Componentes","Componentes incluidos") or " · ".join(pick(a,"Componente " + str(i)) for i in range(1,5) if pick(a,"Componente " + str(i)))),
+            ("Contenido", " ".join(filter(None,[pick(a,"Contenido","Cantidad de contenido"),pick(a,"Unidad","Unidad de medida del contenido")])) or pick(b,"Contenido","Contenido y presentación")),
+            ("Presentación",pick(a,"Presentación","Formato de presentación","Tipo de presentación") or pick(b,"Presentación","Presentación verificada","Formato de presentación")),
+            ("Unidades",pick(a,"Cantidad de unidades") or pick(b,"Unidades incluidas")),
+            ("Componentes"," · ".join(pick(a,"Componente " + str(i)) for i in range(1,5) if pick(a,"Componente " + str(i))) or pick(b,"Componentes","Componentes incluidos")),
             ("Tipo",pick(a,"Tipo","Tipo de producto")),
             ("Variante",pick(a,"Variante","Variante del producto") or pick(b,"Variedad")),
             ("Característica",pick(a,"Característica","Característica distintiva")),
         ]
         for label in ["Tono","Tamaño","Aroma","Fragancia","Tipo de piel","Tipo de cabello","Familia olfativa","Tipo de fragancia","Textura","Textura y acabado","Acabado","Protección solar"]:
-            candidates.append((label,pick(b,label) or pick(a,label)))
+            candidates.append((label,pick(a,label) or pick(b,label)))
         used = set()
         for label, value in candidates:
             if value and norm(value) not in used:
