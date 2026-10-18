@@ -110,16 +110,16 @@
 
 /* Información comercial en los paneles solicitados; sin estilos sobre fichas. */
 .catalog-home-side-products{margin:0 0 12px;padding:14px 12px;border:1px solid #ead4dc;border-radius:14px;background:#fffdfc;box-shadow:none;color:#35202e}
-.catalog-home-side-products h2{margin:0 0 10px;padding-bottom:10px;border-bottom:2px solid #efc8cd;font:700 20px/1.2 Georgia,"Times New Roman",serif;text-align:justify;text-align-last:start;hyphens:auto;overflow-wrap:break-word}
+.catalog-home-side-products h2{margin:0 0 10px;padding-bottom:10px;border-bottom:2px solid #efc8cd;font:700 20px/1.2 Georgia,"Times New Roman",serif;text-align:justify;text-align-last:start;hyphens:none;overflow-wrap:normal}
 .catalog-home-side-products .catalog-home-brand-list{display:grid;gap:0;list-style:none;margin:0;padding:0}
 .catalog-home-side-products .catalog-home-brand-list>li{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 0;font-size:12px;line-height:1.5;text-align:justify;text-align-last:start;hyphens:auto}
 .catalog-home-side-products .catalog-home-brand-list>li:first-child{padding:10px 8px;background:#f9eef3;border-radius:12px}
 .catalog-home-side-products .catalog-home-brand-list>li+li{border-bottom:1px solid #ead4dc}
 .catalog-home-side-products .catalog-home-brand-list .ui-icon{width:28px;height:28px;padding:6px;flex:none;border-radius:9px;background:#f6e5ed;color:#8c4b63}
-.catalog-home-side-products .catalog-home-directory-link{display:flex;align-items:center;justify-content:space-between;gap:7px;min-height:44px;margin-top:12px;padding:10px;border:1px solid #ddbeca;border-radius:10px;background:#795268;color:#fff;text-decoration:none;font:700 12px/1.4 Arial,sans-serif;text-align:justify;text-align-last:start;hyphens:auto}
+.catalog-home-side-products .catalog-home-directory-link{display:flex;align-items:center;justify-content:space-between;gap:7px;min-height:44px;margin-top:12px;padding:10px;border:1px solid #ddbeca;border-radius:10px;background:#795268;color:#fff;text-decoration:none;font:700 12px/1.4 Arial,sans-serif;text-align:justify;text-align-last:start;hyphens:none}
 .catalog-home-side-products .catalog-home-directory-link>span{flex:none;font-size:21px}
 .catalog-home-side-delivery{padding:15px;border:1px solid #ead8cf;border-radius:15px;background:radial-gradient(ellipse at 100% 100%,#f6e3dc,transparent 70%),linear-gradient(135deg,#fffdfa,#fcf1eb);color:#49342c;box-shadow:none}
-.catalog-home-side-delivery h2{margin:0 0 12px;font:700 22px/1.2 Georgia,"Times New Roman",serif;color:#3b2723;text-align:justify;text-align-last:start;hyphens:auto;overflow-wrap:break-word}
+.catalog-home-side-delivery h2{margin:0 0 12px;font:700 22px/1.2 Georgia,"Times New Roman",serif;color:#3b2723;text-align:justify;text-align-last:start;hyphens:none;overflow-wrap:normal}
 .catalog-home-side-delivery h2::after{content:"";display:block;width:52px;height:3px;margin-top:10px;border-radius:3px;background:#ddb0a4}
 .catalog-home-side-delivery p{margin:0 0 10px;font-size:12px;line-height:1.5;text-align:justify;text-align-last:start;hyphens:auto;overflow-wrap:break-word}
 .catalog-home-side-delivery p:last-child{margin-bottom:0}
