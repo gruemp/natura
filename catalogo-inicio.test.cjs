@@ -14,7 +14,7 @@ test('Los estilos de la portada exigen su ámbito y no seleccionan fichas ni fol
   }
 });
 
-function environment({images=true}={}) {
+function environment({images=true,initialHome=true,initialSocial='left'}={}) {
   const nodes = new Map();
   const make = (classes='') => {
     const tokens = new Set(classes.split(' ').filter(Boolean));
@@ -27,10 +27,11 @@ function environment({images=true}={}) {
   };
   for(const id of ['grid','catalogMain','q'])nodes.set('#'+id,make());
   for(const name of ['catalog-layout','site-header','catalog-contact','catalog-navigation','social-contact-region','social-contact-card','catalog-products-info'])nodes.set('.'+name,make(name));
-  const grid=nodes.get('#grid');grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
+  const grid=nodes.get('#grid');if(initialHome)grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
   const names=['Perfumería','Cabello','Cuidado personal','Kits y combos','Maquillaje','Regalos'];
   grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>s==='.album-card[data-nav-level="category"]';n.querySelector=()=>({textContent:text});return n;});
-  const social=nodes.get('.social-contact-card'),left=nodes.get('.catalog-navigation');left.appendChild(social);
+  const social=nodes.get('.social-contact-card'),left=nodes.get('.catalog-navigation');
+  (initialSocial==='home'?nodes.get('.social-contact-region'):left).appendChild(social);
   const body=make();const observers=[];const tasks=[];const loads=[];
   const media={matches:true,addEventListener(_,fn){this.changed=fn;}};
   vm.runInNewContext(source,{
@@ -85,4 +86,17 @@ test('Las marcas de la propia portada no provocan una nueva composición',()=>{
   env.observers[0].fn([{type:'attributes',attributeName:'class',oldValue:'root-nav-mode album-grid-mode'}]);
   env.flush();
   assert.equal(env.loads.length,1);
+});
+
+test('La carga inicial conserva el origen de las redes y reconcilia los cambios de tamaño',()=>{
+  const env=environment({initialHome:false,initialSocial:'home'});
+  const footer=env.nodes.get('.social-contact-region');
+  assert.equal(env.social.parentElement,footer,'El módulo existente puede registrar el pie original');
+  env.left.appendChild(env.social);footer.hidden=true;
+  env.grid.classList.add('root-nav-mode');env.render();
+  assert.equal(env.social.parentElement,footer);assert.equal(footer.hidden,false);
+  env.left.appendChild(env.social);footer.hidden=true;
+  env.observers[2].fn([{type:'childList'}]);env.flush();
+  assert.equal(env.social.parentElement,footer,'Una recomposición anterior no devuelve las redes a la barra lateral');
+  assert.equal(footer.hidden,false);
 });

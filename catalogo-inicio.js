@@ -22,6 +22,7 @@
   let artReady = false;
   let artRequested = false;
   let queued = false;
+  let wasHome = false;
   const artUrl = new URL("assets/inicio/categorias-natura-avon.webp", document.currentScript?.src || document.baseURI || location.href).href;
   function arrange() {
     queued = false;
@@ -50,11 +51,14 @@
         image.src = artUrl;
       }
     }
-    if (socialHome && social && left) {
+    // La composición original debe registrar primero el lugar de las redes.
+    // Solo restauramos su distribución después de haber mostrado esta portada.
+    if (socialHome && social && left && (home || wasHome)) {
       const destination = home || !desktop.matches ? socialHome : left;
       if (social.parentElement !== destination) destination.appendChild(social);
       socialHome.hidden = !home && desktop.matches;
     }
+    wasHome = home;
   }
   function queue() {
     if (queued) return;
@@ -69,6 +73,13 @@
       grid.className.replace(/\bcatalog-home-categories\b/g, "").trim())) queue();
   }).observe(grid, {childList:true, attributes:true, attributeFilter:["class"], attributeOldValue:true});
   new MutationObserver(queue).observe(document.body, {attributes:true, attributeFilter:["class"]});
+  if (socialHome && left) {
+    // La composición existente también mueve las redes al cambiar de anchura.
+    // Reconciliar su destino evita depender del orden de los eventos de pantalla.
+    const socialObserver = new MutationObserver(queue);
+    socialObserver.observe(left, {childList:true});
+    socialObserver.observe(socialHome, {childList:true});
+  }
   search?.addEventListener("input", queue);
   desktop.addEventListener("change", queue);
   window.addEventListener("irenismb:admin-section-change", queue);
