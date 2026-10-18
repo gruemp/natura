@@ -341,7 +341,7 @@
       box=document.createElement("div");box.id="catalogAdminConnection";box.className="catalog-admin-connection";
       const text=document.createElement("span");text.setAttribute("role","status");text.setAttribute("aria-live","polite");
       const retry=document.createElement("button");retry.type="button";retry.textContent="Conectar con Google";retry.addEventListener("click",()=>connect(true));
-      box.append(text,retry);grid.insertAdjacentElement("beforebegin",box);
+      box.append(text,retry);const toolbar=document.querySelector(".catalog-main>.bar");if(toolbar)toolbar.appendChild(box);else grid.insertAdjacentElement("beforebegin",box);
     }
     if(box){box.hidden=!message;box.querySelector("span").textContent=message;box.querySelector("button").disabled=connecting}
   }
@@ -820,5 +820,6 @@
     if(!options.keepPending)pendingChannel="";if(!options.keepConnecting)connecting=false;if(!options.keepButton)syncConnectionButton();
   }
 })();
+
 
 

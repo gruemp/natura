@@ -1869,9 +1869,9 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.equal(fichaCssSource.split(marker).length,2);
   const layer=marker+fichaCssSource.split(marker)[1];
   assert.doesNotMatch(layer,/\.catalog-ficha-card|\.ficha-|\.folleto-dialog|#grid:|\.product-details|\.product-selection|\.ficha-square/);
-  const selectors=layer.split('\n').filter(line=>line.includes('{')&&!line.trim().startsWith('/*')&&!line.trim().startsWith('@media'));
+  const selectors=layer.split('\n').filter(line=>line.includes('{')&&!line.trim().startsWith('/*')&&!line.trim().startsWith('@media')&&!line.trim().startsWith('@container'));
   assert.ok(selectors.length>=12);
-  for(const line of selectors)assert.match(line,/^\s*\.(?:site-header|catalog-contact|social-contact-region|site-footer)\b/);
+  for(const line of selectors)assert.match(line,/^\s*\.(?:site-header|catalog-contact|social-contact-region|site-footer|catalog-main>(?:\.bar|\.site-footer))\b/);
   assert.match(layer,/\.social-contact-region>\.social-contact-card \.social-icons\{grid-template-columns:repeat\(9,minmax\(0,1fr\)\)/);
   assert.match(layer,/\.site-footer \.footer-products-card \.footer-product-benefits\{display:grid;grid-column:1\/-1;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
   for(const id of ['folletoBtn','grid','socialSectionHeading','footerVisitTitle','footerProductsTitle'])assert.ok(htmlSource.includes('id="'+id+'"'));

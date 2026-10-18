@@ -10,6 +10,15 @@
 - Buscar **cinco mejoras independientes** por revisión solo como objetivo: contar diferencias estáticas verdaderamente notorias y distintas. Nunca dividir artificialmente un cambio en cinco ni introducir retoques por cumplir una cuota.
 - No contar hover, animaciones, transiciones, foco, efectos invisibles, cambios técnicos, cambios de texto sin mejora de composición ni diferencias diminutas.
 
+## Criterio permanente de distribución y aprovechamiento del espacio
+
+- En cada actualización visual, revisar el conjunto en móvil, tableta y PC y aprovechar el espacio útil ya disponible antes de crear filas nuevas o empujar información hacia abajo.
+- Evitar huecos grandes causados por columnas laterales más altas: la información comercial que acompaña los productos debe seguir al contenido de la columna central, sin esperar al final de toda la página.
+- Agrupar controles relacionados y avisos breves en la misma fila cuando quepan con comodidad. En particular, el aviso y el acceso a Google deben compartir la fila de «Filtrar» en escritorio cuando estén visibles.
+- Mantener márgenes, separaciones e iconos compactos y proporcionales, sin solapamientos, desbordamientos ni texto ilegible. Adaptar las filas al espacio real disponible y permitir reordenamiento en pantallas estrechas.
+- Mantener justificados los textos informativos exteriores y conservar una jerarquía clara. Este criterio no autoriza cambios en las fichas de producto ni en el folleto.
+- Comprobar la vista normal, búsquedas con pocos resultados y controles administrativos visibles cuando la sesión ya los muestre, sin conectar cuentas ni realizar operaciones comerciales para una revisión visual.
+
 ## Restricción absoluta: fichas de productos y folleto
 
 **Está prohibido cambiar, directa o indirectamente, la presentación de cualquier ficha de producto**, tanto en web como en vista previa, folleto, PDF, PNG u otras exportaciones. Se deben conservar exactamente disposición, dimensiones, tipografías, colores, fondos, bordes, imágenes, botones, controles, espacios y alineaciones en todos los tamaños.
@@ -37,3 +46,4 @@ Reportar brevemente la **cifra real** de mejoras visibles y publicadas, zonas af
 El commit `1989a6e95605e4042061cde23a5aed2541bc4036` introdujo cinco mejoras exteriores: botón Folleto móvil menos dominante, atención centrada en tabletas, redes sociales en una fila de escritorio, contacto equilibrado en el pie y beneficios en tres columnas. **No volver a contarlas como nuevas** a menos que el código cambie y haya un problema visual diferente demostrado. La prueba automatizada de aislamiento de CSS y el éxito de Actions no sustituyen capturas completas de fichas reales.
 
 Estas reglas **no crean una tarea programada**: se aplican cuando el titular pida revisar o mejorar la apariencia de la web, salvo que solicite expresamente una programación.
+
