@@ -26,7 +26,7 @@ Recargar la página restaura la ruta, búsqueda, filtros, orden y posiciones de 
 - `robots.txt`: directivas para buscadores.
 - `sitemap.xml`: mapa del sitio.
 - `google8559800fc0ba033d.html`: verificación de Google; no renombrar.
-- `recursos-visuales.js`: logo e iconos SVG definidos directamente en código, sin carpetas de imágenes. Los formatos PNG/WebP conservados en la raíz sirven exclusivamente para la compatibilidad de Apple y las vistas previas de redes sociales.
+- `recursos-visuales.js`: utiliza el logo original `logo_empresa.png`, confirmado por el titular, para el encabezado, favicon y documentos que consumen `NATURA_RECURSOS.logoUrl`. Los iconos de navegación siguen definidos como SVG en código. El logo PNG/WebP también se utiliza en Apple y en las vistas previas de redes sociales.
 
 ## Apps Script
 
@@ -66,3 +66,4 @@ Toda opción administrativa que escriba en un libro externo debe ofrecer en esa 
 ## Archivo
 
 `.github/archivo/recursos-visuales/` conserva los originales gráficos reemplazados por los SVG del sitio, con su guía de procedencia. Los scripts, workflows, activadores y solicitudes retirados se recuperan del historial Git. Los workflows operativos permanecen en `.github/workflows/`.
+

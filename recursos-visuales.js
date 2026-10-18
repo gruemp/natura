@@ -1,7 +1,6 @@
-// Recursos gráficos SVG definidos como código, sin rutas de imágenes para logos ni iconos.
+// Logo original de la tienda e iconos SVG definidos como código.
 (() => {
   "use strict";
-  const logoSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"Irenismb, belleza y cuidado\"><rect x=\"4\" y=\"4\" width=\"120\" height=\"120\" rx=\"32\" fill=\"#fff5ee\"/><g fill=\"none\" stroke=\"#a55343\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M64 77V35M64 59C41 59 31 43 32 27c22-1 33 13 32 32M64 68c23-1 33-17 32-33-23 0-33 15-32 33\"/><path d=\"M38 89h52\" stroke-width=\"2\"/><text x=\"64\" y=\"106\" text-anchor=\"middle\" fill=\"#754437\" stroke=\"none\" font-family=\"Arial,sans-serif\" font-size=\"12\" letter-spacing=\"2\">IRENISMB</text></g></svg>";
   const icons = {
     "2026-09-06_icono categoria otros productos hogar variedad.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"2026-09-06 icono categoria otros productos hogar variedad\"><rect x=\"4\" y=\"4\" width=\"120\" height=\"120\" rx=\"32\" fill=\"#eef5ef\"/><g fill=\"none\" stroke=\"#47745c\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M37 90V49l27-18 27 18v41H37M54 90V64h20v26\"/><path d=\"M88 31v15M27 54l10-7\"/></g></svg>",
     "2026-09-06_icono categoria para el perfume azul.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"2026-09-06 icono categoria para el perfume azul\"><rect x=\"4\" y=\"4\" width=\"120\" height=\"120\" rx=\"32\" fill=\"#eef5ef\"/><g fill=\"none\" stroke=\"#47745c\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"43\" y=\"48\" width=\"42\" height=\"48\" rx=\"9\"/><path d=\"M54 48V34h20v14M51 68h26M79 35l14-8M84 44h14\"/><circle cx=\"64\" cy=\"78\" r=\"7\"/></g></svg>",
@@ -25,14 +24,14 @@
     "2026-09-06_icono subcategoria tecnologia hogar asistente inteligente.svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"128\" height=\"128\" viewBox=\"0 0 128 128\" role=\"img\" aria-label=\"2026-09-06 icono subcategoria tecnologia hogar asistente inteligente\"><rect x=\"4\" y=\"4\" width=\"120\" height=\"120\" rx=\"32\" fill=\"#eef5ef\"/><g fill=\"none\" stroke=\"#47745c\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"29\" y=\"31\" width=\"70\" height=\"49\" rx=\"6\"/><path d=\"M64 80v15M47 95h34M42 46h44M42 57h26\"/></g></svg>",
   };
   const svgUrl = (svg) => svg ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg) : "";
-  const logoUrl = svgUrl(logoSvg);
+  const logoUrl = "logo_empresa.png";
   window.NATURA_RECURSOS = Object.freeze({
-    logoSvg,
     logoUrl,
     iconUrl: (name) => svgUrl(icons[String(name || "").split("/").pop()] || "")
   });
   const brand = document.querySelector("[data-natura-logo]");
   if (brand) brand.src = logoUrl;
   const favicon = document.querySelector("link[data-natura-favicon]");
-  if (favicon) favicon.href = logoUrl;
+  if (favicon) { favicon.type = "image/png"; favicon.href = logoUrl; }
 })();
+
