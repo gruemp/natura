@@ -31,7 +31,7 @@ function environment({images=true,initialHome=true,initialSocial='left'}={}) {
   nodes.get('.catalog-navigation').appendChild(nodes.get('.catalog-home-side-products'));
   const grid=nodes.get('#grid');if(initialHome)grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
   const names=['Perfumería','Cabello','Cuidado personal','Kits y combos','Maquillaje','Regalos'];
-  grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>['.album-card[data-nav-level="category"]','.album-card[data-nav-level]'].includes(s);n.querySelector=()=>({textContent:text});return n;});
+  grid.children=names.map((text,i)=>{const n=make('album-card');n.preview={src:'https://drive.google.com/thumbnail?id=producto-real-'+i};n.matches=s=>['.album-card[data-nav-level="category"]','.album-card[data-nav-level]'].includes(s);n.querySelector=selector=>selector==='.album-icon img'?n.preview:({textContent:text});return n;});
   const social=nodes.get('.social-contact-card'),left=nodes.get('.catalog-navigation');
   (initialSocial==='home'?nodes.get('.social-contact-region'):left).appendChild(social);
   const body=make();const observers=[];const tasks=[];const loads=[];
@@ -55,10 +55,8 @@ test('La portada conserva los nombres y cantidades del catálogo y devuelve las 
   assert.equal(env.social.parentElement,env.nodes.get('.social-contact-region'));
   assert.equal(env.nodes.get('.social-contact-region').hidden,false);
   assert.equal(env.grid.children.length,6);
-  assert.deepEqual(env.grid.children.map(n=>n.dataset.homeCategory),['perfumeria','cabello','cuidado-personal','kits-y-combos','maquillaje','regalos']);
-  assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-art-ready'),false);
-  env.loads[0].onload();env.flush();
-  assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-art-ready'),true);
+  assert.equal(env.loads.length,0,'No carga ilustraciones externas a la selección del catálogo');
+  assert.ok(env.grid.children.every(n=>n.classList.contains('home-category-tile')));
 });
 
 test('La navegación interior conserva el diseño aprobado con imágenes reales',()=>{
@@ -97,7 +95,7 @@ test('Las marcas de la propia portada no provocan una nueva composición',()=>{
   const env=environment();
   env.observers[0].fn([{type:'attributes',attributeName:'class',oldValue:'root-nav-mode album-grid-mode'}]);
   env.flush();
-  assert.equal(env.loads.length,1);
+  assert.equal(env.loads.length,0);
 });
 
 test('La carga inicial conserva el origen de las redes y reconcilia los cambios de tamaño',()=>{
@@ -159,4 +157,19 @@ test('La información lateral conserva barrios y directorio sin distintivos repe
   for(const place of ['Los Almendros','Campo Alegre','Miraflores','San Francisco','Los Olivos','Alfonso López'])assert.ok(right.includes(place));
   assert.doesNotMatch(html,/footer-product-benefits|Productos 100% originales|Belleza que cuida de ti|Natura y AVON en un solo lugar/);
   assert.equal((html.match(/id="footerProductsTitle"/g)||[]).length,1);
+});
+
+test('La portada conserva la foto real y las actualizaciones elegidas por el catálogo',()=>{
+  const env=environment();const card=env.grid.children[0],photo=card.querySelector('.album-icon img');
+  const firstUrl=photo.src;env.render();
+  assert.equal(card.querySelector('.album-icon img'),photo);assert.equal(photo.src,firstUrl);
+  photo.src='https://drive.google.com/thumbnail?id=alternativa-real';env.render();
+  assert.equal(photo.src,'https://drive.google.com/thumbnail?id=alternativa-real');
+  env.grid.classList.toggle('root-nav-mode',false);env.render();
+  env.grid.classList.add('root-nav-mode');env.render();
+  assert.equal(card.querySelector('.album-icon img'),photo);
+  assert.equal(photo.src,'https://drive.google.com/thumbnail?id=alternativa-real');
+  const css=fs.readFileSync(path.join(__dirname,'catalogo-inicio.css'),'utf8');
+  assert.doesNotMatch(css,/catalog-home-art-ready|categorias-natura-avon|background-image:/);
+  assert.doesNotMatch(source,/new Image|categorias-natura-avon|dataset\.homeCategory/);
 });

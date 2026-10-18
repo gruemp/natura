@@ -30,14 +30,6 @@
 .catalog-home-categories>.home-category-tile .album-label{margin:0;font:700 clamp(17px,1.5vw,24px)/1.15 Georgia,"Times New Roman",serif;color:#35202e;overflow-wrap:normal}
 .catalog-home-categories>.home-category-tile .album-count-badge{grid-row:2;grid-column:2;padding:6px 8px;font-size:11px;background:#faedf2;color:#693e55}
 .catalog-home-categories>.home-category-tile .album-pad::after{content:"›";display:grid;place-items:center;grid-row:2;grid-column:3;width:28px;height:28px;border-radius:50%;font:400 28px/1 Georgia,serif;background:#faedf2;color:#784b63}
-.catalog-home-art-ready .catalog-home-categories>.home-category-tile[data-home-category] .album-icon{background-image:url("assets/inicio/categorias-natura-avon.webp");background-size:300% 200%;background-repeat:no-repeat;aspect-ratio:2;background-blend-mode:multiply;background-color:#fff6ef}
-.catalog-home-art-ready .catalog-home-categories>.home-category-tile[data-home-category] .album-icon>img{display:none}
-.catalog-home-art-ready .home-category-tile[data-home-category="perfumeria"] .album-icon{background-position:0 0}
-.catalog-home-art-ready .home-category-tile[data-home-category="cabello"] .album-icon{background-position:50% 0}
-.catalog-home-art-ready .home-category-tile[data-home-category="cuidado-personal"] .album-icon{background-position:100% 0}
-.catalog-home-art-ready .home-category-tile[data-home-category="kits-y-combos"] .album-icon{background-position:0 100%}
-.catalog-home-art-ready .home-category-tile[data-home-category="maquillaje"] .album-icon{background-position:50% 100%}
-.catalog-home-art-ready .home-category-tile[data-home-category="regalos"] .album-icon{background-position:100% 100%}
 .catalog-home-contact>.service-card{padding:14px 15px}
 .catalog-home-contact>.service-card>h2{font-size:25px;margin:0 0 8px;padding-bottom:10px}
 .catalog-home-contact>.service-card .service-list>li{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:0;padding:10px 0;margin:0;font-size:13px;line-height:1.4;text-align:justify;text-align-last:start}

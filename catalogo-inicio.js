@@ -14,17 +14,8 @@
   const promotion = document.getElementById("catalogPromotion");
   if (!grid || !main || !layout) return;
   const desktop = window.matchMedia("(min-width:761px)");
-  const names = new Map([
-    ["perfumeria", "perfumeria"], ["cabello", "cabello"],
-    ["cuidado personal", "cuidado-personal"], ["kits y combos", "kits-y-combos"],
-    ["maquillaje", "maquillaje"], ["regalos", "regalos"]
-  ]);
-  const normalize = value => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  let artReady = false;
-  let artRequested = false;
   let queued = false;
   let wasPublic = false;
-  const artUrl = new URL("assets/inicio/categorias-natura-avon.webp", document.currentScript?.src || document.baseURI || location.href).href;
   function arrange() {
     queued = false;
     const cards = Array.from(grid.children);
@@ -32,11 +23,6 @@
     const albums = publicView && cards.length > 0 && grid.classList.contains("album-grid-mode") &&
       cards.every(card => card.matches(".album-card[data-nav-level]")) &&
       !String(search?.value || "").trim();
-    const home = albums && grid.classList.contains("root-nav-mode") &&
-      grid.classList.contains("album-grid-mode") && cards.length > 0 &&
-      cards.every(card => card.matches('.album-card[data-nav-level="category"]')) &&
-      !String(search?.value || "").trim() &&
-      !document.body.classList.contains("catalog-admin-mode");
     // La anchura ampliada solo corresponde a navegación por álbumes.
     // Las fichas conservan exactamente la geometría original de sus columnas.
     layout.classList.toggle("catalog-home-layout", albums);
@@ -59,22 +45,8 @@
     for (const [node, name] of [[main,"catalog-home-main"],
       [header,"catalog-home-header"],
       [socialHome,"catalog-home-social"]]) node?.classList.toggle(name, publicView);
-    const images = window.INTERRUPTORES?.CARGAR_IMAGENES_CATALOGO !== false;
-    layout.classList.toggle("catalog-home-art-ready", home && images && artReady);
-    if (albums) {
-      for (const card of cards) {
-        card.classList.add("home-category-tile");
-        const key = names.get(normalize(card.querySelector(".album-label")?.textContent));
-        if (home && key) card.dataset.homeCategory = key;
-        else delete card.dataset.homeCategory;
-      }
-      if (home && images && !artRequested) {
-        artRequested = true;
-        const image = new Image();
-        image.onload = () => { artReady = true; queue(); };
-        image.src = artUrl;
-      }
-    }
+    // Solo cambia el marco: las fotos y sus alternativas las gestiona el catálogo.
+    if (albums) for (const card of cards) card.classList.add("home-category-tile");
     // La composición original debe registrar primero el lugar de las redes.
     // Solo restauramos su distribución después de haber mostrado contenido del catálogo.
     if (socialHome && social && left && (publicView || wasPublic)) {
