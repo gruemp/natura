@@ -9,7 +9,7 @@
   const left = document.querySelector(".catalog-navigation");
   const socialHome = document.querySelector(".social-contact-region");
   const social = document.querySelector(".social-contact-card");
-  const info = document.querySelector(".catalog-products-info");
+  const info = document.querySelector(".catalog-home-side-products");
   const search = document.getElementById("q");
   const promotion = document.getElementById("catalogPromotion");
   if (!grid || !main || !layout) return;
@@ -47,9 +47,18 @@
       const destination = publicView && desktop.matches ? left : contact;
       if (promotion.parentElement !== destination) destination.appendChild(promotion);
     }
+    // En pantallas estrechas la información queda después de los productos.
+    // En escritorio comparte el panel izquierdo con el anuncio, sin cambiar las fichas.
+    if (info && left && contact) {
+      const destination = desktop.matches ? left : contact;
+      if (info.parentElement !== destination) {
+        destination.appendChild(info);
+        if (destination === left && promotion?.parentElement === left) left.appendChild(promotion);
+      }
+    }
     for (const [node, name] of [[main,"catalog-home-main"],
       [header,"catalog-home-header"],
-      [info,"catalog-home-info"],[socialHome,"catalog-home-social"]]) node?.classList.toggle(name, publicView);
+      [socialHome,"catalog-home-social"]]) node?.classList.toggle(name, publicView);
     const images = window.INTERRUPTORES?.CARGAR_IMAGENES_CATALOGO !== false;
     layout.classList.toggle("catalog-home-art-ready", home && images && artReady);
     if (albums) {

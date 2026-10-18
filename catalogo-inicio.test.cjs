@@ -26,8 +26,9 @@ function environment({images=true,initialHome=true,initialSocial='left'}={}) {
     return node;
   };
   for(const id of ['grid','catalogMain','q','catalogPromotion'])nodes.set('#'+id,make());
-  for(const name of ['catalog-layout','site-header','catalog-contact','catalog-navigation','social-contact-region','social-contact-card','catalog-products-info'])nodes.set('.'+name,make(name));
+  for(const name of ['catalog-layout','site-header','catalog-contact','catalog-navigation','social-contact-region','social-contact-card','catalog-home-side-products'])nodes.set('.'+name,make(name));
   nodes.get('.catalog-contact').appendChild(nodes.get('#catalogPromotion'));
+  nodes.get('.catalog-navigation').appendChild(nodes.get('.catalog-home-side-products'));
   const grid=nodes.get('#grid');if(initialHome)grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
   const names=['Perfumería','Cabello','Cuidado personal','Kits y combos','Maquillaje','Regalos'];
   grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>['.album-card[data-nav-level="category"]','.album-card[data-nav-level]'].includes(s);n.querySelector=()=>({textContent:text});return n;});
@@ -136,4 +137,26 @@ test('El anuncio usa el panel izquierdo público y vuelve al panel original en a
   assert.equal(promo.parentElement,env.left);
   env.body.classList.add('catalog-admin-mode');env.render();
   assert.equal(promo.parentElement,env.nodes.get('.catalog-contact'));
+});
+
+test('La información de marcas queda a la izquierda y se mantiene accesible en móvil',()=>{
+  const env=environment();const info=env.nodes.get('.catalog-home-side-products');
+  assert.equal(info.parentElement,env.left);
+  env.media.matches=false;env.media.changed();env.flush();
+  assert.equal(info.parentElement,env.nodes.get('.catalog-contact'));
+  env.media.matches=true;env.media.changed();env.flush();
+  assert.equal(info.parentElement,env.left);
+  assert.equal(env.left.children.at(-1),env.nodes.get('#catalogPromotion'));
+});
+
+test('La información lateral conserva barrios y directorio sin distintivos repetidos',()=>{
+  const html=fs.readFileSync(path.join(__dirname,'catalogo.html'),'utf8');
+  const left=html.slice(html.indexOf('<aside class="catalog-navigation"'),html.indexOf('</aside>',html.indexOf('<aside class="catalog-navigation"')));
+  const right=html.slice(html.indexOf('<aside class="catalog-contact"'),html.indexOf('</aside>',html.indexOf('<aside class="catalog-contact"')));
+  assert.match(left,/class="catalog-home-side-products"/);
+  assert.match(left,/href="productos_natura_y_avon_en_santa_marta.html"/);
+  assert.match(right,/class="catalog-home-side-delivery"/);
+  for(const place of ['Los Almendros','Campo Alegre','Miraflores','San Francisco','Los Olivos','Alfonso López'])assert.ok(right.includes(place));
+  assert.doesNotMatch(html,/footer-product-benefits|Productos 100% originales|Belleza que cuida de ti|Natura y AVON en un solo lugar/);
+  assert.equal((html.match(/id="footerProductsTitle"/g)||[]).length,1);
 });
