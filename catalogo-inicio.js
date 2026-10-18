@@ -11,6 +11,7 @@
   const social = document.querySelector(".social-contact-card");
   const info = document.querySelector(".catalog-products-info");
   const search = document.getElementById("q");
+  const promotion = document.getElementById("catalogPromotion");
   if (!grid || !main || !layout) return;
   const desktop = window.matchMedia("(min-width:761px)");
   const names = new Map([
@@ -41,6 +42,11 @@
     layout.classList.toggle("catalog-home-layout", albums);
     contact?.classList.toggle("catalog-home-contact", albums);
     grid.classList.toggle("catalog-home-categories", albums);
+    left?.classList.toggle("catalog-home-promotion", publicView);
+    if (promotion && left && contact) {
+      const destination = publicView && desktop.matches ? left : contact;
+      if (promotion.parentElement !== destination) destination.appendChild(promotion);
+    }
     for (const [node, name] of [[main,"catalog-home-main"],
       [header,"catalog-home-header"],
       [info,"catalog-home-info"],[socialHome,"catalog-home-social"]]) node?.classList.toggle(name, publicView);

@@ -25,8 +25,9 @@ function environment({images=true,initialHome=true,initialSocial='left'}={}) {
     Object.defineProperty(node,'className',{get:()=>[...tokens].join(' ')});
     return node;
   };
-  for(const id of ['grid','catalogMain','q'])nodes.set('#'+id,make());
+  for(const id of ['grid','catalogMain','q','catalogPromotion'])nodes.set('#'+id,make());
   for(const name of ['catalog-layout','site-header','catalog-contact','catalog-navigation','social-contact-region','social-contact-card','catalog-products-info'])nodes.set('.'+name,make(name));
+  nodes.get('.catalog-contact').appendChild(nodes.get('#catalogPromotion'));
   const grid=nodes.get('#grid');if(initialHome)grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
   const names=['Perfumería','Cabello','Cuidado personal','Kits y combos','Maquillaje','Regalos'];
   grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>['.album-card[data-nav-level="category"]','.album-card[data-nav-level]'].includes(s);n.querySelector=()=>({textContent:text});return n;});
@@ -122,4 +123,17 @@ test('La anchura ampliada exige el marco de álbumes, también en móvil',()=>{
   const css=fs.readFileSync(path.join(__dirname,'catalogo-inicio.css'),'utf8');
   assert.doesNotMatch(css,/(?:^|\n)\s*\.catalog-home-main\s*\{/);
   assert.match(css,/\.catalog-home-layout>\.catalog-home-main\{width:100%/);
+});
+
+test('El anuncio usa el panel izquierdo público y vuelve al panel original en administración',()=>{
+  const env=environment();const promo=env.nodes.get('#catalogPromotion');
+  assert.equal(promo.parentElement,env.left);
+  env.grid.children=[{matches:()=>false}];env.render();
+  assert.equal(promo.parentElement,env.left,'No altera la geometría original de las fichas');
+  env.media.matches=false;env.media.changed();env.flush();
+  assert.equal(promo.parentElement,env.nodes.get('.catalog-contact'),'En móvil el anuncio queda después de los productos');
+  env.media.matches=true;env.media.changed();env.flush();
+  assert.equal(promo.parentElement,env.left);
+  env.body.classList.add('catalog-admin-mode');env.render();
+  assert.equal(promo.parentElement,env.nodes.get('.catalog-contact'));
 });

@@ -239,6 +239,7 @@ function environment(options={}){
     remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(node=>node!==this);this.parentNode=null;}
     setAttribute(name,value){this.attributes[name]=value;}
     getAttribute(name){return this.attributes[name]??null;}
+    removeAttribute(name){delete this.attributes[name];}
     addEventListener(name,fn){this.listeners.set(name,fn);}
     getBoundingClientRect(){return {top:0,width:350,height:350};}
     querySelector(){return null;}
@@ -1879,3 +1880,26 @@ test('Cinco mejoras exteriores sin selectores que afecten fichas ni folleto',()=
   assert.match(layer,/@media\(min-width:1024px\)\{\s*\.site-footer \.footer-products-card \.footer-product-benefits\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
 });
 
+
+test('Administrar reúne acceso y reconexión sin duplicar controles del catálogo',()=>{
+  const nodes=new Map(),insertions=[],calls=[];
+  function node(){const attributes={},classes=new Set();return {attributes,hidden:false,textContent:'',setAttribute(k,v){attributes[k]=v},removeAttribute(k){delete attributes[k]},classList:{toggle(k,on){on?classes.add(k):classes.delete(k)},contains:k=>classes.has(k)}};}
+  const btn=node();
+  const sandbox={btn,grid:{},document:{getElementById:id=>nodes.get(id)||null,createElement:()=>node(),querySelector:()=>({insertAdjacentElement(_,el){nodes.set(el.id,el);insertions.push(el)}})},connecting:false,admin:false,port:null,connectionMessage:'',connect:popup=>calls.push(['connect',popup]),startAdmin:()=>calls.push(['start']),stopAdmin:()=>calls.push(['stop'])};
+  vm.createContext(sandbox);
+  vm.runInContext(adminSource.slice(adminSource.indexOf('  function syncConnectionButton(){'),adminSource.indexOf('  // La ventana puede parecer')),sandbox);
+  vm.runInContext(adminSource.slice(adminSource.indexOf('  function toggleAdmin(){'),adminSource.indexOf('  function connect(')),sandbox);
+  vm.runInContext('setConnectionStatus("Pulsa Conectar con Google para retomar la administración.");toggleAdmin()',sandbox);
+  const status=nodes.get('catalogAdminConnection');
+  assert.equal(insertions.length,1);assert.equal(status.attributes.role,'status');
+  assert.equal(status.classList.contains('catalog-admin-connection-compact'),true);
+  assert.match(btn.title,/Pulsa Administrar/);assert.equal(btn.textContent,'Administrar');
+  assert.deepEqual(calls,[['connect',true]]);
+  vm.runInContext('setConnectionStatus("El navegador bloqueó la ventana de Google. Pulsa Conectar con Google.")',sandbox);
+  assert.equal(status.classList.contains('catalog-admin-connection-compact'),false);assert.equal(status.hidden,false);
+  assert.match(status.textContent,/Pulsa Administrar/);
+  vm.runInContext('connecting=true;toggleAdmin();syncConnectionButton()',sandbox);assert.equal(calls.length,1);assert.equal(btn.disabled,true);
+  vm.runInContext('connecting=false;port={};toggleAdmin();admin=true;toggleAdmin();setConnectionStatus()',sandbox);
+  assert.deepEqual(calls,[['connect',true],['start'],['stop']]);assert.equal(status.hidden,true);
+  assert.equal(btn.attributes['aria-describedby'],undefined);
+});

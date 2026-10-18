@@ -31,7 +31,7 @@
   let admin=false, adminMissingPriceOnly=false, adminHideHidden=false, connecting=false, bridgeFrame=null, port=null, pendingChannel="", openAfterConnect=false, seq=0, configLoading=false, connectTimer=0;
   let adminSection="catalogo", navigationOrderDraft=[], navigationDragLevel="";
   let capabilities=new Set(["precio"]);
-  let bridgePopup=null, bridgeCheck=null;
+  let bridgePopup=null, bridgeCheck=null, connectionMessage="";
   const requests=new Map();
   const CONFIG_ITEMS=[
     {key:"REGISTRAR_VISITAS_PROPIAS",label:"Registrar mis propias visitas",help:"Incluye o excluye tus navegadores conocidos del registro de visitas y avisos."},
@@ -61,7 +61,7 @@
 
   const css=document.createElement("style");
   css.textContent=`
-  .catalog-admin-connection{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:12px 0;padding:14px 16px;border:1px solid #e6bac3;border-radius:14px;background:#fff4f6;color:#8f263c;font:13px/1.45 Arial}.catalog-admin-connection[hidden]{display:none!important}.catalog-admin-connection button{padding:9px 13px;border:1px solid #cfa8b0;border-radius:10px;background:#fff;color:#713c49;font:800 12px Arial;cursor:pointer}
+  .catalog-admin-connection{margin:8px 0 0;padding:9px 12px;border:1px solid #e6bac3;border-radius:10px;background:#fff4f6;color:#8f263c;font:13px/1.45 Arial;text-align:justify}.catalog-admin-connection[hidden]{display:none!important}.catalog-admin-connection.catalog-admin-connection-compact{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
   .catalog-admin-documents-dialog{box-sizing:border-box;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid #dfe5e1;border-radius:20px;background:#fff;color:#17312b;overflow:auto;box-shadow:0 20px 70px #172d2740}
   .catalog-admin-documents-dialog::backdrop{background:#11182799}
   .catalog-admin-documents-head{display:flex;justify-content:space-between;align-items:start;gap:16px}.catalog-admin-documents-head h2{margin:0;font:900 24px/1.2 Arial;color:#17312b}
@@ -332,18 +332,26 @@
   function syncConnectionButton(){
     btn.hidden=false;btn.disabled=connecting;
     const label=connecting?"Conectando…":admin?(port?"Salir de administración":"Reconectar administración"):"Administrar";
-    btn.textContent=label;btn.title=label;btn.setAttribute("aria-label",connecting?"Conectando con Google":admin?label:"Administrar catálogo");
+    btn.textContent=label;btn.title=connectionMessage||label;btn.setAttribute("aria-label",connecting?"Conectando con Google":admin?label:"Administrar catálogo");
   }
   function syncUI(){syncConnectionButton();if(!admin)return;syncAdminSectionUI(false)}
   function setConnectionStatus(message=""){
+    connectionMessage=String(message).replaceAll("Conectar con Google","Administrar");
     let box=document.getElementById("catalogAdminConnection");
-    if(!box&&message){
+    if(!box&&connectionMessage){
       box=document.createElement("div");box.id="catalogAdminConnection";box.className="catalog-admin-connection";
-      const text=document.createElement("span");text.setAttribute("role","status");text.setAttribute("aria-live","polite");
-      const retry=document.createElement("button");retry.type="button";retry.textContent="Conectar con Google";retry.addEventListener("click",()=>connect(true));
-      box.append(text,retry);const toolbar=document.querySelector(".catalog-main>.bar");if(toolbar)toolbar.appendChild(box);else grid.insertAdjacentElement("beforebegin",box);
+      box.setAttribute("role","status");box.setAttribute("aria-live","polite");
+      // El botón Administrar ya abre la misma conexión desde la pulsación del usuario.
+      // Los errores permanecen visibles bajo el encabezado; el recordatorio no ocupa una fila.
+      document.querySelector(".site-header-inner").insertAdjacentElement("afterend",box);
     }
-    if(box){box.hidden=!message;box.querySelector("span").textContent=message;box.querySelector("button").disabled=connecting}
+    if(box){
+      box.hidden=!connectionMessage;box.textContent=connectionMessage;
+      box.classList.toggle("catalog-admin-connection-compact",/^Pulsa Administrar/.test(connectionMessage));
+    }
+    if(connectionMessage)btn.setAttribute("aria-describedby","catalogAdminConnection");
+    else btn.removeAttribute("aria-describedby");
+    syncConnectionButton();
   }
   // La ventana puede parecer cerrada por aislamiento entre sitios aunque el puerto siga activo.
   // La disponibilidad se verifica con una respuesta del puente, nunca con popup.closed.
