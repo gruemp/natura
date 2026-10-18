@@ -117,3 +117,9 @@ test('Una búsqueda vacía mantiene el marco y no convierte avisos en álbumes',
   assert.equal(env.grid.classList.contains('catalog-home-categories'),false);
   assert.equal(env.social.parentElement,env.nodes.get('.social-contact-region'));
 });
+
+test('La anchura ampliada exige el marco de álbumes, también en móvil',()=>{
+  const css=fs.readFileSync(path.join(__dirname,'catalogo-inicio.css'),'utf8');
+  assert.doesNotMatch(css,/(?:^|\n)\s*\.catalog-home-main\s*\{/);
+  assert.match(css,/\.catalog-home-layout>\.catalog-home-main\{width:100%/);
+});
