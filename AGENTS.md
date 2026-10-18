@@ -21,7 +21,7 @@
 
 ## Restricción absoluta: fichas de productos y folleto
 
-La portada aprobada por el titular el 17 de octubre de 2026 se implementa en `catalogo-inicio.js`, `catalogo-inicio.css` y sus ilustraciones. Abarca únicamente el nivel inicial de categorías: dos columnas en escritorio, ilustraciones de categorías, controles agrupados y redes en una franja inferior. Las clases de esta composición deben retirarse al navegar, buscar o administrar. No extender sus estilos a categorías interiores, productos individuales ni folleto; conservar los nombres, cantidades y enlaces reales del catálogo.
+La presentación aprobada por el titular el 17 de octubre de 2026 se implementa en `catalogo-inicio.js`, `catalogo-inicio.css` y sus ilustraciones. Por autorización posterior del 18 de octubre, conservar su estructura exterior al recorrer categorías, subcategorías, públicos y líneas: dos columnas en escritorio, controles agrupados y redes en una franja inferior. Las ilustraciones generales se usan solo en las seis categorías iniciales; los álbumes interiores conservan sus imágenes reales. Encabezado, controles e información mantienen la misma apariencia en las vistas públicas. En resultados con fichas, conservar la geometría original de las columnas para no redimensionarlas; administración y folleto conservan su composición original. No sustituir nodos ni enlaces del catálogo.
 
 **Está prohibido cambiar, directa o indirectamente, la presentación de cualquier ficha de producto**, tanto en web como en vista previa, folleto, PDF, PNG u otras exportaciones. Se deben conservar exactamente disposición, dimensiones, tipografías, colores, fondos, bordes, imágenes, botones, controles, espacios y alineaciones en todos los tamaños.
 

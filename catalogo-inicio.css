@@ -1,4 +1,4 @@
-/* Portada aprobada. Cada selector exige una marca que se retira al navegar. */
+/* Diseño aprobado y navegación uniforme. Las fichas conservan su geometría original. */
 .catalog-home-layout{grid-template-columns:minmax(0,1fr) minmax(250px,22%);gap:20px;padding-block:16px}
 .catalog-home-layout>.catalog-navigation{display:none}
 .catalog-home-main{width:100%;min-width:0}

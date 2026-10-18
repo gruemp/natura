@@ -1,4 +1,4 @@
-/* Composición exclusiva de la portada: no modifica productos, fichas ni pedidos. */
+/* Composición exterior del catálogo: no modifica productos, fichas ni pedidos. */
 (() => {
   "use strict";
   const grid = document.getElementById("grid");
@@ -22,29 +22,38 @@
   let artReady = false;
   let artRequested = false;
   let queued = false;
-  let wasHome = false;
+  let wasPublic = false;
   const artUrl = new URL("assets/inicio/categorias-natura-avon.webp", document.currentScript?.src || document.baseURI || location.href).href;
   function arrange() {
     queued = false;
     const cards = Array.from(grid.children);
-    const home = grid.classList.contains("root-nav-mode") &&
+    const publicView = (cards.length > 0 || wasPublic) && !document.body.classList.contains("catalog-admin-mode");
+    const albums = publicView && cards.length > 0 && grid.classList.contains("album-grid-mode") &&
+      cards.every(card => card.matches(".album-card[data-nav-level]")) &&
+      !String(search?.value || "").trim();
+    const home = albums && grid.classList.contains("root-nav-mode") &&
       grid.classList.contains("album-grid-mode") && cards.length > 0 &&
       cards.every(card => card.matches('.album-card[data-nav-level="category"]')) &&
       !String(search?.value || "").trim() &&
       !document.body.classList.contains("catalog-admin-mode");
-    for (const [node, name] of [[layout,"catalog-home-layout"],[main,"catalog-home-main"],
-      [header,"catalog-home-header"],[contact,"catalog-home-contact"],
-      [info,"catalog-home-info"],[socialHome,"catalog-home-social"],
-      [grid,"catalog-home-categories"]]) node?.classList.toggle(name, home);
+    // La anchura ampliada solo corresponde a navegación por álbumes.
+    // Las fichas conservan exactamente la geometría original de sus columnas.
+    layout.classList.toggle("catalog-home-layout", albums);
+    contact?.classList.toggle("catalog-home-contact", albums);
+    grid.classList.toggle("catalog-home-categories", albums);
+    for (const [node, name] of [[main,"catalog-home-main"],
+      [header,"catalog-home-header"],
+      [info,"catalog-home-info"],[socialHome,"catalog-home-social"]]) node?.classList.toggle(name, publicView);
     const images = window.INTERRUPTORES?.CARGAR_IMAGENES_CATALOGO !== false;
     layout.classList.toggle("catalog-home-art-ready", home && images && artReady);
-    if (home) {
+    if (albums) {
       for (const card of cards) {
         card.classList.add("home-category-tile");
         const key = names.get(normalize(card.querySelector(".album-label")?.textContent));
-        if (key) card.dataset.homeCategory = key;
+        if (home && key) card.dataset.homeCategory = key;
+        else delete card.dataset.homeCategory;
       }
-      if (images && !artRequested) {
+      if (home && images && !artRequested) {
         artRequested = true;
         const image = new Image();
         image.onload = () => { artReady = true; queue(); };
@@ -52,13 +61,13 @@
       }
     }
     // La composición original debe registrar primero el lugar de las redes.
-    // Solo restauramos su distribución después de haber mostrado esta portada.
-    if (socialHome && social && left && (home || wasHome)) {
-      const destination = home || !desktop.matches ? socialHome : left;
+    // Solo restauramos su distribución después de haber mostrado contenido del catálogo.
+    if (socialHome && social && left && (publicView || wasPublic)) {
+      const destination = publicView || !desktop.matches ? socialHome : left;
       if (social.parentElement !== destination) destination.appendChild(social);
-      socialHome.hidden = !home && desktop.matches;
+      socialHome.hidden = !publicView && desktop.matches;
     }
-    wasHome = home;
+    wasPublic = publicView;
   }
   function queue() {
     if (queued) return;

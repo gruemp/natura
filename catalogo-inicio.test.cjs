@@ -29,7 +29,7 @@ function environment({images=true,initialHome=true,initialSocial='left'}={}) {
   for(const name of ['catalog-layout','site-header','catalog-contact','catalog-navigation','social-contact-region','social-contact-card','catalog-products-info'])nodes.set('.'+name,make(name));
   const grid=nodes.get('#grid');if(initialHome)grid.classList.add('root-nav-mode');grid.classList.add('album-grid-mode');
   const names=['Perfumería','Cabello','Cuidado personal','Kits y combos','Maquillaje','Regalos'];
-  grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>s==='.album-card[data-nav-level="category"]';n.querySelector=()=>({textContent:text});return n;});
+  grid.children=names.map(text=>{const n=make('album-card');n.matches=s=>['.album-card[data-nav-level="category"]','.album-card[data-nav-level]'].includes(s);n.querySelector=()=>({textContent:text});return n;});
   const social=nodes.get('.social-contact-card'),left=nodes.get('.catalog-navigation');
   (initialSocial==='home'?nodes.get('.social-contact-region'):left).appendChild(social);
   const body=make();const observers=[];const tasks=[];const loads=[];
@@ -59,18 +59,28 @@ test('La portada conserva los nombres y cantidades del catálogo y devuelve las 
   assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-art-ready'),true);
 });
 
-test('Al navegar, buscar o entrar en administración se restaura la distribución interna',()=>{
-  for(const state of ['inner','product','search','admin']){
+test('La navegación interior conserva el diseño aprobado con imágenes reales',()=>{
+  const env=environment();
+  env.grid.classList.toggle('root-nav-mode',false);env.render();
+  assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-layout'),true);
+  assert.equal(env.grid.classList.contains('catalog-home-categories'),true);
+  assert.ok(env.grid.children.every(n=>!n.dataset.homeCategory));
+  assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-art-ready'),false);
+  assert.equal(env.social.parentElement,env.nodes.get('.social-contact-region'));
+});
+
+test('Las fichas y búsquedas conservan su anchura y la administración su composición',()=>{
+  for(const state of ['product','search','admin']){
     const env=environment();
-    if(state==='inner')env.grid.classList.toggle('root-nav-mode',false);
     if(state==='product')env.grid.children=[{matches:()=>false}];
     if(state==='search')env.nodes.get('#q').value='0499';
     if(state==='admin')env.body.classList.add('catalog-admin-mode');
     env.render();
     assert.equal(env.nodes.get('.catalog-layout').classList.contains('catalog-home-layout'),false,state);
+    assert.equal(env.nodes.get('.catalog-contact').classList.contains('catalog-home-contact'),false,state);
     assert.equal(env.grid.classList.contains('catalog-home-categories'),false,state);
-    assert.equal(env.social.parentElement,env.left,state);
-    assert.equal(env.nodes.get('.social-contact-region').hidden,true,state);
+    assert.equal(env.nodes.get('.site-header').classList.contains('catalog-home-header'),state!=='admin',state);
+    assert.equal(env.social.parentElement,state==='admin'?env.left:env.nodes.get('.social-contact-region'),state);
   }
 });
 
@@ -99,4 +109,11 @@ test('La carga inicial conserva el origen de las redes y reconcilia los cambios 
   env.observers[2].fn([{type:'childList'}]);env.flush();
   assert.equal(env.social.parentElement,footer,'Una recomposición anterior no devuelve las redes a la barra lateral');
   assert.equal(footer.hidden,false);
+});
+
+test('Una búsqueda vacía mantiene el marco y no convierte avisos en álbumes',()=>{
+  const env=environment();env.grid.children=[];env.nodes.get('#q').value='sin coincidencias';env.render();
+  assert.equal(env.nodes.get('.site-header').classList.contains('catalog-home-header'),true);
+  assert.equal(env.grid.classList.contains('catalog-home-categories'),false);
+  assert.equal(env.social.parentElement,env.nodes.get('.social-contact-region'));
 });
