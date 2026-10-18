@@ -40,6 +40,7 @@ jobs:
             node --check "$archivo"
           done
           node --check directorio-productos.js
+          node --check catalogo-inicio.js
           find apps-script -type f -name '*.js' -print0 | xargs -0 -r -n 1 node --check
 
       - name: Verificar archivos JSON de Apps Script
@@ -68,5 +69,5 @@ jobs:
           PY
 
       - name: Ejecutar pruebas del catalogo
-        run: node --test catalogo-integracion.test.cjs lector-publico.test.cjs analytics-visitas.test.cjs directorio-productos.test.cjs
+        run: node --test catalogo-integracion.test.cjs lector-publico.test.cjs analytics-visitas.test.cjs directorio-productos.test.cjs catalogo-inicio.test.cjs
 
