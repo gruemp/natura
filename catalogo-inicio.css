@@ -40,7 +40,7 @@
 .catalog-home-art-ready .home-category-tile[data-home-category="regalos"] .album-icon{background-position:100% 100%}
 .catalog-home-contact>.service-card{padding:14px 15px}
 .catalog-home-contact>.service-card>h2{font-size:25px;margin:0 0 8px;padding-bottom:10px}
-.catalog-home-contact>.service-card .service-list>li{display:flex;align-items:center;gap:10px;padding:10px 0;margin:0;font-size:13px;line-height:1.4}
+.catalog-home-contact>.service-card .service-list>li{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;min-height:0;padding:10px 0;margin:0;font-size:13px;line-height:1.4;text-align:justify;text-align-last:start}
 .catalog-home-contact>.service-card .service-list>li>.ui-icon{width:33px;height:33px;padding:7px;flex:none}
 .catalog-home-contact>#catalogPromotion{padding:10px;gap:8px;box-shadow:none}
 .catalog-home-contact>#catalogPromotion .catalog-promotion-image-link{aspect-ratio:1.35}
