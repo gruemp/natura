@@ -2,6 +2,8 @@
 
 **Ámbito:** este procedimiento rige **solo** las solicitudes de auditoría y mejora de apariencia visual de la página web de `gruemp/natura`. No reemplaza instrucciones explícitas posteriores ni cambia reglas para depuración de productos, operaciones comerciales o Apps Script.
 
+**Prioridad operativa desde 2026-11-06:** Google Drive `natura/codigo/` es el origen del código. Quedan suspendidas todas las sincronizaciones y publicaciones de fuentes entre Google Drive y GitHub hasta autorización expresa del titular. La dirección futura predeterminada será Drive → GitHub; nunca tocar `natura/recursos/`. Revisar `.github/POLITICA-SINCRONIZACION-DRIVE-GITHUB.md`. Estas reglas visuales no autorizan por sí mismas commits, merges, despliegues ni sincronización.
+
 ## Objetivo de diseño
 
 - Priorizar cambios **perceptibles inmediatamente** al abrir la página, sin pasar el cursor, hacer clic, usar teclado, abrir menús ni activar estados.
@@ -35,17 +37,17 @@ Añadir exclusivamente selectores de CSS **estrictamente acotados** a componente
 
 ## Flujo obligatorio para una modificación
 
-1. Consultar el estado más reciente de `https://github.com/gruemp/natura`, rama `main`; leer el código relevante y revisar si la mejora ya está implementada. No asumir que un commit conocido sigue siendo la versión vigente.
+1. Consultar primero las fuentes originales de Google Drive en `natura/codigo/` y, solo como referencia de la versión publicada, el repositorio GitHub `gruemp/natura` en su rama `main`. Leer el código relevante y verificar si la mejora ya existe. No copiar contenido ni sincronizar fuentes sin autorización expresa.
 2. Obtener evidencia **antes** de la vista inicial, a tamaños representativos de móvil, tableta y escritorio (por ejemplo **390, 768/820 y 1440/1280 px**), sin interacción ni operaciones comerciales. Revisar estructura exterior y fichas reales.
 3. Proponer solo diferencias claras de composición. Cada mejora debe corresponder a una zona y cambio independiente visibles en la comparación, no a estados ocultos.
 4. Implementar cambios exclusivamente en reglas CSS exteriores con ámbito estricto, referencia de versión CSS cuando proceda y pruebas indispensables. No tocar `apps-script/`, ningún proyecto o despliegue Apps Script, otros repositorios, maestro de reglas, datos, precios, funciones, permisos, integraciones, analítica ni pedidos.
 5. Comparar capturas **antes/después** en las tres anchuras, con el mismo estado de contenido. Comprobar explícitamente la identidad visual de las fichas reales web y folleto/exportaciones; si esa garantía no es posible, no publicar la modificación y explicar el alcance real de la prueba.
-6. Ejecutar pruebas automatizadas pertinentes y aislamiento de selectores; comprobar que el diff solo incluye archivos autorizados. Releer `main` justo antes de escribir; si ha cambiado, reanalizar y respetar concurrencia. Publicar en `main` únicamente mejoras justificadas y verificadas.
-7. Verificar el resultado de GitHub Actions y el despliegue de GitHub Pages **del commit nuevo**, y hacer un único intento razonable de verificación pública en `https://gruemp.github.io/natura/catalogo.html?verificacion=1`. Si una herramienta bloquea el acceso, declararlo: no confundir renderizaciones locales con verificación del sitio publicado ni generar visitas artificiales.
+6. Ejecutar pruebas pertinentes y comprobar que solo se preparen cambios autorizados. Mantener los cambios en la fuente original de Drive; no transferirlos a GitHub ni fusionar o publicar en `main` sin una orden expresa posterior y específica del titular. Si se autorizara una publicación, volver a revisar `main`, concurrencia y diferencias antes de cualquier escritura.
+7. Solo si el titular autoriza expresamente publicar, verificar GitHub Actions y GitHub Pages del commit aprobado y realizar un intento razonable de verificación pública. Sin esa autorización, no producir un commit de código ni afirmar publicación; reportar las pruebas locales por separado.
 
 ## Cómo informar
 
-Reportar brevemente la **cifra real** de mejoras visibles y publicadas, zonas afectadas, evidencia de capturas antes/después por ancho, comprobación de fichas web y folleto, commit exacto, pruebas, Actions, Pages, y enlace `https://gruemp.github.io/natura/catalogo.html`. Indicar claramente bloqueos, pasos no comprobados o propuestas no publicadas. **Nunca afirmar que el diseño está terminado.**
+Reportar brevemente la **cifra real** de mejoras comprobadas, las zonas afectadas, la evidencia visual, la verificación de fichas y las pruebas. Indicar expresamente si los cambios siguen únicamente en Drive y **no están publicados**. Solo si hubo autorización de publicación, informar commit exacto, Actions, Pages y enlace público. Indicar bloqueos y comprobaciones pendientes. **Nunca afirmar que el diseño está terminado.**
 
 ## Ejemplo de alcance permitido, ya ejecutado
 
