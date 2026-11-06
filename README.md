@@ -1,6 +1,6 @@
 # Natura — mapa de archivos
 
-Estado vigente (2026-10-11): las fuentes de Natura se mantienen en https://github.com/gruemp/natura . La única carpeta vigente del proyecto en Google Drive es https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Las actualizaciones entre ambos se realizan manualmente, con verificación de contenido e identificadores; no hay sincronización automática.
+**Estado vigente (2026-11-06): las sincronizaciones están suspendidas.** El origen de las fuentes es la carpeta `natura/codigo/` de Google Drive; GitHub conserva el repositorio de publicación. Solo se permitirán transferencias de Drive a GitHub cuando el titular lo ordene expresamente; la dirección inversa requerirá una instrucción posterior. Leer `.github/POLITICA-SINCRONIZACION-DRIVE-GITHUB.md` antes de preparar cambios. Ningún archivo de `natura/recursos/` se sincroniza.
 
 ## Sitio público
 
@@ -30,32 +30,29 @@ Recargar la página restaura la ruta, búsqueda, filtros, orden y posiciones de 
 
 ## Apps Script
 
-- `apps-script/`: fuentes de los proyectos de Apps Script mantenidas en el repositorio independiente. El titular autoriza a los agentes a corregir y actualizar por iniciativa propia el código de los proyectos remotos oficiales, así como publicar sus despliegues existentes, sin pedir una confirmación adicional para cada corrección. Antes de publicar, ejecutar las pruebas pertinentes y verificar las identidades del proyecto y del despliegue; conservar los IDs, enlaces y permisos existentes y comprobar el resultado. Utilizar los workflows vigentes y las credenciales autorizadas, sin extraerlas ni mostrarlas. Esta autorización se limita al código y sus despliegues: no incluye modificar datos comerciales, inventario, precios, pedidos ni sincronizar archivos de Drive fuera de Apps Script.
+- `apps-script/`: copias históricas vinculadas a proyectos de Apps Script; no son fuente activa ni autorizan publicaciones. El material histórico de Drive está en `natura/recursos/apps-script/`. Los proyectos vigentes de Apps Script se administran directamente en Apps Script, fuera de la sincronización del sitio. Los workflows antiguos de publicación de Apps Script en GitHub están suspendidos.
 - `lectura de carpetas en natura`: proyecto Apps Script real visible en Drive; es destino de ejecución, no fuente normal de edición.
 
 ## Repositorio independiente
 
-- Las fuentes están en la raíz de https://github.com/gruemp/natura .
+- La versión publicada en GitHub mantiene su estructura en la raíz de https://github.com/gruemp/natura ; la raíz correspondiente de fuentes en Drive es `natura/codigo/`.
 - Se trasladaron los 104 archivos de la carpeta preparada, conservando 1.019 commits de su historial; los identificadores de los commits cambian al extraer la subcarpeta. El repositorio stock conserva su historia original.
 - `.github/workflows/verificar-fuentes-natura.yml` comprueba sintaxis, manifiestos y pruebas sin datos comerciales ni secretos.
-- La credencial `CLASPRC_JSON` está guardada como secreto del repositorio y `NATURA_PUBLICACION_HABILITADA=true` habilita sus publicaciones. Los cinco proyectos y despliegues oficiales de Google fueron consultados y publicados correctamente el 2026-10-11; los publicadores anteriores de Apps Script en stock están desactivados.
+- Históricamente se utilizaron credenciales y workflows de Apps Script; esos publicadores se han retirado de GitHub Actions. No se autoriza sincronización ni publicación de Apps Script desde el repositorio.
 - Catálogo publicado: https://gruemp.github.io/natura/catalogo.html . GitHub Pages se sirve desde `main`, en la raíz; canonical, sitemap, robots y enlaces del catálogo utilizan esta dirección.
 - El lector público utiliza un proyecto independiente y consulta tres propiedades públicas vigentes mediante la biblioteca privada del administrador, fijada en la versión 35. Su publicación conserva el archivo original Código.gs y no modifica el administrador.
 - Carpeta vigente de Google Drive: https://drive.google.com/drive/folders/14aLaWOZKqHKm42qlZmcx2HXnDwR9c249 . Los archivos de código conciliados conservan sus IDs. La carpeta de anuncios y el proyecto nativo de lectura se trasladaron conservando sus identificadores y permisos; las hojas comerciales y los despliegues mantienen sus identidades.
 - Los procedimientos retirados de migración y sincronización se consultan en el historial Git; no forman parte del código vigente.
 
-## Sincronizar solo diferencias con Google Drive
+## Sincronización de fuentes (suspendida)
 
-El **origen del código** es GitHub; su raíz se corresponde con [natura/codigo/ en Drive](https://drive.google.com/drive/folders/1QTjyvYBFb5ZEzRwI9c8HyV_98oLhgbQ7), que recibe únicamente las diferencias que autorice el titular. La carpeta [natura/recursos/](https://drive.google.com/drive/folders/1sNOwNw1-YZs980o6zQ86uXJ2N7dC9NKN) conserva anuncios y copias históricas de Apps Script, fuera de la sincronización. La última conciliación completa de fuentes activas fue de **68/68 archivos de texto**, comprobados contra el commit `7efbde14e2b63061858bb8080d9b0a7059cea3da` el 2026-10-12; [auditoría verificada](https://github.com/gruemp/natura/actions/runs/38317024151).
+**No ejecutar ninguna sincronización.** Este procedimiento reemplaza las instrucciones históricas GitHub → Drive. La fuente actual de Natura es [Google Drive, `natura/codigo/`](https://drive.google.com/drive/folders/1QTjyvYBFb5ZEzRwI9c8HyV_98oLhgbQ7). Su contenido se corresponderá en una futura operación autorizada con la **raíz** de `gruemp/natura`, sin añadir una carpeta `codigo/` en GitHub. La carpeta [`natura/recursos/`](https://drive.google.com/drive/folders/1sNOwNw1-YZs980o6zQ86uXJ2N7dC9NKN) está protegida y excluida.
 
-**Procedimiento para la próxima sincronización puntual**:
+El titular debe autorizar explícitamente cada operación, su dirección y alcance. Por defecto, una futura sincronización será **Google Drive → GitHub**; la dirección inversa solo puede habilitarse con una nueva orden expresa. Preparar primero una comparación de rutas, tamaños y SHA-256, separar creaciones, modificaciones, conflictos y eliminaciones, y pedir autorización específica para eliminar, modificar workflows, publicar o tocar Apps Script. Ante una orden autorizada, crear una rama de revisión, sin fusionar a `main` ni activar publicaciones por inferencia.
 
-1. Preparar desde la pestaña *Actions* el workflow manual `Preparar cambios Natura para Google Drive`. Compara la rama principal contra `.github/natura-drive-sync-state.json` (o un commit base indicado manualmente), **sin acceder a secretos ni escribir en Drive**. Produce un ZIP con solo los archivos fuente de texto modificados y un `manifest.json` que indica la ruta en GitHub (`path`), su destino en Drive (`drive_path`, con prefijo `codigo/`), tamaño y SHA-256. Se excluyen los archivos binarios, `apps-script/` y `.github/archivo/`; las eliminaciones se notifican pero **no se ejecutan**.
-2. Cotejar el paquete con los archivos ya existentes en `natura/codigo/`, resolviendo `drive_path` desde la carpeta `natura` y buscando **por nombre exacto dentro de su subcarpeta**. La raíz de GitHub se corresponde con `codigo/` en Drive: no crear una carpeta `codigo/` en GitHub ni duplicarla dentro de `natura/codigo/`. Si hay duplicados o rutas ambiguas, detener la operación. Comparar hashes y **no subir contenido idéntico**.
-3. Actualizar con la conexión autorizada de Google Drive únicamente los originales que difieran bajo `natura/codigo/` (misma identidad/ID, ubicación, enlaces, permisos e historial). Crear los nuevos solo si faltan. **No borrar ni reemplazar carpetas completas, ni modificar `natura/recursos/` o los proyectos oficiales de Apps Script**.
-4. Releer los archivos tocados y comparar sus bytes/hashes con GitHub; auditar el alcance previsto. Registrar el commit conciliado y actualizar el punto de control **solo después** de verificar todas las escrituras. Si hay un error, dejarlo registrado y conservar el último commit verificado.
+Los workflows antiguos de preparación GitHub → Drive, actualización automática de directorio, importación de imágenes en Drive y publicación de Apps Script quedaron fuera de `.github/workflows/`; sus versiones se conservan en `.github/archivo/workflows-suspendidos/`. No se ejecutarán ni restaurarán sin instrucción del titular.
 
-`CLASPRC_JSON` **no es necesaria** para la transferencia directa mediante las conexiones de ChatGPT; el workflow manual solo prepara el paquete. Las copias históricas de `apps-script/` que reposan en `natura/recursos/`, los proyectos oficiales de Apps Script, los documentos comerciales y los archivos binarios/históricos están fuera de esta sincronización. La presencia de un `apps-script/` antiguo en GitHub no autoriza actualizarlo ni publicarlo. No se activa sincronización automática.
+Como **antecedente histórico**, la última conciliación antes de este cambio registró 68/68 archivos de texto frente al commit `7efbde14e2b63061858bb8080d9b0a7059cea3da` el 2026-10-12 ([auditoría](https://github.com/gruemp/natura/actions/runs/38317024151)). El punto de control `.github/natura-drive-sync-state.json` pertenecía al procedimiento anterior y no habilita transferencias actuales. La nueva política aplicable está en [`.github/POLITICA-SINCRONIZACION-DRIVE-GITHUB.md`](.github/POLITICA-SINCRONIZACION-DRIVE-GITHUB.md).
 
 ## Regla de mantenimiento
 
@@ -65,5 +62,5 @@ Toda opción administrativa que escriba en un libro externo debe ofrecer en esa 
 
 ## Archivo
 
-`.github/archivo/recursos-visuales/` conserva los originales gráficos reemplazados por los SVG del sitio, con su guía de procedencia. Los scripts, workflows, activadores y solicitudes retirados se recuperan del historial Git. Los workflows operativos permanecen en `.github/workflows/`.
+`.github/archivo/recursos-visuales/` conserva los originales gráficos reemplazados por los SVG del sitio, con su guía de procedencia. Los cinco workflows suspendidos permanecen en `.github/archivo/workflows-suspendidos/`, fuera del directorio ejecutable de Actions. Los demás scripts, activadores y solicitudes retirados también se recuperan del historial Git. Solo los workflows de verificación de lectura se mantienen activos en `.github/workflows/`.
 
