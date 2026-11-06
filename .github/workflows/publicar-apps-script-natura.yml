@@ -21,7 +21,10 @@ concurrency:
 
 jobs:
   publicar:
-    if: ${{ vars.NATURA_PUBLICACION_HABILITADA == 'true' }}
+    # Desactivado por el titular el 2026-11-06: editar y publicar en Google Apps Script.
+    # Maestro 2.2.53. Conservar este procedimiento como histórico; reactivar solo por orden expresa.
+    # Condición anterior: ${{ vars.NATURA_PUBLICACION_HABILITADA == 'true' }}
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
