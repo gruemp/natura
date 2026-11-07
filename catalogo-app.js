@@ -35,7 +35,7 @@
     // Servicio público vigente que indexa directamente la carpeta productos de Google Drive.
     // Devuelve products, gifts, ads y assets con id, name y url para cada imagen.
     const APPS_SCRIPT_IMAGE_SOURCE = {
-      endpoint: "https://script.google.com/macros/s/AKfycbzuHYa9Uf_5v5-FhDXQFu6WRuW49DgxJLUHrm_tq1Vdk539VZjeQeGrlWWqgJj4SzMg2w/exec",
+      endpoint: "https://script.google.com/macros/s/AKfycbzjtRLbSDxmqZdk99FDRdtuXQ3X3yPeOAPwQ9-X2vrJOnxV9XuwJr2rJr-vooAd6x_i/exec",
       cacheKey: "irenismb_apps_script_image_index_v2",
       timeoutMs: 25000
     };

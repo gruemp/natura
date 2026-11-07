@@ -1755,7 +1755,7 @@
 
   <script src="precios-admin-config.js?actualizacion=catalogo-pro-2026-10-07-3"></script>
   <script src="recursos-visuales.js?actualizacion=2026-10-11-svg-codigo&amp;marca=logo-real-v1"></script>
- <script src="catalogo-app.js?actualizacion=retorno-directorio-v1"></script>
+ <script src="catalogo-app.js?actualizacion=lector-restaurado-2026-11-06"></script>
   <script src="catalogo-cache.js?actualizacion=cache-configurable-v1"></script>
   <script src="catalogo-carrito-pedido.js?actualizacion=administracion-movimientos-2026-10-14-2"></script>
   <script src="catalogo-herramientas.js?actualizacion=depuracion-sin-inicio-v1"></script>
@@ -1906,7 +1906,7 @@
           if (!response.ok) throw new Error("El índice de anuncios no respondió correctamente.");
           const payload = await response.json();
           if (!payload || payload.ok !== true ||
-              payload.source?.adsFolderId !== "1QitBAhBjw_tik-qacrAmmx7cKMRJhIoM") {
+              payload.source?.adsFolderId !== "1J-go2l7I34zZvGdBJ0pqZG5AUkbrxVTB") {
             throw new Error("Respuesta del índice de anuncios no válida.");
           }
           const chosen = chooseAd(payload);
